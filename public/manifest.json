@@ -1,0 +1,50 @@
+﻿{
+  "name": "Riff - Song Browsing & Listening",
+  "short_name": "Riff",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "description": "Ultra-fast global music streaming and offline listening PWA",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/maskable-icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["music", "entertainment"],
+  "shortcuts": [
+    {
+      "name": "Explore Music",
+      "url": "/#search",
+      "description": "Search global songs and artists"
+    },
+    {
+      "name": "Your Library",
+      "url": "/#library",
+      "description": "Access offline and local tracks"
+    }
+  ]
+}

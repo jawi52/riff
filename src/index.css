@@ -1,0 +1,149 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-primary: #08080a;
+    --bg-surface: #111216;
+    --bg-surface-elevated: #181920;
+    --bg-surface-glass: rgba(18, 19, 25, 0.65);
+    
+    --spotify-green: #1db954;
+    --spotify-green-hover: #1ed760;
+    --spotify-green-glow: rgba(29, 185, 84, 0.35);
+    
+    --text-pure: #ffffff;
+    --text-secondary: #9499a8;
+    --text-muted: #585c6c;
+  }
+
+  body {
+    background-color: var(--bg-primary);
+    color: var(--text-pure);
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', 'Plus Jakarta Sans', system-ui, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    overflow-x: hidden;
+  }
+
+  button, a, [role="button"], input[type="button"], input[type="submit"], input[type="reset"] {
+    cursor: pointer;
+  }
+
+  /* Custom Clean Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(29, 185, 84, 0.4);
+  }
+}
+
+/* Swiss Editorial Glassmorphism */
+.glass-editorial {
+  background: rgba(18, 19, 25, 0.68);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.6);
+}
+
+.glass-card-editorial {
+  background: rgba(22, 24, 32, 0.45);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-card-editorial:hover {
+  background: rgba(28, 30, 42, 0.7);
+  border-color: rgba(29, 185, 84, 0.4);
+  transform: translateY(-3px);
+  box-shadow: 0 16px 30px -10px rgba(29, 185, 84, 0.18), 0 0 0 1px rgba(29, 185, 84, 0.2);
+}
+
+.glass-dock-editorial {
+  background: rgba(10, 11, 15, 0.88);
+  backdrop-filter: blur(28px) saturate(190%);
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.7);
+}
+
+/* Spotify Emerald Actions */
+.btn-spotify-emerald {
+  background: #1db954;
+  color: #000000;
+  font-weight: 700;
+  box-shadow: 0 4px 18px rgba(29, 185, 84, 0.38);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-spotify-emerald:hover {
+  background: #1ed760;
+  transform: scale(1.04);
+  box-shadow: 0 6px 24px rgba(29, 185, 84, 0.55);
+}
+
+.btn-spotify-emerald:active {
+  transform: scale(0.96);
+}
+
+/* Swiss Editorial Scrub Slider */
+.editorial-scrubber {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+  height: 16px;
+}
+
+.editorial-scrubber::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.16);
+  transition: height 0.15s ease;
+}
+
+.editorial-scrubber:hover::-webkit-slider-runnable-track {
+  height: 6px;
+}
+
+.editorial-scrubber::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 12px;
+  width: 12px;
+  border-radius: 50%;
+  background: #ffffff;
+  margin-top: -4px;
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  transition: all 0.15s ease;
+}
+
+.editorial-scrubber:hover::-webkit-slider-thumb {
+  opacity: 1;
+  background: #1db954;
+  box-shadow: 0 0 10px rgba(29, 185, 84, 0.8);
+  transform: scale(1.2);
+  margin-top: -3px;
+}
+
+/* Editorial Vinyl Spinning Animation */
+@keyframes spinSlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-vinyl-spin {
+  animation: spinSlow 16s linear infinite;
+}

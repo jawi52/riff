@@ -1,0 +1,13 @@
+﻿services:
+  - type: web
+    name: riff-music-pwa
+    runtime: docker
+    plan: free
+    region: oregon
+    buildCommand: ""
+    startCommand: ""
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3080
