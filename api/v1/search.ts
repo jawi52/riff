@@ -1,6 +1,20 @@
-import axios from 'axios';
+﻿import axios from 'axios';
+import crypto from 'crypto';
 
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36';
+
+function decryptSaavn(encryptedUrl: string): string | null {
+  if (!encryptedUrl) return null;
+  try {
+    const key = Buffer.from('38346591', 'utf8');
+    const cipher = crypto.createDecipheriv('des-ede3', Buffer.concat([key, key, key]), null);
+    let dec = cipher.update(encryptedUrl, 'base64', 'utf8');
+    dec += cipher.final('utf8');
+    return dec.replace(/_96\.(mp4|m4a)/, '_320.mp4').replace(/_160\.(mp4|m4a)/, '_320.mp4');
+  } catch {
+    return null;
+  }
+}
 
 function cleanStr(s: string): string {
   return (s || '')
@@ -26,7 +40,7 @@ async function searchApple(q: string) {
       album: item.collectionName || 'Single',
       duration: Math.round((item.trackTimeMillis || 180000) / 1000),
       coverUrl: (item.artworkUrl100 || '').replace('100x100bb', '1000x1000bb') || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&q=80',
-      sourceType: 'ytdlp',
+      sourceType: 'saavn',
       genre: item.primaryGenreName || 'Pop',
       releaseYear: item.releaseDate ? new Date(item.releaseDate).getFullYear() : 2024,
       hasSyncedLyrics: true,
@@ -37,65 +51,51 @@ async function searchApple(q: string) {
   }
 }
 
-async function searchDeezer(q: string) {
+async function searchSaavnOfficial(q: string) {
   try {
-    const res = await axios.get('https://api.deezer.com/search', {
-      params: { q, limit: 25 },
+    const res = await axios.get('https://www.jiosaavn.com/api.php', {
+      params: {
+        __call: 'search.getResults',
+        _format: 'json',
+        _marker: '0',
+        api_version: '4',
+        ctx: 'web6dot0',
+        n: '20',
+        p: '1',
+        q: q
+      },
       headers: { 'User-Agent': USER_AGENT },
       timeout: 3000
     });
-    if (!res.data?.data) return [];
-    return res.data.data.map((item: any) => ({
-      id: `dz_${item.id}`,
-      title: item.title,
-      artist: item.artist?.name || 'Unknown Artist',
-      album: item.album?.title || 'Single',
-      duration: item.duration || 180,
-      coverUrl: item.album?.cover_xl || item.album?.cover_big || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80',
-      sourceType: 'ytdlp',
-      genre: 'Pop',
-      hasSyncedLyrics: true,
-      bitrateKbps: 320
-    }));
+
+    const songs = res.data?.results || [];
+    if (!Array.isArray(songs) || songs.length === 0) return [];
+
+    return songs.map((s: any) => {
+      const moreInfo = s.more_info || {};
+      const directStream = decryptSaavn(moreInfo.encrypted_media_url) || moreInfo.vlink || '';
+      const rawImg = s.image || '';
+      const hdCover = rawImg ? rawImg.replace(/150x150/g, '500x500') : 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&q=80';
+      const artists = moreInfo.artistMap?.primary_artists?.map((a: any) => a.name).join(', ') || moreInfo.music || s.subtitle || 'Unknown Artist';
+
+      return {
+        id: `saavn_${s.id}`,
+        title: s.title ? s.title.replace(/&quot;/g, '"').replace(/&amp;/g, '&') : 'Unknown Title',
+        artist: artists.replace(/&quot;/g, '"').replace(/&amp;/g, '&'),
+        album: moreInfo.album ? moreInfo.album.replace(/&quot;/g, '"').replace(/&amp;/g, '&') : 'Single',
+        duration: parseInt(moreInfo.duration || '200', 10) || 200,
+        coverUrl: hdCover,
+        sourceType: 'saavn',
+        streamUrl: directStream,
+        genre: s.language || 'Pop',
+        releaseYear: parseInt(s.year || '2024', 10) || 2024,
+        hasSyncedLyrics: moreInfo.has_lyrics === 'true',
+        bitrateKbps: 320
+      };
+    });
   } catch {
     return [];
   }
-}
-
-async function searchSaavn(q: string) {
-  const mirrors = ['https://saavn.dev/api', 'https://jiosaavn-api-privatecvc2.vercel.app'];
-  for (const m of mirrors) {
-    try {
-      const res = await axios.get(`${m}/search/songs`, {
-        params: { query: q, limit: 20 },
-        headers: { 'User-Agent': USER_AGENT },
-        timeout: 2500
-      });
-      const songs = res.data?.data?.results || res.data?.results || [];
-      if (songs.length === 0) continue;
-      return songs.map((s: any) => {
-        const dls = s.downloadUrl || [];
-        const highQual = dls.find((u: any) => u.quality === '320kbps')?.url || dls[dls.length - 1]?.url || s.media_url;
-        const imgs = s.image || [];
-        const highCover = imgs.find((img: any) => img.quality === '500x500')?.url || imgs[imgs.length - 1]?.url || s.image;
-        return {
-          id: `saavn_${s.id}`,
-          title: s.name || s.title,
-          artist: s.artists?.primary?.map((a: any) => a.name).join(', ') || s.primaryArtists || 'Unknown Artist',
-          album: s.album?.name || s.album || 'Single',
-          duration: parseInt(s.duration, 10) || 200,
-          coverUrl: highCover || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&q=80',
-          sourceType: 'saavn',
-          streamUrl: highQual || '',
-          genre: s.language || 'Pop',
-          releaseYear: parseInt(s.year, 10) || 2024,
-          hasSyncedLyrics: s.hasLyrics === 'true' || !!s.lyrics,
-          bitrateKbps: 320
-        };
-      });
-    } catch {}
-  }
-  return [];
 }
 
 export default async function handler(req: any, res: any) {
@@ -113,17 +113,12 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const [appleRes, deezerRes, saavnRes] = await Promise.allSettled([
-      searchApple(q),
-      searchDeezer(q),
-      searchSaavn(q)
+    const [saavnTracks, appleTracks] = await Promise.all([
+      searchSaavnOfficial(q),
+      searchApple(q)
     ]);
 
-    const appleTracks = appleRes.status === 'fulfilled' ? appleRes.value : [];
-    const deezerTracks = deezerRes.status === 'fulfilled' ? deezerRes.value : [];
-    const saavnTracks = saavnRes.status === 'fulfilled' ? saavnRes.value : [];
-
-    const all = [...saavnTracks, ...appleTracks, ...deezerTracks];
+    const all = [...saavnTracks, ...appleTracks];
 
     if (all.length === 0) {
       return res.status(200).json({
