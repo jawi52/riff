@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { usePlayerStore } from '../../stores/usePlayerStore';
 
 export interface LogoProps {
@@ -10,59 +10,64 @@ export interface LogoProps {
 }
 
 const heightMap = {
-  sm: 28,
-  md: 36,
-  lg: 48,
-  xl: 64,
+  sm: 24,
+  md: 30,
+  lg: 38,
+  xl: 48,
 };
 
-/**
- * Bespoke Handcrafted "Riff" Typographic Vector Logotype
- * Precision Swiss geometric typography with electric neon audio accents.
- */
-export const RiffTextLogo: React.FC<{
+export interface RiffTextLogoProps {
   height?: number;
+  size?: number;
   glow?: boolean;
   animated?: boolean;
   className?: string;
-}> = ({ height = 36, glow = true, animated = false, className = '' }) => {
+}
+
+/**
+ * Pure Typographic "Riff" Wordmark Logo
+ * Handcrafted vector letterforms for 'R', 'i', 'f', 'f' with electric neon audio styling.
+ * Zero icon box / squircle — the typography itself is the brand logo.
+ */
+export const RiffTextLogo: React.FC<RiffTextLogoProps> = ({
+  height,
+  size,
+  glow = true,
+  animated = false,
+  className = ''
+}) => {
+  const finalHeight = height || size || 28;
   const id = React.useId().replace(/[^a-zA-Z0-9]/g, '');
-  // Aspect ratio is 140 : 40 (3.5 : 1)
-  const width = Math.round(height * 3.5);
+  // Aspect ratio is 115 : 32 (3.59 : 1)
+  const width = Math.round(finalHeight * 3.59);
 
   return (
     <svg
       width={width}
-      height={height}
-      viewBox="0 0 140 40"
+      height={finalHeight}
+      viewBox="0 0 115 32"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={`inline-block shrink-0 select-none ${className}`}
     >
       <defs>
-        {/* White to Platinum Gradient for clean crisp typography */}
-        <linearGradient id={`textGrad_${id}`} x1="0%" y1="0%" x2="100%" y2="100%">
+        {/* Crisp Gradient for 'R' and 'ff' */}
+        <linearGradient id={`riffTextGrad_${id}`} x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#ffffff" />
-          <stop offset="100%" stopColor="#e2e8f0" />
+          <stop offset="100%" stopColor="#e5e7eb" />
         </linearGradient>
 
-        {/* High-Octane Emerald to Cyan Electric Gradient */}
-        <linearGradient id={`emeraldGrad_${id}`} x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#1ed760" />
-          <stop offset="60%" stopColor="#1db954" />
-          <stop offset="100%" stopColor="#06b6d4" />
+        {/* Electric Emerald to Cyan Sonic Gradient */}
+        <linearGradient id={`riffSonicGrad_${id}`} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#10b981" />
+          <stop offset="60%" stopColor="#06b6d4" />
+          <stop offset="100%" stopColor="#3b82f6" />
         </linearGradient>
 
-        {/* Dynamic Wave Gradient */}
-        <linearGradient id={`waveGrad_${id}`} x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#1ed760" stopOpacity="0.8" />
-          <stop offset="100%" stopColor="#06b6d4" stopOpacity="1" />
-        </linearGradient>
-
-        {/* Luminescent Emerald Glow */}
+        {/* Glow Filter */}
         {glow && (
-          <filter id={`glow_${id}`} x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur" />
+          <filter id={`riffGlow_${id}`} x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" result="blur" />
             <feMerge>
               <feMergeNode in="blur" />
               <feMergeNode in="SourceGraphic" />
@@ -71,104 +76,88 @@ export const RiffTextLogo: React.FC<{
         )}
       </defs>
 
-      <g className="transition-all duration-300">
+      <g>
         {/* ================= LETTER 'R' ================= */}
-        {/* Stem of R */}
-        <rect x="6" y="8" width="7" height="26" rx="2" fill={`url(#textGrad_${id})`} />
+        {/* R Stem */}
+        <rect x="2" y="4" width="5.5" height="24" rx="1.5" fill={`url(#riffTextGrad_${id})`} />
         
-        {/* Bowl of R */}
+        {/* R Upper Bowl */}
         <path
-          d="M13 8 H26 C32.5 8 37 12 37 17.5 C37 23 32.5 27 26 27 H13 V8 Z"
-          fill={`url(#textGrad_${id})`}
+          d="M7.5 4 H16.5 C21.5 4 24.5 6.8 24.5 11.5 C24.5 16.2 21.5 19 16.5 19 H7.5 V4 Z"
+          fill={`url(#riffTextGrad_${id})`}
         />
-        {/* Inner Cutout of R Bowl */}
+        {/* Inner Bowl Cutout */}
         <path
-          d="M13 14 H24.5 C27.5 14 29.5 15.5 29.5 17.5 C29.5 19.5 27.5 21 24.5 21 H13 V14 Z"
-          fill="#08080a"
+          d="M7.5 8.5 H15.5 C18 8.5 19.5 9.8 19.5 11.5 C19.5 13.2 18 14.5 15.5 14.5 H7.5 V8.5 Z"
+          fill="#06070a"
         />
 
-        {/* Emerald Sonic Pulse Bar inside R Bowl */}
+        {/* Electric Emerald Wave Riff slice across R */}
         <rect
-          x="16"
-          y="16"
-          width="8"
-          height="3"
-          rx="1.5"
-          fill={`url(#emeraldGrad_${id})`}
-          filter={glow ? `url(#glow_${id})` : undefined}
-          className={animated ? 'animate-pulse' : ''}
+          x="7.5"
+          y="10.5"
+          width="7.5"
+          height="2"
+          rx="1"
+          fill={`url(#riffSonicGrad_${id})`}
+          filter={glow ? `url(#riffGlow_${id})` : undefined}
         />
 
-        {/* Dynamic Forward Leg of R */}
-        <polygon
-          points="20,24 27,24 38,34 30,34"
-          fill={`url(#textGrad_${id})`}
+        {/* R Leg */}
+        <path
+          d="M13 17.5 L20.5 28 H26.5 L18.5 17.5 H13 Z"
+          fill={`url(#riffTextGrad_${id})`}
         />
 
         {/* ================= LETTER 'i' ================= */}
-        {/* Stem of i */}
-        <rect x="46" y="16" width="6.5" height="18" rx="2" fill={`url(#textGrad_${id})`} />
-
-        {/* Glowing Emerald Pulse Dot on 'i' */}
+        {/* i Stem */}
+        <rect x="33" y="11" width="5" height="17" rx="1.5" fill={`url(#riffTextGrad_${id})`} />
+        {/* Glowing Sonic Dot above i */}
         <circle
-          cx="49.25"
-          cy="10"
-          r="3.5"
-          fill={`url(#emeraldGrad_${id})`}
-          filter={glow ? `url(#glow_${id})` : undefined}
-          className={animated ? 'animate-ping' : ''}
-          style={{ transformOrigin: '49.25px 10px' }}
-        />
-        <circle
-          cx="49.25"
-          cy="10"
-          r="3.5"
-          fill={`url(#emeraldGrad_${id})`}
+          cx="35.5"
+          cy="5.5"
+          r="3"
+          fill={`url(#riffSonicGrad_${id})`}
+          filter={glow ? `url(#riffGlow_${id})` : undefined}
+          className={animated ? 'animate-pulse' : ''}
         />
 
         {/* ================= FIRST LETTER 'f' ================= */}
-        {/* Stem and top arch of first 'f' */}
+        {/* Stem and arch */}
         <path
-          d="M68 6 C62 6 59 10 59 16 V34 H66 V18 C66 14 68 13 71 13 C72 13 73 13.5 74 14 V7 C72 6.3 70 6 68 6 Z"
-          fill={`url(#textGrad_${id})`}
+          d="M51 4 C45.5 4 43 7.5 43 13 V28 H48 V14 C48 11 49.5 10 52 10 C53 10 54 10.3 54.8 10.8 V5 C53.8 4.3 52.5 4 51 4 Z"
+          fill={`url(#riffTextGrad_${id})`}
         />
-        {/* Crossbar of first 'f' */}
-        <rect x="55" y="16" width="16" height="5" rx="1.5" fill={`url(#textGrad_${id})`} />
+        {/* Crossbar */}
+        <rect x="40" y="12" width="13" height="4.5" rx="1.2" fill={`url(#riffTextGrad_${id})`} />
 
         {/* ================= SECOND LETTER 'f' ================= */}
-        {/* Stem and top arch of second 'f' */}
+        {/* Stem and arch */}
         <path
-          d="M87 6 C81 6 78 10 78 16 V34 H85 V18 C85 14 87 13 90 13 C91 13 92 13.5 93 14 V7 C91 6.3 89 6 87 6 Z"
-          fill={`url(#textGrad_${id})`}
+          d="M67 4 C61.5 4 59 7.5 59 13 V28 H64 V14 C64 11 65.5 10 68 10 C69 10 70 10.3 70.8 10.8 V5 C69.8 4.3 68.5 4 67 4 Z"
+          fill={`url(#riffTextGrad_${id})`}
         />
-        {/* Crossbar of second 'f' */}
-        <rect x="74" y="16" width="16" height="5" rx="1.5" fill={`url(#textGrad_${id})`} />
+        {/* Crossbar flowing into sonic riff waves */}
+        <rect x="56" y="12" width="13" height="4.5" rx="1.2" fill={`url(#riffTextGrad_${id})`} />
 
-        {/* ================= SONIC RIFF SOUNDWAVE ACCENT ================= */}
-        {/* Dynamic audio frequency pulse trailing the 'ff' */}
-        <g filter={glow ? `url(#glow_${id})` : undefined}>
-          <path
-            d="M96 22 Q 102 14, 108 22 T 120 22 T 132 22"
-            stroke={`url(#waveGrad_${id})`}
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            fill="none"
-            opacity="0.9"
-            className={animated ? 'animate-pulse' : ''}
-          />
-          {/* High frequency audio dots */}
-          <circle cx="108" cy="22" r="2" fill="#1ed760" />
-          <circle cx="120" cy="22" r="2.5" fill="#06b6d4" />
-          <circle cx="132" cy="22" r="2" fill="#1ed760" />
+        {/* ================= SONIC AUDIO RIFF WAVE TRAIL ================= */}
+        <g filter={glow ? `url(#riffGlow_${id})` : undefined}>
+          {/* Sonic Soundwave Frequency Bars */}
+          <rect x="74" y="14" width="2.5" height="9" rx="1.2" fill="#10b981" />
+          <rect x="79" y="10" width="2.5" height="15" rx="1.2" fill="#06b6d4" />
+          <rect x="84" y="7" width="2.5" height="19" rx="1.2" fill="#10b981" />
+          <rect x="89" y="12" width="2.5" height="12" rx="1.2" fill="#3b82f6" />
+          <rect x="94" y="15" width="2.5" height="7" rx="1.2" fill="#10b981" />
         </g>
       </g>
     </svg>
   );
 };
 
+export const RiffIcon = RiffTextLogo;
+
 /**
- * Minimalist Pure Riff Logo Component
- * Displays only the clean "Riff" text logo without any extra headings or clutter.
+ * Pure Text Logo Component
  */
 export const Logo: React.FC<LogoProps> = ({
   size = 'md',
@@ -184,8 +173,8 @@ export const Logo: React.FC<LogoProps> = ({
   return (
     <div
       onClick={onClick}
-      className={`inline-flex items-center group cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98] ${className}`}
-      title="Riff Music"
+      className={`inline-flex items-center group cursor-pointer select-none transition-transform hover:scale-[1.02] active:scale-[0.98] ${className}`}
+      title="Riff"
     >
       <RiffTextLogo
         height={height}
@@ -193,68 +182,6 @@ export const Logo: React.FC<LogoProps> = ({
         animated={isPlaying}
       />
     </div>
-  );
-};
-
-// Export standalone icon for favicon and mini elements
-export const RiffIcon: React.FC<{
-  size?: number;
-  glow?: boolean;
-  className?: string;
-}> = ({ size = 28, glow = true, className = '' }) => {
-  const id = React.useId().replace(/[^a-zA-Z0-9]/g, '');
-
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 44 44"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={`inline-block shrink-0 ${className}`}
-    >
-      <defs>
-        <linearGradient id={`iconEmerald_${id}`} x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#1ed760" />
-          <stop offset="100%" stopColor="#06b6d4" />
-        </linearGradient>
-        {glow && (
-          <filter id={`iconGlow_${id}`} x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        )}
-      </defs>
-
-      {/* R Stem */}
-      <rect x="6" y="8" width="7" height="28" rx="2" fill="#ffffff" />
-      {/* R Bowl */}
-      <path
-        d="M13 8 H26 C33 8 38 12.5 38 18.5 C38 24.5 33 29 26 29 H13 V8 Z"
-        fill="#ffffff"
-      />
-      <path
-        d="M13 14 H24.5 C27.5 14 30 16 30 18.5 C30 21 27.5 23 24.5 23 H13 V14 Z"
-        fill="#08080a"
-      />
-      {/* Emerald Equalizer Pulse Bar */}
-      <rect
-        x="15"
-        y="17"
-        width="9"
-        height="3"
-        rx="1.5"
-        fill={`url(#iconEmerald_${id})`}
-        filter={glow ? `url(#iconGlow_${id})` : undefined}
-      />
-      {/* R Forward Leg */}
-      <polygon points="20,26 27,26 38,36 30,36" fill="#ffffff" />
-      {/* Sonic Wave Dots */}
-      <circle cx="39" cy="18.5" r="2.5" fill="#1ed760" filter={glow ? `url(#iconGlow_${id})` : undefined} />
-    </svg>
   );
 };
 
