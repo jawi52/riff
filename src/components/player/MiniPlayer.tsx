@@ -100,7 +100,7 @@ export const MiniPlayer: React.FC = () => {
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       style={{ transform: `translateX(${swipeOffset}px)` }}
-      className="fixed bottom-[64px] md:bottom-0 left-2 right-2 md:left-0 md:right-0 z-40 rounded-2xl md:rounded-none bg-[#11131a]/95 md:bg-[#0c0d12]/95 backdrop-blur-2xl border border-white/[0.1] md:border-t md:border-b-0 md:border-x-0 shadow-2xl select-none transition-transform duration-100 ease-out"
+      className="fixed bottom-[64px] md:bottom-0 left-2 right-2 md:left-0 md:right-0 z-40 rounded-2xl md:rounded-none bg-[#0e0f18]/95 md:bg-[#090a10]/95 backdrop-blur-2xl border border-white/[0.1] md:border-t md:border-b-0 md:border-x-0 shadow-2xl select-none transition-transform duration-100 ease-out"
     >
       {/* Top Hairline Progress Bar */}
       <div
@@ -112,7 +112,7 @@ export const MiniPlayer: React.FC = () => {
         }}
       >
         <div
-          className="h-full bg-gradient-to-r from-emerald-500 to-[#1db954] transition-all duration-100 ease-linear shadow-[0_0_12px_rgba(29,185,84,0.8)]"
+          className="h-full bg-gradient-to-r from-violet-500 to-cyan-400 transition-all duration-100 ease-linear shadow-[0_0_12px_rgba(139,92,246,0.8)]"
           style={{ width: `${progressPercent}%` }}
         />
       </div>
@@ -132,7 +132,7 @@ export const MiniPlayer: React.FC = () => {
             />
             {playbackState === 'buffering' && (
               <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center">
-                <Loader2 className="w-5 h-5 text-emerald-400 animate-spin" />
+                <Loader2 className="w-5 h-5 text-violet-400 animate-spin" />
               </div>
             )}
           </div>
@@ -143,7 +143,7 @@ export const MiniPlayer: React.FC = () => {
               <span className="text-xs md:text-sm font-bold text-white truncate hover:underline">
                 {currentTrack.title}
               </span>
-              <span className="hidden md:inline-flex px-1.5 py-0.2 text-[9px] font-extrabold uppercase rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+              <span className="hidden md:inline-flex px-1.5 py-0.2 text-[9px] font-extrabold uppercase rounded bg-violet-500/20 text-violet-300 border border-violet-500/30">
                 320k
               </span>
             </div>
@@ -159,7 +159,7 @@ export const MiniPlayer: React.FC = () => {
             <button
               onClick={toggleShuffle}
               className={`p-2 rounded-full transition cursor-pointer ${
-                isShuffled ? 'text-emerald-400 bg-emerald-500/10' : 'text-neutral-400 hover:text-white'
+                isShuffled ? 'text-violet-400 bg-violet-500/15' : 'text-neutral-400 hover:text-white'
               }`}
               title="Shuffle"
             >
@@ -197,7 +197,7 @@ export const MiniPlayer: React.FC = () => {
             <button
               onClick={cycleRepeatMode}
               className={`p-2 rounded-full transition cursor-pointer ${
-                repeatMode !== 'off' ? 'text-emerald-400 bg-emerald-500/10' : 'text-neutral-400 hover:text-white'
+                repeatMode !== 'off' ? 'text-violet-400 bg-violet-500/15' : 'text-neutral-400 hover:text-white'
               }`}
               title={`Repeat: ${repeatMode}`}
             >
@@ -219,7 +219,7 @@ export const MiniPlayer: React.FC = () => {
               }}
             >
               <div
-                className="h-full bg-white group-hover:bg-emerald-400 transition-all rounded-full"
+                className="h-full bg-gradient-to-r from-violet-400 to-cyan-400 transition-all rounded-full"
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
@@ -239,7 +239,7 @@ export const MiniPlayer: React.FC = () => {
             }}
             className="p-2 rounded-full text-neutral-400 hover:text-white transition cursor-pointer"
           >
-            <Heart className={`w-5 h-5 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
+            <Heart className={`w-5 h-5 ${isLiked ? 'fill-rose-500 text-rose-500' : ''}`} />
           </button>
 
           {/* Mobile Play / Pause Button */}
@@ -279,7 +279,7 @@ export const MiniPlayer: React.FC = () => {
                 step="0.01"
                 value={isMuted ? 0 : volume}
                 onChange={(e) => setVolume(parseFloat(e.target.value))}
-                className="w-20 h-1 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                className="w-20 h-1 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-violet-500"
               />
             </div>
           </div>

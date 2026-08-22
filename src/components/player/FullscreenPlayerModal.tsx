@@ -116,17 +116,17 @@ export const FullscreenPlayerModal: React.FC = () => {
   ];
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#07080c] flex flex-col justify-between overflow-hidden animate-in fade-in duration-200 select-none">
-      {/* Dynamic Ambient Glow */}
+    <div className="fixed inset-0 z-50 bg-[#050608] flex flex-col justify-between overflow-hidden animate-in fade-in duration-200 select-none">
+      {/* Dynamic Ambient Mesh Glow */}
       <div 
-        className="absolute inset-0 opacity-25 blur-[100px] pointer-events-none transform scale-125 transition-all duration-1000"
+        className="absolute inset-0 opacity-20 blur-[110px] pointer-events-none transform scale-125 transition-all duration-1000"
         style={{
-          backgroundImage: `radial-gradient(circle at 50% 25%, #10b981 0%, #064e3b 40%, transparent 75%)`
+          backgroundImage: `radial-gradient(circle at 50% 25%, #8b5cf6 0%, #06b6d4 40%, transparent 75%)`
         }}
       />
 
       {/* Top Header Bar */}
-      <div className="relative z-10 flex items-center justify-between px-5 py-3.5 border-b border-white/[0.08] bg-[#07080c]/80 backdrop-blur-2xl">
+      <div className="relative z-10 flex items-center justify-between px-5 py-3.5 border-b border-white/[0.08] bg-[#050608]/80 backdrop-blur-2xl">
         <button
           onClick={() => setFullscreenOpen(false)}
           className="p-2 -ml-2 rounded-full text-neutral-400 hover:text-white hover:bg-white/5 active:scale-90 transition cursor-pointer"
@@ -135,7 +135,7 @@ export const FullscreenPlayerModal: React.FC = () => {
         </button>
 
         <div className="text-center space-y-0.5 max-w-[200px] truncate">
-          <span className="text-[10px] font-mono font-bold tracking-widest uppercase text-emerald-400">
+          <span className="text-[10px] font-mono font-black tracking-widest uppercase text-violet-400">
             NOW PLAYING // 320 KBPS
           </span>
           <p className="text-xs font-bold text-white truncate">{currentTrack.album || 'Single'}</p>
@@ -148,11 +148,11 @@ export const FullscreenPlayerModal: React.FC = () => {
           }}
           className="p-2 -mr-2 rounded-full text-neutral-400 hover:text-white transition cursor-pointer"
         >
-          <Heart className={`w-6 h-6 ${isLiked ? 'fill-emerald-500 text-emerald-500' : ''}`} />
+          <Heart className={`w-6 h-6 ${isLiked ? 'fill-rose-500 text-rose-500' : ''}`} />
         </button>
       </div>
 
-      {/* Main Center Area: Split between Cover Art and Drawer Panels */}
+      {/* Main Center Area */}
       <div className="relative z-10 flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 p-4 md:p-8 max-w-6xl mx-auto w-full min-h-0 items-center overflow-y-auto custom-scrollbar">
         {/* Left Side: Artwork & Track Metadata */}
         <div className="flex flex-col items-center justify-center space-y-5">
@@ -173,7 +173,7 @@ export const FullscreenPlayerModal: React.FC = () => {
             {/* Heart Pop Overlay on Double Tap */}
             {showHeartPop && (
               <div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center animate-in zoom-in-50 duration-200">
-                <Heart className="w-20 h-20 fill-emerald-500 text-emerald-500 animate-bounce" />
+                <Heart className="w-20 h-20 fill-rose-500 text-rose-500 animate-bounce" />
               </div>
             )}
           </div>
@@ -187,11 +187,11 @@ export const FullscreenPlayerModal: React.FC = () => {
               {currentTrack.artist}
             </p>
             <div className="flex items-center justify-center gap-2 pt-1">
-              <span className="px-2.5 py-0.5 text-[10px] font-extrabold uppercase rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <span className="px-2.5 py-0.5 text-[10px] font-extrabold uppercase rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">
                 Lossless • 320kbps AAC
               </span>
               {sleepTimerRemaining !== null && (
-                <span className="px-2.5 py-0.5 text-[10px] font-mono font-bold rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center gap-1">
+                <span className="px-2.5 py-0.5 text-[10px] font-mono font-bold rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 flex items-center gap-1">
                   <Timer className="w-3 h-3" />
                   {formatTime(sleepTimerRemaining)}
                 </span>
@@ -200,10 +200,10 @@ export const FullscreenPlayerModal: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Side: Interactive Drawer Tabs (Lyrics, Queue, EQ, Sleep Timer) */}
-        <div className="flex flex-col h-[380px] md:h-[480px] rounded-3xl bg-white/[0.04] border border-white/[0.08] backdrop-blur-2xl overflow-hidden shadow-2xl">
+        {/* Right Side: Interactive Drawer Tabs */}
+        <div className="flex flex-col h-[380px] md:h-[480px] rounded-3xl bg-white/[0.03] border border-white/[0.08] backdrop-blur-2xl overflow-hidden shadow-2xl">
           {/* Drawer Tab Headers */}
-          <div className="flex items-center border-b border-white/[0.08] bg-black/30 px-2 py-1.5">
+          <div className="flex items-center border-b border-white/[0.08] bg-black/40 px-2 py-1.5">
             {[
               { key: 'lyrics', label: 'Lyrics', icon: Mic2 },
               { key: 'queue', label: 'Up Next', icon: ListMusic },
@@ -216,7 +216,7 @@ export const FullscreenPlayerModal: React.FC = () => {
                 onClick={() => setActiveTab(key as any)}
                 className={`flex-1 py-2 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
                   activeTab === key
-                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                    ? 'bg-violet-500/25 text-violet-300 border border-violet-500/40 shadow-sm'
                     : 'text-neutral-400 hover:text-white'
                 }`}
               >
@@ -242,7 +242,7 @@ export const FullscreenPlayerModal: React.FC = () => {
                       onClick={() => seek(lyric.timeMs / 1000)}
                       className={`text-lg md:text-xl font-extrabold transition-all duration-300 cursor-pointer rounded-xl p-2 ${
                         isActive
-                          ? 'text-white scale-105 bg-emerald-500/10 shadow-[0_0_20px_rgba(16,185,129,0.2)]'
+                          ? 'text-white scale-105 bg-violet-500/20 shadow-[0_0_25px_rgba(139,92,246,0.25)] border border-violet-500/30'
                           : 'text-neutral-500 hover:text-neutral-300'
                       }`}
                     >
@@ -252,7 +252,7 @@ export const FullscreenPlayerModal: React.FC = () => {
                 })
               ) : (
                 <div className="h-full flex flex-col items-center justify-center text-neutral-400 space-y-2">
-                  <Mic2 className="w-8 h-8 opacity-40 text-emerald-400" />
+                  <Mic2 className="w-8 h-8 opacity-40 text-violet-400" />
                   <p className="text-sm font-semibold">Instrumental or Lyrics Not Available</p>
                   <span className="text-xs text-neutral-500">Playing in pristine 320kbps CD Audio</span>
                 </div>
@@ -274,7 +274,7 @@ export const FullscreenPlayerModal: React.FC = () => {
                 >
                   <img src={t.coverUrl} alt={t.title} className="w-10 h-10 rounded-xl object-cover" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-white truncate group-hover:text-emerald-400 transition">{t.title}</p>
+                    <p className="text-xs font-bold text-white truncate group-hover:text-violet-300 transition">{t.title}</p>
                     <p className="text-[11px] text-neutral-400 truncate">{t.artist}</p>
                   </div>
                   <span className="text-[10px] font-mono text-neutral-500">{formatTime(t.duration)}</span>
@@ -295,7 +295,7 @@ export const FullscreenPlayerModal: React.FC = () => {
                       onClick={() => setEqualizerPreset(preset)}
                       className={`py-2 px-3 rounded-xl text-xs font-bold uppercase transition cursor-pointer ${
                         equalizerPreset === preset
-                          ? 'bg-emerald-500 text-black font-extrabold shadow-lg'
+                          ? 'bg-gradient-to-r from-violet-500 to-cyan-500 text-black font-black shadow-lg'
                           : 'bg-white/5 text-neutral-400 hover:text-white'
                       }`}
                     >
@@ -326,7 +326,7 @@ export const FullscreenPlayerModal: React.FC = () => {
                         step="1"
                         value={val}
                         onChange={(e) => setEQBand(index, parseFloat(e.target.value))}
-                        className="flex-1 h-1.5 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                        className="flex-1 h-1.5 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-violet-500"
                       />
                       <span className="text-[10px] font-mono text-neutral-400 w-8 text-right">{val > 0 ? `+${val}` : val}dB</span>
                     </div>
@@ -355,7 +355,7 @@ export const FullscreenPlayerModal: React.FC = () => {
                   <button
                     key={label}
                     onClick={() => handleSetSleepTimer(min)}
-                    className="py-3 px-4 rounded-2xl bg-white/5 hover:bg-emerald-500/20 text-white hover:text-emerald-400 text-xs font-bold transition border border-white/5 hover:border-emerald-500/30 cursor-pointer"
+                    className="py-3 px-4 rounded-2xl bg-white/5 hover:bg-violet-500/20 text-white hover:text-violet-300 text-xs font-bold transition border border-white/5 hover:border-violet-500/30 cursor-pointer"
                   >
                     {label}
                   </button>
@@ -364,7 +364,7 @@ export const FullscreenPlayerModal: React.FC = () => {
               {sleepTimerRemaining !== null && (
                 <button
                   onClick={() => setSleepTimerRemaining(null)}
-                  className="w-full py-2.5 rounded-xl bg-red-500/10 text-red-400 text-xs font-bold border border-red-500/20 hover:bg-red-500/20 transition cursor-pointer"
+                  className="w-full py-2.5 rounded-xl bg-rose-500/10 text-rose-400 text-xs font-bold border border-rose-500/20 hover:bg-rose-500/20 transition cursor-pointer"
                 >
                   Cancel Sleep Timer
                 </button>
@@ -385,7 +385,7 @@ export const FullscreenPlayerModal: React.FC = () => {
               </div>
               <div className="space-y-1">
                 <span className="text-[10px] uppercase font-bold text-neutral-500">Audio Stream Quality</span>
-                <p className="text-sm font-bold text-emerald-400">320kbps AAC / Lossless High-Fidelity</p>
+                <p className="text-sm font-bold text-violet-400">320kbps AAC / Lossless High-Fidelity</p>
               </div>
               <div className="space-y-1">
                 <span className="text-[10px] uppercase font-bold text-neutral-500">Release Year</span>
@@ -397,7 +397,7 @@ export const FullscreenPlayerModal: React.FC = () => {
       </div>
 
       {/* Bottom Transport Controls Bar */}
-      <div className="relative z-10 px-6 py-5 border-t border-white/[0.08] bg-[#07080c]/90 backdrop-blur-2xl max-w-4xl mx-auto w-full space-y-3">
+      <div className="relative z-10 px-6 py-5 border-t border-white/[0.08] bg-[#050608]/90 backdrop-blur-2xl max-w-4xl mx-auto w-full space-y-3">
         {/* Scrubber Slider */}
         <div className="space-y-1">
           <div
@@ -409,7 +409,7 @@ export const FullscreenPlayerModal: React.FC = () => {
             }}
           >
             <div
-              className="h-full bg-gradient-to-r from-emerald-500 to-[#1db954] transition-all rounded-full shadow-[0_0_12px_rgba(29,185,84,0.7)]"
+              className="h-full bg-gradient-to-r from-violet-500 to-cyan-400 transition-all rounded-full shadow-[0_0_12px_rgba(139,92,246,0.8)]"
               style={{ width: `${progressPercent}%` }}
             />
           </div>
@@ -424,7 +424,7 @@ export const FullscreenPlayerModal: React.FC = () => {
           <button
             onClick={toggleShuffle}
             className={`p-2.5 rounded-full transition cursor-pointer ${
-              isShuffled ? 'text-emerald-400 bg-emerald-500/10' : 'text-neutral-400 hover:text-white'
+              isShuffled ? 'text-violet-400 bg-violet-500/15' : 'text-neutral-400 hover:text-white'
             }`}
           >
             <Shuffle className="w-5 h-5" />
@@ -458,7 +458,7 @@ export const FullscreenPlayerModal: React.FC = () => {
           <button
             onClick={cycleRepeatMode}
             className={`p-2.5 rounded-full transition cursor-pointer ${
-              repeatMode !== 'off' ? 'text-emerald-400 bg-emerald-500/10' : 'text-neutral-400 hover:text-white'
+              repeatMode !== 'off' ? 'text-violet-400 bg-violet-500/15' : 'text-neutral-400 hover:text-white'
             }`}
           >
             {repeatMode === 'one' ? <Repeat1 className="w-5 h-5" /> : <Repeat className="w-5 h-5" />}
