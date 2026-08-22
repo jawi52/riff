@@ -1,4 +1,4 @@
-﻿import axios from 'axios';
+import axios from 'axios';
 import crypto from 'crypto';
 
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36';
@@ -20,7 +20,7 @@ function cleanStr(s: string): string {
   return (s || '')
     .toLowerCase()
     .replace(/\(.*?\)|\[.*?\]/g, '')
-    .replace(/official\s*(music\s*)?(video|audio|lyrics?|performance|hd|4k)/gi, '')
+    .replace(/official\s*(music\s*)?(video|audio|lyrics?|performance|hd|4k|dance practice video|visualizer)/gi, '')
     .replace(/[^a-z0-9]/g, '')
     .trim();
 }
@@ -60,7 +60,7 @@ async function searchSaavnOfficial(q: string) {
         _marker: '0',
         api_version: '4',
         ctx: 'web6dot0',
-        n: '20',
+        n: '25',
         p: '1',
         q: q
       },
@@ -98,6 +98,78 @@ async function searchSaavnOfficial(q: string) {
   }
 }
 
+async function searchInnertube(q: string) {
+  try {
+    const res = await axios.post(
+      'https://music.youtube.com/youtubei/v1/search',
+      {
+        context: { client: { clientName: 'WEB_REMIX', clientVersion: '1.20240401.01.00', hl: 'en', gl: 'US' } },
+        query: q,
+        params: 'Eg-KAQwIABAAGAAgACgAMABqChAMEAAYABgAKAAw'
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': USER_AGENT,
+          'X-YouTube-Client-Name': '67',
+          'X-YouTube-Client-Version': '1.20240401.01.00',
+          'Origin': 'https://music.youtube.com'
+        },
+        timeout: 3000
+      }
+    );
+
+    const tracks: any[] = [];
+    const contents = res.data?.contents?.tabbedSearchResultsRenderer?.tabs?.[0]?.tabRenderer?.content?.sectionListRenderer?.contents || [];
+    for (const sec of contents) {
+      const items = sec?.musicShelfRenderer?.contents || sec?.musicCardShelfRenderer?.contents || [];
+      for (const item of items) {
+        const flex = item?.musicResponsiveListItemRenderer;
+        if (flex) {
+          const videoId = flex.playlistItemData?.videoId || flex.videoId;
+          let rawTitle = flex.flexColumns?.[0]?.musicResponsiveListItemFlexColumnRenderer?.text?.runs?.[0]?.text || '';
+          const artistRuns = flex.flexColumns?.[1]?.musicResponsiveListItemFlexColumnRenderer?.text?.runs || [];
+          let artist = artistRuns.map((r: any) => r.text).join('').replace(/•.*$/g, '').trim();
+          const thumbnails = flex.thumbnail?.musicThumbnailRenderer?.thumbnail?.thumbnails || [];
+          const coverUrl = thumbnails[thumbnails.length - 1]?.url || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&q=80';
+
+          if (rawTitle && videoId) {
+            let title = rawTitle.replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+            if (title.includes(' - ')) {
+              const parts = title.split(' - ');
+              artist = parts[0].trim();
+              title = parts.slice(1).join(' - ').trim();
+            }
+
+            title = title
+              .replace(/\(.*?\)|\[.*?\]/g, '')
+              .replace(/official\s*(music\s*)?(video|audio|lyrics?|performance|hd|4k|dance practice video)/gi, '')
+              .replace(/^['"]|['"]$/g, '')
+              .trim();
+
+            tracks.push({
+              id: `yt_${videoId}`,
+              title: title || rawTitle,
+              artist: artist || 'Artist',
+              album: 'Single',
+              duration: 210,
+              coverUrl,
+              sourceType: 'ytdlp',
+              genre: 'Pop',
+              releaseYear: 2024,
+              hasSyncedLyrics: true,
+              bitrateKbps: 256
+            });
+          }
+        }
+      }
+    }
+    return tracks;
+  } catch {
+    return [];
+  }
+}
+
 export default async function handler(req: any, res: any) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -107,22 +179,36 @@ export default async function handler(req: any, res: any) {
     return res.status(200).end();
   }
 
-  const q = ((req.query?.q as string) || '').trim();
-  if (!q) {
+  const rawQ = ((req.query?.q as string) || '').trim();
+  if (!rawQ) {
     return res.status(400).json({ error: 'Search query is required' });
   }
 
   try {
-    const [saavnTracks, appleTracks] = await Promise.all([
-      searchSaavnOfficial(q),
-      searchApple(q)
-    ]);
+    const searchPromises = [
+      searchSaavnOfficial(rawQ),
+      searchApple(rawQ),
+      searchInnertube(rawQ)
+    ];
 
-    const all = [...saavnTracks, ...appleTracks];
+    // If query has "by" or " - ", search structured title + artist combinations
+    if (rawQ.toLowerCase().includes(' by ') || rawQ.includes(' - ')) {
+      const parts = rawQ.toLowerCase().includes(' by ') ? rawQ.split(/ by /i) : rawQ.split(' - ');
+      const titlePart = parts[0].trim();
+      const artistPart = parts[1]?.trim() || '';
+      if (titlePart && artistPart) {
+        searchPromises.push(searchApple(`${artistPart} ${titlePart}`));
+        searchPromises.push(searchInnertube(`${artistPart} ${titlePart}`));
+        searchPromises.push(searchSaavnOfficial(`${artistPart} ${titlePart}`));
+      }
+    }
+
+    const results = await Promise.all(searchPromises);
+    const all = results.flat();
 
     if (all.length === 0) {
       return res.status(200).json({
-        query: q,
+        query: rawQ,
         topResult: null,
         sameArtistTracks: [],
         similarVibeTracks: [],
@@ -132,54 +218,101 @@ export default async function handler(req: any, res: any) {
       });
     }
 
-    const cleanQ = cleanStr(q);
-    const topResult = all.find(t => cleanStr(t.title) === cleanQ || cleanStr(`${t.artist} ${t.title}`).includes(cleanQ)) || all[0];
-    const primaryArtist = topResult.artist.split(/,|ft\.|feat\.|&/i)[0].trim();
+    // Token-based fuzzy ranking
+    const cleanQ = cleanStr(rawQ);
+    const qTokens = cleanQ.split(' ').filter(Boolean);
 
+    // Identify if user searched for "title by artist"
+    let targetTitle = '';
+    let targetArtist = '';
+    if (rawQ.toLowerCase().includes(' by ')) {
+      const p = rawQ.split(/ by /i);
+      targetTitle = cleanStr(p[0]);
+      targetArtist = cleanStr(p[1]);
+    }
+
+    const scored = all.map(track => {
+      const cTitle = cleanStr(track.title);
+      const cArtist = cleanStr(track.artist);
+      const combined = `${cArtist} ${cTitle}`;
+
+      let score = 0;
+
+      // Specific "Title by Artist" bonus
+      if (targetTitle && targetArtist) {
+        if (cTitle.includes(targetTitle) && cArtist.includes(targetArtist)) {
+          score += 200; // Perfect match for "money by lisa"
+        }
+      }
+
+      // Exact phrase match
+      if (cTitle === cleanQ || combined === cleanQ) score += 120;
+      else if (combined.includes(cleanQ) || cleanQ.includes(cTitle)) score += 80;
+
+      // Token matches
+      let matchedTokens = 0;
+      for (const token of qTokens) {
+        if (cTitle.includes(token)) { score += 40; matchedTokens++; }
+        if (cArtist.includes(token)) { score += 35; matchedTokens++; }
+      }
+      if (matchedTokens === qTokens.length) score += 50;
+
+      // Bonus for high-quality audio
+      if (track.sourceType === 'saavn' && track.streamUrl) score += 10;
+
+      return { track, score };
+    });
+
+    // Sort by score descending
+    scored.sort((a, b) => b.score - a.score);
+
+    // Deduplicate while preserving same title by DIFFERENT artists
     const seen = new Set<string>();
-    seen.add(cleanStr(topResult.title));
+    const uniqueTracks: any[] = [];
 
-    const sameArtistTracks = all.filter(t => {
-      const c = cleanStr(t.title);
-      if (seen.has(c)) return false;
-      seen.add(c);
-      return t.artist.toLowerCase().includes(primaryArtist.toLowerCase());
-    }).slice(0, 6);
+    for (const item of scored) {
+      const key = `${cleanStr(item.track.title)}___${cleanStr(item.track.artist)}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      uniqueTracks.push(item.track);
+    }
 
-    const similarVibeTracks = all.filter(t => {
-      const c = cleanStr(t.title);
-      if (seen.has(c)) return false;
-      seen.add(c);
-      return true;
-    }).slice(0, 13);
+    const topResult = uniqueTracks[0] || null;
+    const primaryArtist = topResult?.artist?.split(/,|ft\.|feat\.|&/i)[0].trim() || 'Artist';
 
-    const curatedTracks = [topResult, ...sameArtistTracks, ...similarVibeTracks];
+    const sameArtistTracks = uniqueTracks.filter(t => 
+      t.id !== topResult?.id && t.artist.toLowerCase().includes(primaryArtist.toLowerCase())
+    ).slice(0, 6);
+
+    const similarVibeTracks = uniqueTracks.filter(t => 
+      t.id !== topResult?.id && !t.artist.toLowerCase().includes(primaryArtist.toLowerCase())
+    );
 
     return res.status(200).json({
-      query: q,
+      query: rawQ,
       topResult,
       sameArtistTracks,
       similarVibeTracks,
-      tracks: curatedTracks,
+      tracks: uniqueTracks.slice(0, 30),
       artists: [
         {
           id: `art_${primaryArtist.toLowerCase().replace(/\s+/g, '_')}`,
           name: primaryArtist,
-          avatarUrl: topResult.coverUrl,
-          monthlyListeners: 35000000
+          avatarUrl: topResult?.coverUrl,
+          monthlyListeners: 45000000
         }
       ],
       albums: [
         {
-          id: `alb_${topResult.album?.toLowerCase().replace(/\s+/g, '_') || 'alb_1'}`,
-          title: topResult.album || 'Single',
+          id: `alb_${topResult?.album?.toLowerCase().replace(/\s+/g, '_') || 'alb_1'}`,
+          title: topResult?.album || 'Single',
           artist: primaryArtist,
-          coverUrl: topResult.coverUrl
+          coverUrl: topResult?.coverUrl
         }
       ]
     });
   } catch (err: any) {
-    console.error('Vercel search error:', err);
+    console.error('Unified search error:', err);
     return res.status(500).json({ error: 'Search error', message: err?.message || 'Unknown error' });
   }
 }
