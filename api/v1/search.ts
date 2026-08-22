@@ -1,7 +1,52 @@
-import axios from 'axios';
+﻿import axios from 'axios';
 import crypto from 'crypto';
 
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36';
+
+// Global Spotify Artist Follower & Popularity Weights
+const ARTIST_SPOTIFY_FOLLOWERS: Record<string, number> = {
+  'the weeknd': 112000000,
+  'taylor swift': 110000000,
+  'drake': 88000000,
+  'ariana grande': 95000000,
+  'billie eilish': 84000000,
+  'ed sheeran': 114000000,
+  'justin bieber': 75000000,
+  'eminem': 79000000,
+  'arijit singh': 45000000,
+  'lisa': 28500000,
+  'blackpink': 48000000,
+  'bts': 72000000,
+  'cardi b': 24000000,
+  'pink floyd': 20500000,
+  'diljit dosanjh': 21000000,
+  'daft punk': 24000000,
+  'pritam': 18000000,
+  'sidhu moose wala': 16000000,
+  'shubh': 8000000,
+  'ap dhillon': 9500000,
+  'karan aujla': 11000000,
+  'talha anjum': 4800000,
+  'young stunners': 3900000,
+  'umair': 2800000,
+  'kendrick lamar': 42000000,
+  'travis scott': 32000000,
+  'post malone': 43000000,
+  'dua lipa': 45000000,
+  'bruno mars': 55000000,
+  'coldplay': 49000000,
+  'queen': 36000000
+};
+
+function getArtistSpotifyFollowers(artistName: string): number {
+  const clean = (artistName || '').toLowerCase().trim();
+  for (const [key, followers] of Object.entries(ARTIST_SPOTIFY_FOLLOWERS)) {
+    if (clean.includes(key)) {
+      return followers;
+    }
+  }
+  return 100000; // Baseline for indie / general artists
+}
 
 function decryptSaavn(encryptedUrl: string): string | null {
   if (!encryptedUrl) return null;
@@ -46,6 +91,35 @@ async function searchApple(q: string) {
       hasSyncedLyrics: true,
       bitrateKbps: 320
     }));
+  } catch {
+    return [];
+  }
+}
+
+async function searchDeezer(q: string) {
+  try {
+    const res = await axios.get('https://api.deezer.com/search', {
+      params: { q, limit: 25 },
+      headers: { 'User-Agent': USER_AGENT },
+      timeout: 3000
+    });
+    if (!res.data?.data) return [];
+    return res.data.data.map((item: any) => {
+      const hdCover = item.album?.cover_xl || item.album?.cover_big || item.album?.cover_medium || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80';
+      return {
+        id: `dz_${item.id}`,
+        title: item.title,
+        artist: item.artist?.name || 'Unknown Artist',
+        album: item.album?.title || 'Single',
+        duration: item.duration || 180,
+        coverUrl: hdCover,
+        sourceType: 'ytdlp',
+        genre: 'Pop',
+        hasSyncedLyrics: true,
+        bitrateKbps: 320,
+        rank: item.rank || 500000
+      };
+    });
   } catch {
     return [];
   }
@@ -188,6 +262,7 @@ export default async function handler(req: any, res: any) {
     const searchPromises = [
       searchSaavnOfficial(rawQ),
       searchApple(rawQ),
+      searchDeezer(rawQ),
       searchInnertube(rawQ)
     ];
 
@@ -198,6 +273,7 @@ export default async function handler(req: any, res: any) {
       const artistPart = parts[1]?.trim() || '';
       if (titlePart && artistPart) {
         searchPromises.push(searchApple(`${artistPart} ${titlePart}`));
+        searchPromises.push(searchDeezer(`${artistPart} ${titlePart}`));
         searchPromises.push(searchInnertube(`${artistPart} ${titlePart}`));
         searchPromises.push(searchSaavnOfficial(`${artistPart} ${titlePart}`));
       }
@@ -218,11 +294,10 @@ export default async function handler(req: any, res: any) {
       });
     }
 
-    // Token-based fuzzy ranking
+    // Token-based fuzzy & Spotify Follower ranking
     const cleanQ = cleanStr(rawQ);
     const qTokens = cleanQ.split(' ').filter(Boolean);
 
-    // Identify if user searched for "title by artist"
     let targetTitle = '';
     let targetArtist = '';
     if (rawQ.toLowerCase().includes(' by ')) {
@@ -238,32 +313,50 @@ export default async function handler(req: any, res: any) {
 
       let score = 0;
 
-      // Specific "Title by Artist" bonus
+      // 1. Specific "Title by Artist" bonus
       if (targetTitle && targetArtist) {
         if (cTitle.includes(targetTitle) && cArtist.includes(targetArtist)) {
-          score += 200; // Perfect match for "money by lisa"
+          score += 300; // Exact match for "money by lisa"
         }
       }
 
-      // Exact phrase match
-      if (cTitle === cleanQ || combined === cleanQ) score += 120;
-      else if (combined.includes(cleanQ) || cleanQ.includes(cTitle)) score += 80;
+      // 2. Exact Title Match
+      if (cTitle === cleanQ) {
+        score += 150;
+      } else if (cTitle.startsWith(cleanQ)) {
+        score += 90;
+      } else if (cTitle.includes(cleanQ)) {
+        score += 60;
+      }
 
-      // Token matches
+      // 3. Artist or Combined Exact Match
+      if (combined === cleanQ || cArtist === cleanQ) {
+        score += 120;
+      } else if (combined.includes(cleanQ)) {
+        score += 50;
+      }
+
+      // 4. Token matches
       let matchedTokens = 0;
       for (const token of qTokens) {
-        if (cTitle.includes(token)) { score += 40; matchedTokens++; }
-        if (cArtist.includes(token)) { score += 35; matchedTokens++; }
+        if (cTitle.includes(token)) { score += 30; matchedTokens++; }
+        if (cArtist.includes(token)) { score += 25; matchedTokens++; }
       }
-      if (matchedTokens === qTokens.length) score += 50;
+      if (matchedTokens === qTokens.length) score += 40;
 
-      // Bonus for high-quality audio
-      if (track.sourceType === 'saavn' && track.streamUrl) score += 10;
+      // 5. SPOTIFY ARTIST FOLLOWER & POPULARITY BOOST (High-follower artists rank higher when songs have same name!)
+      const spotifyFollowers = getArtistSpotifyFollowers(track.artist);
+      // Normalized follower score up to 80 points
+      const followerBoost = Math.min(80, Math.log10(spotifyFollowers + 1) * 10);
+      score += followerBoost;
 
-      return { track, score };
+      // Saavn direct 320k bonus
+      if (track.sourceType === 'saavn' && track.streamUrl) score += 5;
+
+      return { track, score, followers: spotifyFollowers };
     });
 
-    // Sort by score descending
+    // Sort by score descending (highest followed artist first when song names match)
     scored.sort((a, b) => b.score - a.score);
 
     // Deduplicate while preserving same title by DIFFERENT artists
@@ -299,7 +392,7 @@ export default async function handler(req: any, res: any) {
           id: `art_${primaryArtist.toLowerCase().replace(/\s+/g, '_')}`,
           name: primaryArtist,
           avatarUrl: topResult?.coverUrl,
-          monthlyListeners: 45000000
+          monthlyListeners: getArtistSpotifyFollowers(primaryArtist)
         }
       ],
       albums: [

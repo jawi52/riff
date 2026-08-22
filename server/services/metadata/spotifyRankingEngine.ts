@@ -1,4 +1,4 @@
-import { Track } from '../../../src/types';
+﻿import { Track } from '../../../src/types';
 import { searchAppleMusicMetadata } from './itunes';
 import { searchDeezerMetadata } from './deezer';
 import { searchSaavn } from '../providers/saavn';
@@ -14,6 +14,51 @@ export interface SpotifySearchResult {
   tracks: Track[];
   artists: any[];
   albums: any[];
+}
+
+// Global Spotify Artist Follower & Popularity Weights
+const ARTIST_SPOTIFY_FOLLOWERS: Record<string, number> = {
+  'the weeknd': 112000000,
+  'taylor swift': 110000000,
+  'drake': 88000000,
+  'ariana grande': 95000000,
+  'billie eilish': 84000000,
+  'ed sheeran': 114000000,
+  'justin bieber': 75000000,
+  'eminem': 79000000,
+  'arijit singh': 45000000,
+  'lisa': 28500000,
+  'blackpink': 48000000,
+  'bts': 72000000,
+  'cardi b': 24000000,
+  'pink floyd': 20500000,
+  'diljit dosanjh': 21000000,
+  'daft punk': 24000000,
+  'pritam': 18000000,
+  'sidhu moose wala': 16000000,
+  'shubh': 8000000,
+  'ap dhillon': 9500000,
+  'karan aujla': 11000000,
+  'talha anjum': 4800000,
+  'young stunners': 3900000,
+  'umair': 2800000,
+  'kendrick lamar': 42000000,
+  'travis scott': 32000000,
+  'post malone': 43000000,
+  'dua lipa': 45000000,
+  'bruno mars': 55000000,
+  'coldplay': 49000000,
+  'queen': 36000000
+};
+
+function getArtistSpotifyFollowers(artistName: string): number {
+  const clean = (artistName || '').toLowerCase().trim();
+  for (const [key, followers] of Object.entries(ARTIST_SPOTIFY_FOLLOWERS)) {
+    if (clean.includes(key)) {
+      return followers;
+    }
+  }
+  return 100000;
 }
 
 function cleanStr(s: string): string {
@@ -33,7 +78,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T
 }
 
 /**
- * Spotify-Style Search & Multi-Provider Ranking Engine
+ * Spotify-Style Search & Multi-Provider Ranking Engine with Artist Follower Ordering
  */
 export async function searchSpotifyStyle(query: string): Promise<SpotifySearchResult> {
   const rawQ = query.trim();
@@ -51,6 +96,7 @@ export async function searchSpotifyStyle(query: string): Promise<SpotifySearchRe
     const artistPart = parts[1]?.trim() || '';
     if (titlePart && artistPart) {
       searchPromises.push(withTimeout(searchAppleMusicMetadata(`${artistPart} ${titlePart}`).catch(() => []), 3500, []));
+      searchPromises.push(withTimeout(searchDeezerMetadata(`${artistPart} ${titlePart}`).catch(() => []), 3500, []));
       searchPromises.push(withTimeout(searchInnertubeMusic(`${artistPart} ${titlePart}`).catch(() => []), 3500, []));
       searchPromises.push(withTimeout(searchSaavn(`${artistPart} ${titlePart}`).catch(() => []), 3500, []));
     }
@@ -96,31 +142,49 @@ export async function searchSpotifyStyle(query: string): Promise<SpotifySearchRe
 
     let score = 0;
 
-    // Specific "Title by Artist" bonus (e.g. money by lisa)
+    // 1. Specific "Title by Artist" bonus (e.g. money by lisa)
     if (targetTitle && targetArtist) {
       if (cTitle.includes(targetTitle) && cArtist.includes(targetArtist)) {
-        score += 200;
+        score += 300;
       }
     }
 
-    // Exact phrase match
-    if (cTitle === cleanQ || combined === cleanQ) score += 120;
-    else if (combined.includes(cleanQ) || cleanQ.includes(cTitle)) score += 80;
+    // 2. Exact Title Match
+    if (cTitle === cleanQ) {
+      score += 150;
+    } else if (cTitle.startsWith(cleanQ)) {
+      score += 90;
+    } else if (cTitle.includes(cleanQ)) {
+      score += 60;
+    }
 
-    // Token matches
+    // 3. Artist or Combined Exact Match
+    if (combined === cleanQ || cArtist === cleanQ) {
+      score += 120;
+    } else if (combined.includes(cleanQ)) {
+      score += 50;
+    }
+
+    // 4. Token matches
     let matchedTokens = 0;
     for (const token of qTokens) {
-      if (cTitle.includes(token)) { score += 40; matchedTokens++; }
-      if (cArtist.includes(token)) { score += 35; matchedTokens++; }
+      if (cTitle.includes(token)) { score += 30; matchedTokens++; }
+      if (cArtist.includes(token)) { score += 25; matchedTokens++; }
     }
-    if (matchedTokens === qTokens.length) score += 50;
+    if (matchedTokens === qTokens.length) score += 40;
 
-    // Bonus for high-quality audio
-    if (track.sourceType === 'saavn' && track.streamUrl) score += 10;
+    // 5. SPOTIFY ARTIST FOLLOWER & POPULARITY BOOST (High-follower artists rank first when songs have same name!)
+    const spotifyFollowers = getArtistSpotifyFollowers(track.artist);
+    const followerBoost = Math.min(80, Math.log10(spotifyFollowers + 1) * 10);
+    score += followerBoost;
 
-    return { track, score };
+    // Direct 320k Saavn stream bonus
+    if (track.sourceType === 'saavn' && track.streamUrl) score += 5;
+
+    return { track, score, followers: spotifyFollowers };
   });
 
+  // Sort by score descending (highest followed artists with that song name come first)
   scored.sort((a, b) => b.score - a.score);
 
   // Deduplicate while preserving all songs with same title from DIFFERENT artists
@@ -159,7 +223,7 @@ export async function searchSpotifyStyle(query: string): Promise<SpotifySearchRe
         id: `art_${primaryArtist.toLowerCase().replace(/\s+/g, '_')}`,
         name: primaryArtist,
         avatarUrl: topResult?.coverUrl,
-        monthlyListeners: 45000000
+        monthlyListeners: getArtistSpotifyFollowers(primaryArtist)
       }
     ],
     albums: [
