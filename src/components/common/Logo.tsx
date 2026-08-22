@@ -25,8 +25,8 @@ export interface RiffTextLogoProps {
 }
 
 /**
- * Luminous Glassmorphic "riff" Typographic Logotype
- * Minimalist luxury lowercase geometry with floating sonic wave cutouts.
+ * Dark Smoked Glass & Chrome Typographic "riff" Logotype
+ * Precision Swiss architecture with dark acoustic cuts.
  */
 export const RiffTextLogo: React.FC<RiffTextLogoProps> = ({
   height,
@@ -49,60 +49,57 @@ export const RiffTextLogo: React.FC<RiffTextLogoProps> = ({
       className={`inline-block shrink-0 select-none ${className}`}
     >
       <defs>
-        <linearGradient id={`riffGlassG_${id}`} x1="0%" y1="0%" x2="100%" y2="100%">
+        <linearGradient id={`riffDarkG_${id}`} x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#ffffff" />
-          <stop offset="100%" stopColor="#e2e8f0" />
+          <stop offset="60%" stopColor="#e2e8f0" />
+          <stop offset="100%" stopColor="#94a3b8" />
         </linearGradient>
-        <linearGradient id={`riffGlowG_${id}`} x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#60a5fa" stopOpacity="0.9" />
-          <stop offset="50%" stopColor="#a78bfa" stopOpacity="0.9" />
-          <stop offset="100%" stopColor="#f472b6" stopOpacity="0.9" />
+        <linearGradient id={`riffDotG_${id}`} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#38bdf8" />
+          <stop offset="100%" stopColor="#818cf8" />
         </linearGradient>
       </defs>
 
       <g>
         {/* ================= LOWERCASE 'r' ================= */}
-        {/* Stem */}
-        <rect x="4" y="9" width="5" height="17" rx="2.5" fill="url(#riffGlassG_${id})" />
-        {/* Arch */}
+        <rect x="4" y="9" width="5" height="17" rx="2.5" fill={`url(#riffDarkG_${id})`} />
         <path
           d="M8.5 13 C10.5 10 14 8.5 18 9 C19.5 9.2 20.8 9.8 21.5 10.5 L19.5 14.5 C19 14 18 13.5 17 13.5 C14.5 13.5 13 15 13 18.5 V26 H8 V13 Z"
-          fill="url(#riffGlassG_${id})"
+          fill={`url(#riffDarkG_${id})`}
         />
 
         {/* ================= LOWERCASE 'i' ================= */}
-        {/* Stem */}
-        <rect x="27" y="9" width="5" height="17" rx="2.5" fill="url(#riffGlassG_${id})" />
-        {/* Glowing Luminous Dot */}
+        <rect x="27" y="9" width="5" height="17" rx="2.5" fill={`url(#riffDarkG_${id})`} />
+        {/* Glowing Pulse Dot */}
         <circle
           cx="29.5"
           cy="4"
           r="3"
-          fill="url(#riffGlowG_${id})"
+          fill={`url(#riffDotG_${id})`}
           className={animated ? 'animate-pulse' : ''}
         />
 
         {/* ================= FIRST 'f' ================= */}
         <path
           d="M44 4 C39 4 36.5 7 36.5 12.5 V26 H41.5 V14 C41.5 11.5 42.8 10 45 10 C45.8 10 46.5 10.2 47 10.6 V5.2 C46.2 4.4 45.2 4 44 4 Z"
-          fill="url(#riffGlassG_${id})"
+          fill={`url(#riffDarkG_${id})`}
         />
-        <rect x="33.5" y="11" width="13" height="4" rx="2" fill="url(#riffGlassG_${id})" />
+        <rect x="33.5" y="11" width="13" height="4" rx="2" fill={`url(#riffDarkG_${id})`} />
 
         {/* ================= SECOND 'f' ================= */}
         <path
           d="M59 4 C54 4 51.5 7 51.5 12.5 V26 H56.5 V14 C56.5 11.5 57.8 10 60 10 C60.8 10 61.5 10.2 62 10.6 V5.2 C61.2 4.4 60.2 4 59 4 Z"
-          fill="url(#riffGlassG_${id})"
+          fill={`url(#riffDarkG_${id})`}
         />
-        <rect x="48.5" y="11" width="13" height="4" rx="2" fill="url(#riffGlassG_${id})" />
+        <rect x="48.5" y="11" width="13" height="4" rx="2" fill={`url(#riffDarkG_${id})`} />
 
-        {/* ================= GLASS SOUNDWAVE ORBS ================= */}
+        {/* ================= DARK CHROME EQUALIZER ================= */}
         <g className={animated ? 'animate-pulse' : ''}>
-          <circle cx="70" cy="15" r="2.5" fill="url(#riffGlowG_${id})" />
-          <rect x="76" y="8" width="3.5" height="14" rx="1.75" fill="url(#riffGlowG_${id})" />
-          <rect x="83" y="4" width="3.5" height="22" rx="1.75" fill="url(#riffGlowG_${id})" />
-          <rect x="90" y="9" width="3.5" height="12" rx="1.75" fill="url(#riffGlowG_${id})" />
-          <circle cx="99" cy="15" r="2.5" fill="url(#riffGlowG_${id})" />
+          <rect x="74" y="11" width="3" height="11" rx="1.5" fill="#64748b" />
+          <rect x="80" y="7" width="3" height="17" rx="1.5" fill="#94a3b8" />
+          <rect x="86" y="3" width="3" height="23" rx="1.5" fill="#e2e8f0" />
+          <rect x="92" y="8" width="3" height="15" rx="1.5" fill="#94a3b8" />
+          <rect x="98" y="12" width="3" height="9" rx="1.5" fill="#64748b" />
         </g>
       </g>
     </svg>
