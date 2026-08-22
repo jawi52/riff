@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+﻿import React, { useEffect, useRef, useState } from 'react';
 import {
   ChevronDown,
   Play,
@@ -12,7 +12,8 @@ import {
   Sliders,
   ListMusic,
   Mic2,
-  Sparkles
+  Timer,
+  Info
 } from 'lucide-react';
 import { usePlayerStore } from '../../stores/usePlayerStore';
 import { useLibraryStore } from '../../stores/useLibraryStore';
@@ -43,14 +44,19 @@ export const FullscreenPlayerModal: React.FC = () => {
     toggleShuffle,
     cycleRepeatMode,
     setFullscreenOpen,
-    queue
+    queue,
+    playTrack
   } = usePlayerStore();
 
   const { toggleLikeTrack, likedTracks } = useLibraryStore();
   const { equalizerPreset, setEqualizerPreset, eqBands, setEQBand } = useSettingsStore();
 
-  const [activeTab, setActiveTab] = useState<'lyrics' | 'queue' | 'eq'>('lyrics');
+  const [activeTab, setActiveTab] = useState<'lyrics' | 'queue' | 'eq' | 'sleep' | 'credits'>('lyrics');
+  const [sleepTimerRemaining, setSleepTimerRemaining] = useState<number | null>(null);
+  const [showHeartPop, setShowHeartPop] = useState(false);
+
   const lyricsContainerRef = useRef<HTMLDivElement | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Auto-scroll active lyric into center view
   useEffect(() => {
@@ -62,9 +68,43 @@ export const FullscreenPlayerModal: React.FC = () => {
     }
   }, [activeLyricIndex, activeTab]);
 
+  // Sleep Timer countdown
+  useEffect(() => {
+    if (sleepTimerRemaining !== null && sleepTimerRemaining > 0) {
+      timerRef.current = setInterval(() => {
+        setSleepTimerRemaining((prev) => {
+          if (prev === null || prev <= 1) {
+            clearInterval(timerRef.current!);
+            togglePlayPause();
+            return null;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [sleepTimerRemaining]);
+
   if (!isFullscreenOpen || !currentTrack) return null;
 
   const isLiked = likedTracks.some((t) => t.id === currentTrack.id) || currentTrack.isLiked;
+  const progressPercent = duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0;
+
+  const handleDoubleTapCover = () => {
+    if (!isLiked) {
+      toggleLikeTrack(currentTrack);
+      if (navigator.vibrate) navigator.vibrate([15, 30, 15]);
+      setShowHeartPop(true);
+      setTimeout(() => setShowHeartPop(false), 900);
+    }
+  };
+
+  const handleSetSleepTimer = (minutes: number) => {
+    setSleepTimerRemaining(minutes * 60);
+    if (navigator.vibrate) navigator.vibrate(20);
+  };
 
   const eqPresetsList: Array<'flat' | 'bass_boost' | 'vocal' | 'electronic' | 'rock' | 'acoustic'> = [
     'flat',
@@ -76,285 +116,349 @@ export const FullscreenPlayerModal: React.FC = () => {
   ];
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#08080a] flex flex-col justify-between overflow-hidden animate-in fade-in zoom-in-95 duration-300 select-none">
-      {/* Subtle Ambient Emerald Radial Glow */}
+    <div className="fixed inset-0 z-50 bg-[#07080c] flex flex-col justify-between overflow-hidden animate-in fade-in duration-200 select-none">
+      {/* Dynamic Ambient Glow */}
       <div 
-        className="absolute inset-0 opacity-20 blur-[120px] pointer-events-none transform scale-125 transition-all duration-1000"
+        className="absolute inset-0 opacity-25 blur-[100px] pointer-events-none transform scale-125 transition-all duration-1000"
         style={{
-          backgroundImage: `radial-gradient(circle at 50% 30%, #1db954 0%, #0d1f14 45%, transparent 70%)`
+          backgroundImage: `radial-gradient(circle at 50% 25%, #10b981 0%, #064e3b 40%, transparent 75%)`
         }}
       />
 
-      {/* Top Bar Header */}
-      <div className="relative z-10 flex items-center justify-between px-6 py-4 border-b border-white/[0.08] bg-[#08080a]/80 backdrop-blur-2xl">
+      {/* Top Header Bar */}
+      <div className="relative z-10 flex items-center justify-between px-5 py-3.5 border-b border-white/[0.08] bg-[#07080c]/80 backdrop-blur-2xl">
         <button
           onClick={() => setFullscreenOpen(false)}
-          className="p-2 rounded-full text-neutral-400 hover:text-white hover:bg-white/5 transition-all"
-          title="Minimize (Esc)"
+          className="p-2 -ml-2 rounded-full text-neutral-400 hover:text-white hover:bg-white/5 active:scale-90 transition cursor-pointer"
         >
           <ChevronDown className="w-6 h-6" />
         </button>
 
-        <div className="text-center space-y-0.5">
-          <span className="text-[10px] font-mono font-bold tracking-widest uppercase text-[#1db954]">
-            NOW STREAMING // {currentTrack.sourceType.toUpperCase()}
+        <div className="text-center space-y-0.5 max-w-[200px] truncate">
+          <span className="text-[10px] font-mono font-bold tracking-widest uppercase text-emerald-400">
+            NOW PLAYING // 320 KBPS
           </span>
-          <h3 className="text-xs font-mono text-neutral-300 truncate max-w-xs md:max-w-md">
-            {currentTrack.album || 'RIFF AUDIO'}
-          </h3>
+          <p className="text-xs font-bold text-white truncate">{currentTrack.album || 'Single'}</p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => toggleLikeTrack(currentTrack)}
-            className={`p-2 rounded-full hover:bg-white/5 transition-colors ${
-              isLiked ? 'text-[#1db954] fill-[#1db954]' : 'text-neutral-400 hover:text-white'
-            }`}
-          >
-            <Heart className={`w-5 h-5 ${isLiked ? 'fill-[#1db954]' : ''}`} />
-          </button>
-        </div>
+        <button
+          onClick={() => {
+            if (navigator.vibrate) navigator.vibrate(15);
+            toggleLikeTrack(currentTrack);
+          }}
+          className="p-2 -mr-2 rounded-full text-neutral-400 hover:text-white transition cursor-pointer"
+        >
+          <Heart className={`w-6 h-6 ${isLiked ? 'fill-emerald-500 text-emerald-500' : ''}`} />
+        </button>
       </div>
 
-      {/* Center Dynamic Split: Left (Vinyl Showcase + Waveform) / Right (Lyrics, Queue, EQ) */}
-      <div className="relative z-10 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-8 p-6 md:p-10 items-center max-w-7xl mx-auto w-full overflow-hidden">
-        {/* Left Column: Visual Artwork, Spinning Vinyl & Spectrum */}
-        <div className="lg:col-span-6 flex flex-col items-center justify-center space-y-6 text-center">
-          {/* Vinyl + Cover Showcase */}
-          <div className="relative group flex items-center justify-center">
-            {/* Spinning Vinyl Record Disc */}
-            <div
-              className={`absolute w-56 h-56 md:w-72 md:h-72 rounded-full bg-[#0a0a0d] border-4 border-[#1c1e27] shadow-2xl flex items-center justify-center transition-all duration-700 ${
-                playbackState === 'playing' ? 'translate-x-14 md:translate-x-20 animate-vinyl-spin' : 'translate-x-8'
-              }`}
-              style={{
-                backgroundImage: `radial-gradient(circle, #1a1c24 15%, #0d0e12 40%, #161820 65%, #08090c 90%)`
-              }}
-            >
-              <div className="w-24 h-24 rounded-full border-2 border-white/20 flex items-center justify-center bg-black/70">
-                <div className="w-7 h-7 rounded-full bg-[#1db954] shadow-lg shadow-[#1db954]/50" />
+      {/* Main Center Area: Split between Cover Art and Drawer Panels */}
+      <div className="relative z-10 flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 p-4 md:p-8 max-w-6xl mx-auto w-full min-h-0 items-center overflow-y-auto custom-scrollbar">
+        {/* Left Side: Artwork & Track Metadata */}
+        <div className="flex flex-col items-center justify-center space-y-5">
+          <div 
+            onDoubleClick={handleDoubleTapCover}
+            className="relative w-64 h-64 md:w-80 md:h-80 rounded-3xl overflow-hidden shadow-2xl border border-white/10 group cursor-pointer"
+          >
+            <img
+              src={currentTrack.coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&q=80'}
+              alt={currentTrack.title}
+              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+            />
+            {/* Visualizer Overlay */}
+            <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/80 to-transparent flex items-end justify-center p-3">
+              <VisualizerCanvas className="w-full h-12" />
+            </div>
+
+            {/* Heart Pop Overlay on Double Tap */}
+            {showHeartPop && (
+              <div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center animate-in zoom-in-50 duration-200">
+                <Heart className="w-20 h-20 fill-emerald-500 text-emerald-500 animate-bounce" />
               </div>
-            </div>
-
-            {/* Foreground Album Artwork */}
-            <div className="relative z-10 w-60 h-60 md:w-72 md:h-72 rounded-2xl overflow-hidden shadow-2xl shadow-black ring-1 ring-white/15">
-              <img
-                src={currentTrack.coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&q=80'}
-                alt={currentTrack.title}
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-            </div>
+            )}
           </div>
 
-          <div className="space-y-1 max-w-md">
-            <h1 className="text-2xl md:text-3xl font-black font-mono text-white tracking-tight uppercase truncate">
+          {/* Title & Artist */}
+          <div className="text-center space-y-1.5 max-w-sm px-4">
+            <h2 className="text-xl md:text-2xl font-black text-white tracking-tight line-clamp-1">
               {currentTrack.title}
-            </h1>
-            <p className="text-sm font-mono text-neutral-400 truncate">
-              Artist // <span className="text-white font-bold">{currentTrack.artist}</span>
+            </h2>
+            <p className="text-sm font-semibold text-neutral-400 hover:text-white transition cursor-pointer">
+              {currentTrack.artist}
             </p>
-          </div>
-
-          {/* Real-time Oscilloscope Waveform */}
-          <div className="w-full max-w-xs p-2 rounded-xl bg-black/40 border border-white/[0.08]">
-            <VisualizerCanvas mode="oscilloscope" color="green" />
+            <div className="flex items-center justify-center gap-2 pt-1">
+              <span className="px-2.5 py-0.5 text-[10px] font-extrabold uppercase rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                Lossless • 320kbps AAC
+              </span>
+              {sleepTimerRemaining !== null && (
+                <span className="px-2.5 py-0.5 text-[10px] font-mono font-bold rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center gap-1">
+                  <Timer className="w-3 h-3" />
+                  {formatTime(sleepTimerRemaining)}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Right Column: Tabbed Lyrics / Queue / 5-Band EQ */}
-        <div className="lg:col-span-6 flex flex-col h-full max-h-[460px] glass-editorial rounded-3xl overflow-hidden shadow-2xl border border-white/[0.08]">
-          {/* Tabs Navigation */}
-          <div className="flex items-center justify-around border-b border-white/[0.08] p-2 bg-black/20 text-xs font-mono font-bold uppercase tracking-wider">
-            <button
-              onClick={() => setActiveTab('lyrics')}
-              className={`flex items-center gap-2 py-2 px-4 rounded-xl transition-all ${
-                activeTab === 'lyrics' ? 'bg-white text-black shadow-md' : 'text-neutral-400 hover:text-white'
-              }`}
-            >
-              <Mic2 className={`w-3.5 h-3.5 ${activeTab === 'lyrics' ? 'text-[#1db954]' : ''}`} />
-              SYNCED LYRICS
-            </button>
-
-            <button
-              onClick={() => setActiveTab('queue')}
-              className={`flex items-center gap-2 py-2 px-4 rounded-xl transition-all ${
-                activeTab === 'queue' ? 'bg-white text-black shadow-md' : 'text-neutral-400 hover:text-white'
-              }`}
-            >
-              <ListMusic className={`w-3.5 h-3.5 ${activeTab === 'queue' ? 'text-[#1db954]' : ''}`} />
-              UP NEXT ({queue.length})
-            </button>
-
-            <button
-              onClick={() => setActiveTab('eq')}
-              className={`flex items-center gap-2 py-2 px-4 rounded-xl transition-all ${
-                activeTab === 'eq' ? 'bg-white text-black shadow-md' : 'text-neutral-400 hover:text-white'
-              }`}
-            >
-              <Sliders className={`w-3.5 h-3.5 ${activeTab === 'eq' ? 'text-[#1db954]' : ''}`} />
-              EQUALIZER DSP
-            </button>
+        {/* Right Side: Interactive Drawer Tabs (Lyrics, Queue, EQ, Sleep Timer) */}
+        <div className="flex flex-col h-[380px] md:h-[480px] rounded-3xl bg-white/[0.04] border border-white/[0.08] backdrop-blur-2xl overflow-hidden shadow-2xl">
+          {/* Drawer Tab Headers */}
+          <div className="flex items-center border-b border-white/[0.08] bg-black/30 px-2 py-1.5">
+            {[
+              { key: 'lyrics', label: 'Lyrics', icon: Mic2 },
+              { key: 'queue', label: 'Up Next', icon: ListMusic },
+              { key: 'eq', label: 'Equalizer', icon: Sliders },
+              { key: 'sleep', label: 'Sleep Timer', icon: Timer },
+              { key: 'credits', label: 'Credits', icon: Info }
+            ].map(({ key, label, icon: Icon }) => (
+              <button
+                key={key}
+                onClick={() => setActiveTab(key as any)}
+                className={`flex-1 py-2 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                  activeTab === key
+                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                    : 'text-neutral-400 hover:text-white'
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">{label}</span>
+              </button>
+            ))}
           </div>
 
-          {/* Tab 1: Synced Lyrics View */}
+          {/* TAB 1: KARAOKE SYNCED LYRICS */}
           {activeTab === 'lyrics' && (
             <div
               ref={lyricsContainerRef}
-              className="flex-1 overflow-y-auto p-6 space-y-6 text-center select-none font-mono"
+              className="flex-1 overflow-y-auto p-6 space-y-5 text-center custom-scrollbar"
             >
               {currentTrack.syncedLyrics && currentTrack.syncedLyrics.length > 0 ? (
-                currentTrack.syncedLyrics.map((line, idx) => {
+                currentTrack.syncedLyrics.map((lyric, idx) => {
                   const isActive = idx === activeLyricIndex;
                   return (
-                    <p
+                    <div
                       key={idx}
                       data-active={isActive}
-                      onClick={() => seek(line.timeMs / 1000)}
-                      className={`text-base md:text-lg font-bold transition-all duration-300 cursor-pointer ${
+                      onClick={() => seek(lyric.timeMs / 1000)}
+                      className={`text-lg md:text-xl font-extrabold transition-all duration-300 cursor-pointer rounded-xl p-2 ${
                         isActive
-                          ? 'text-[#1db954] scale-110 drop-shadow-[0_0_12px_rgba(29,185,84,0.6)] font-black'
+                          ? 'text-white scale-105 bg-emerald-500/10 shadow-[0_0_20px_rgba(16,185,129,0.2)]'
                           : 'text-neutral-500 hover:text-neutral-300'
                       }`}
                     >
-                      {line.text}
-                    </p>
+                      {lyric.text}
+                    </div>
                   );
                 })
               ) : (
-                <div className="flex flex-col items-center justify-center h-full text-neutral-500 space-y-2">
-                  <Sparkles className="w-8 h-8 text-neutral-600 animate-pulse" />
-                  <p className="text-xs font-mono uppercase tracking-wider">Instrumental or Unsynced Track</p>
-                  {currentTrack.plainLyrics && (
-                    <p className="text-xs text-neutral-400 whitespace-pre-line text-left max-w-sm mt-4 font-sans">
-                      {currentTrack.plainLyrics}
-                    </p>
-                  )}
+                <div className="h-full flex flex-col items-center justify-center text-neutral-400 space-y-2">
+                  <Mic2 className="w-8 h-8 opacity-40 text-emerald-400" />
+                  <p className="text-sm font-semibold">Instrumental or Lyrics Not Available</p>
+                  <span className="text-xs text-neutral-500">Playing in pristine 320kbps CD Audio</span>
                 </div>
               )}
             </div>
           )}
 
-          {/* Tab 2: Queue View */}
+          {/* TAB 2: UP NEXT QUEUE */}
           {activeTab === 'queue' && (
-            <div className="flex-1 overflow-y-auto p-4 space-y-2">
-              {queue.map((song, i) => (
+            <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
+              <div className="text-xs font-bold uppercase tracking-wider text-neutral-400 px-2 py-1">
+                Up Next ({queue.length} tracks)
+              </div>
+              {queue.map((t, idx) => (
                 <div
-                  key={song.id + '_' + i}
-                  className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
-                    song.id === currentTrack.id
-                      ? 'bg-[#1db954]/15 border-[#1db954]/40 text-[#1db954]'
-                      : 'bg-white/[0.04] border-white/[0.06] text-neutral-300 hover:bg-white/[0.08]'
-                  }`}
+                  key={`${t.id}_${idx}`}
+                  onClick={() => playTrack(t)}
+                  className="flex items-center gap-3 p-2.5 rounded-2xl hover:bg-white/5 transition cursor-pointer group"
                 >
-                  <div className="flex items-center gap-3.5 min-w-0">
-                    <span className="font-mono text-xs font-bold text-neutral-500 w-4">{i + 1}</span>
-                    <img src={song.coverUrl} alt="" className="w-10 h-10 rounded-lg object-cover" />
-                    <div className="min-w-0">
-                      <p className="text-xs font-bold font-mono tracking-tight truncate">{song.title}</p>
-                      <p className="text-[11px] text-neutral-400 truncate">{song.artist}</p>
-                    </div>
+                  <img src={t.coverUrl} alt={t.title} className="w-10 h-10 rounded-xl object-cover" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-white truncate group-hover:text-emerald-400 transition">{t.title}</p>
+                    <p className="text-[11px] text-neutral-400 truncate">{t.artist}</p>
                   </div>
-                  <span className="text-xs font-mono text-neutral-500">{formatTime(song.duration)}</span>
+                  <span className="text-[10px] font-mono text-neutral-500">{formatTime(t.duration)}</span>
                 </div>
               ))}
             </div>
           )}
 
-          {/* Tab 3: 5-Band Equalizer DSP */}
+          {/* TAB 3: 5-BAND EQUALIZER */}
           {activeTab === 'eq' && (
-            <div className="flex-1 p-6 space-y-6 overflow-y-auto">
-              <div className="flex flex-wrap gap-2 justify-center">
-                {eqPresetsList.map((preset) => (
+            <div className="flex-1 p-5 overflow-y-auto space-y-6 custom-scrollbar">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-neutral-400 block mb-2">Preset</span>
+                <div className="grid grid-cols-3 gap-2">
+                  {eqPresetsList.map((preset) => (
+                    <button
+                      key={preset}
+                      onClick={() => setEqualizerPreset(preset)}
+                      className={`py-2 px-3 rounded-xl text-xs font-bold uppercase transition cursor-pointer ${
+                        equalizerPreset === preset
+                          ? 'bg-emerald-500 text-black font-extrabold shadow-lg'
+                          : 'bg-white/5 text-neutral-400 hover:text-white'
+                      }`}
+                    >
+                      {preset.replace('_', ' ')}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 5 Frequency Sliders */}
+              <div className="space-y-3">
+                <span className="text-xs font-bold uppercase tracking-wider text-neutral-400 block">Frequencies</span>
+                {[
+                  { label: '60 Hz (Sub Bass)', index: 0 },
+                  { label: '250 Hz (Warmth)', index: 1 },
+                  { label: '1 kHz (Vocals)', index: 2 },
+                  { label: '4 kHz (Clarity)', index: 3 },
+                  { label: '14 kHz (Air/High)', index: 4 }
+                ].map(({ label, index }) => {
+                  const val = eqBands[index] || 0;
+                  return (
+                    <div key={index} className="flex items-center gap-3">
+                      <span className="text-xs text-neutral-300 w-32 truncate">{label}</span>
+                      <input
+                        type="range"
+                        min="-12"
+                        max="12"
+                        step="1"
+                        value={val}
+                        onChange={(e) => setEQBand(index, parseFloat(e.target.value))}
+                        className="flex-1 h-1.5 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                      />
+                      <span className="text-[10px] font-mono text-neutral-400 w-8 text-right">{val > 0 ? `+${val}` : val}dB</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 4: SLEEP TIMER */}
+          {activeTab === 'sleep' && (
+            <div className="flex-1 p-6 flex flex-col justify-center space-y-4">
+              <div className="text-center space-y-1">
+                <h4 className="text-sm font-bold text-white">Stop audio automatically</h4>
+                <p className="text-xs text-neutral-400">Sleep peacefully with no interrupted battery drain</p>
+              </div>
+              <div className="grid grid-cols-2 gap-2.5">
+                {[
+                  { label: '5 Minutes', min: 5 },
+                  { label: '15 Minutes', min: 15 },
+                  { label: '30 Minutes', min: 30 },
+                  { label: '45 Minutes', min: 45 },
+                  { label: '1 Hour', min: 60 },
+                  { label: 'End of Track', min: Math.ceil((duration - currentTime) / 60) || 3 }
+                ].map(({ label, min }) => (
                   <button
-                    key={preset}
-                    onClick={() => setEqualizerPreset(preset)}
-                    className={`text-xs px-3 py-1.5 rounded-full uppercase font-mono font-bold tracking-wider transition-all ${
-                      equalizerPreset === preset
-                        ? 'bg-white text-black shadow-md'
-                        : 'bg-white/[0.04] text-neutral-400 hover:text-white border border-white/[0.08]'
-                    }`}
+                    key={label}
+                    onClick={() => handleSetSleepTimer(min)}
+                    className="py-3 px-4 rounded-2xl bg-white/5 hover:bg-emerald-500/20 text-white hover:text-emerald-400 text-xs font-bold transition border border-white/5 hover:border-emerald-500/30 cursor-pointer"
                   >
-                    {preset.replace('_', ' ')}
+                    {label}
                   </button>
                 ))}
               </div>
+              {sleepTimerRemaining !== null && (
+                <button
+                  onClick={() => setSleepTimerRemaining(null)}
+                  className="w-full py-2.5 rounded-xl bg-red-500/10 text-red-400 text-xs font-bold border border-red-500/20 hover:bg-red-500/20 transition cursor-pointer"
+                >
+                  Cancel Sleep Timer
+                </button>
+              )}
+            </div>
+          )}
 
-              {/* 5-Band Slider Sliders */}
-              <div className="grid grid-cols-5 gap-3 text-center pt-2">
-                {['60Hz', '250Hz', '1kHz', '4kHz', '14kHz'].map((label, idx) => (
-                  <div key={label} className="flex flex-col items-center gap-2">
-                    <span className="text-[10px] font-mono text-[#1db954] font-bold">{eqBands[idx]} dB</span>
-                    <input
-                      type="range"
-                      min={-12}
-                      max={12}
-                      step={1}
-                      value={eqBands[idx] || 0}
-                      onChange={(e) => setEQBand(idx, parseFloat(e.target.value))}
-                      className="h-28 w-2 appearance-none bg-white/10 rounded-lg accent-[#1db954] [writing-mode:vertical-lr] [direction:rtl]"
-                    />
-                    <span className="text-[10px] font-mono text-neutral-400">{label}</span>
-                  </div>
-                ))}
+          {/* TAB 5: CREDITS & METADATA */}
+          {activeTab === 'credits' && (
+            <div className="flex-1 p-6 space-y-4 text-xs text-neutral-300 overflow-y-auto custom-scrollbar">
+              <div className="space-y-1">
+                <span className="text-[10px] uppercase font-bold text-neutral-500">Performed by</span>
+                <p className="text-sm font-bold text-white">{currentTrack.artist}</p>
+              </div>
+              <div className="space-y-1">
+                <span className="text-[10px] uppercase font-bold text-neutral-500">Album</span>
+                <p className="text-sm font-bold text-white">{currentTrack.album || 'Single'}</p>
+              </div>
+              <div className="space-y-1">
+                <span className="text-[10px] uppercase font-bold text-neutral-500">Audio Stream Quality</span>
+                <p className="text-sm font-bold text-emerald-400">320kbps AAC / Lossless High-Fidelity</p>
+              </div>
+              <div className="space-y-1">
+                <span className="text-[10px] uppercase font-bold text-neutral-500">Release Year</span>
+                <p className="text-sm font-bold text-white">{currentTrack.releaseYear || 2024}</p>
               </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Bottom Large Controls & Scrub Bar */}
-      <div className="relative z-10 px-6 md:px-12 py-6 bg-[#08080a]/90 backdrop-blur-2xl border-t border-white/[0.08] max-w-4xl mx-auto w-full space-y-4">
-        {/* Scrub Bar */}
+      {/* Bottom Transport Controls Bar */}
+      <div className="relative z-10 px-6 py-5 border-t border-white/[0.08] bg-[#07080c]/90 backdrop-blur-2xl max-w-4xl mx-auto w-full space-y-3">
+        {/* Scrubber Slider */}
         <div className="space-y-1">
-          <input
-            type="range"
-            min={0}
-            max={duration || 100}
-            value={currentTime || 0}
-            onChange={(e) => seek(parseFloat(e.target.value))}
-            className="w-full editorial-scrubber"
-          />
-          <div className="flex justify-between text-xs font-mono text-neutral-400">
+          <div
+            className="h-2 bg-white/10 rounded-full cursor-pointer relative group overflow-hidden"
+            onClick={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+              seek(pos * duration);
+            }}
+          >
+            <div
+              className="h-full bg-gradient-to-r from-emerald-500 to-[#1db954] transition-all rounded-full shadow-[0_0_12px_rgba(29,185,84,0.7)]"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+          <div className="flex justify-between text-[11px] font-mono text-neutral-400 px-0.5">
             <span>{formatTime(currentTime)}</span>
-            <span>{formatTime(duration)}</span>
+            <span>-{formatTime(Math.max(0, duration - currentTime))}</span>
           </div>
         </div>
 
-        {/* Controls */}
-        <div className="flex items-center justify-between">
+        {/* Buttons: Shuffle, Prev, Play/Pause, Next, Repeat */}
+        <div className="flex items-center justify-between px-4">
           <button
             onClick={toggleShuffle}
-            className={`p-3 rounded-full transition-colors ${
-              isShuffled ? 'text-[#1db954]' : 'text-neutral-400 hover:text-white'
+            className={`p-2.5 rounded-full transition cursor-pointer ${
+              isShuffled ? 'text-emerald-400 bg-emerald-500/10' : 'text-neutral-400 hover:text-white'
             }`}
           >
             <Shuffle className="w-5 h-5" />
           </button>
 
-          <button onClick={previousTrack} className="p-3 text-neutral-300 hover:text-white transition-colors">
-            <SkipBack className="w-7 h-7" />
+          <button
+            onClick={previousTrack}
+            className="p-2.5 text-neutral-300 hover:text-white active:scale-90 transition cursor-pointer"
+          >
+            <SkipBack className="w-7 h-7 fill-current" />
           </button>
 
           <button
             onClick={togglePlayPause}
-            className="w-16 h-16 rounded-full btn-spotify-emerald flex items-center justify-center text-black shadow-2xl hover:scale-105 active:scale-95 transition-all"
+            className="w-16 h-16 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 active:scale-95 transition shadow-2xl cursor-pointer"
           >
             {playbackState === 'playing' ? (
-              <Pause className="w-8 h-8 fill-black text-black" />
+              <Pause className="w-8 h-8 fill-current" />
             ) : (
-              <Play className="w-8 h-8 fill-black text-black ml-1" />
+              <Play className="w-8 h-8 fill-current ml-1" />
             )}
           </button>
 
-          <button onClick={nextTrack} className="p-3 text-neutral-300 hover:text-white transition-colors">
-            <SkipForward className="w-7 h-7" />
+          <button
+            onClick={nextTrack}
+            className="p-2.5 text-neutral-300 hover:text-white active:scale-90 transition cursor-pointer"
+          >
+            <SkipForward className="w-7 h-7 fill-current" />
           </button>
 
           <button
             onClick={cycleRepeatMode}
-            className={`p-3 rounded-full transition-colors ${
-              repeatMode !== 'off' ? 'text-[#1db954]' : 'text-neutral-400 hover:text-white'
+            className={`p-2.5 rounded-full transition cursor-pointer ${
+              repeatMode !== 'off' ? 'text-emerald-400 bg-emerald-500/10' : 'text-neutral-400 hover:text-white'
             }`}
           >
             {repeatMode === 'one' ? <Repeat1 className="w-5 h-5" /> : <Repeat className="w-5 h-5" />}

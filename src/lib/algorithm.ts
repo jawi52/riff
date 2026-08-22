@@ -266,6 +266,77 @@ export function generateDailyMixes(likedTracks: Track[]): DailyMix[] {
   ];
 }
 
+/**
+ * Contextual Spotify-style Daylist Generator (Morphs mood by hour of the day)
+ */
+export function getContextualDaylist(): { title: string; subtitle: string; gradient: string; tracks: Track[] } {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 11) {
+    return {
+      title: 'morning acoustic focus chill tuesday',
+      subtitle: 'Gentle melodies, warm acoustic strings & uplifting morning momentum',
+      gradient: 'from-amber-600/40 via-orange-950/30 to-black',
+      tracks: GLOBAL_CATALOG.filter((t) => ['Chill', 'Lo-Fi Chill', 'Pop'].includes(t.genre || ''))
+    };
+  } else if (hour >= 11 && hour < 17) {
+    return {
+      title: 'midday hyper energy workout hype',
+      subtitle: 'Fast BPMs, heavy synth basslines and high-tempo chart anthems',
+      gradient: 'from-cyan-600/40 via-blue-950/30 to-black',
+      tracks: GLOBAL_CATALOG.filter((t) => ['Synthwave', 'Electronic', 'Dance / Electronic'].includes(t.genre || ''))
+    };
+  } else if (hour >= 17 && hour < 22) {
+    return {
+      title: 'sunset golden hour drives aesthetic',
+      subtitle: 'Dreamy synthpop, lush neon textures and nostalgic cruising vibes',
+      gradient: 'from-fuchsia-600/40 via-purple-950/30 to-black',
+      tracks: GLOBAL_CATALOG.filter((t) => ['Synthwave', 'R&B / Pop', 'Synthpop'].includes(t.genre || ''))
+    };
+  } else {
+    return {
+      title: 'late night ambient cyberpunk focus 3am',
+      subtitle: 'Deep atmospheric soundscapes, dark electronica and soothing lo-fi beats',
+      gradient: 'from-violet-600/40 via-indigo-950/30 to-black',
+      tracks: GLOBAL_CATALOG.filter((t) => ['Lo-Fi Chill', 'Synthwave', 'Electronic'].includes(t.genre || ''))
+    };
+  }
+}
+
+/**
+ * Smart Auto-Play & Infinite Radio Recommendation Engine
+ * Finds matching tracks based on seed track genre, artist, and audio characteristics
+ */
+export function getRecommendedRadioTracks(seedTrack: Track, count = 10): Track[] {
+  const seedGenre = (seedTrack.genre || '').toLowerCase();
+  const seedArtist = (seedTrack.artist || '').toLowerCase();
+
+  const candidates = GLOBAL_CATALOG.filter((t) => t.id !== seedTrack.id);
+
+  const scored = candidates.map((track) => {
+    let score = 0;
+    const tGenre = (track.genre || '').toLowerCase();
+    const tArtist = (track.artist || '').toLowerCase();
+
+    if (tGenre && seedGenre && (tGenre === seedGenre || tGenre.includes(seedGenre) || seedGenre.includes(tGenre))) {
+      score += 60;
+    }
+
+    if (tArtist && seedArtist && (tArtist === seedArtist || tArtist.includes(seedArtist) || seedArtist.includes(tArtist))) {
+      score += 40;
+    }
+
+    // Duration similarity
+    const durDiff = Math.abs(track.duration - seedTrack.duration);
+    if (durDiff < 30) score += 20;
+    else if (durDiff < 60) score += 10;
+
+    return { track, score };
+  });
+
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, count).map((s) => s.track);
+}
+
 export function getArtistProfile(artistName: string): Artist & {
   albums: Album[];
   singles: Track[];
