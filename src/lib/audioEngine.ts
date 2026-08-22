@@ -14,6 +14,7 @@ export class RiffAudioEngine {
 
   private constructor() {
     this.audio = new Audio();
+    this.audio.crossOrigin = 'anonymous';
     this.audio.preload = 'auto';
     this.audio.autoplay = false;
   }
