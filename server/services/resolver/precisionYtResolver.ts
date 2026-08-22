@@ -1,6 +1,6 @@
 import { exec } from 'child_process';
 import util from 'util';
-import { getInnertubeAudioStream } from '../providers/innertube';
+import { getInnertubeAudioStream, searchInnertubeMusic } from '../providers/innertube';
 import { searchSaavn } from '../providers/saavn';
 
 const execPromise = util.promisify(exec);
@@ -32,7 +32,7 @@ export function getCanonicalCacheKey(artist: string, title: string): string {
 }
 
 /**
- * Ultra-Fast Multi-Tier Stream Resolver
+ * Ultra-Fast Multi-Tier Pure-HTTP Stream Resolver (Works on Vercel Serverless + Local Servers)
  */
 export async function resolvePrecisionStream(params: {
   title: string;
@@ -60,14 +60,25 @@ export async function resolvePrecisionStream(params: {
   const cleanArtist = (artist || '').replace(/["'\\]/g, ' ').trim();
 
   const resolutionPromise = (async () => {
-    // 3. Direct CDN stream if already provided
+    // 3. Direct CDN stream if already provided (0ms)
     if (rawUrl && (rawUrl.includes('saavncdn.com') || rawUrl.includes('audius.co') || rawUrl.includes('jamendo.com'))) {
       const entry = { streamUrl: rawUrl, provider: 'direct-cdn', expiresAt: Date.now() + CACHE_TTL_MS };
       streamCache.set(canonicalKey, entry);
       return { streamUrl: rawUrl, provider: 'direct-cdn', cached: false };
     }
 
-    // 4. Tier A: Direct YouTube Innertube Android Client (ViMusic method: ~150-250ms)
+    // 4. Tier A: High-Speed Saavn 320kbps CDN Search (~120ms)
+    try {
+      const saavnResults = await searchSaavn(`${cleanArtist} ${cleanTitle}`);
+      if (saavnResults.length > 0 && saavnResults[0].streamUrl) {
+        const entry = { streamUrl: saavnResults[0].streamUrl, provider: 'saavn-320k', expiresAt: Date.now() + CACHE_TTL_MS };
+        streamCache.set(canonicalKey, entry);
+        streamCache.set(rawKey, entry);
+        return { streamUrl: saavnResults[0].streamUrl, provider: 'saavn-320k', cached: false };
+      }
+    } catch {}
+
+    // 5. Tier B: YouTube Music Innertube Android Client (Pure HTTP: ~180ms)
     let videoId: string | null = null;
     if (trackId && trackId.startsWith('yt_')) {
       videoId = trackId.replace('yt_', '');
@@ -75,6 +86,16 @@ export async function resolvePrecisionStream(params: {
       videoId = rawUrl.split('watch?v=')[1]?.split('&')[0];
     } else if (rawUrl && rawUrl.includes('youtu.be/')) {
       videoId = rawUrl.split('youtu.be/')[1]?.split('?')[0];
+    }
+
+    // If no videoId provided, quickly search Innertube via HTTP POST
+    if (!videoId) {
+      try {
+        const ytResults = await searchInnertubeMusic(`${cleanArtist} ${cleanTitle}`);
+        if (ytResults.length > 0 && ytResults[0].id) {
+          videoId = ytResults[0].id.replace('yt_', '');
+        }
+      } catch {}
     }
 
     if (videoId) {
@@ -87,23 +108,12 @@ export async function resolvePrecisionStream(params: {
       }
     }
 
-    // 5. Tier B: High-Speed Saavn 320kbps CDN Search (~120ms)
+    // 6. Tier C: yt-dlp Direct Stream Extraction (for local server environments)
     try {
-      const saavnResults = await searchSaavn(`${cleanArtist} ${cleanTitle}`);
-      if (saavnResults.length > 0 && saavnResults[0].streamUrl) {
-        const entry = { streamUrl: saavnResults[0].streamUrl, provider: 'saavn-320k', expiresAt: Date.now() + CACHE_TTL_MS };
-        streamCache.set(canonicalKey, entry);
-        streamCache.set(rawKey, entry);
-        return { streamUrl: saavnResults[0].streamUrl, provider: 'saavn-320k', cached: false };
-      }
-    } catch {}
-
-    // 6. Tier C: High-Fidelity yt-dlp Direct Stream Extraction (with 15s safe timeout)
-    const fastSearchTarget = `ytsearch1:${cleanArtist} ${cleanTitle} audio`;
-    try {
+      const fastSearchTarget = `ytsearch1:${cleanArtist} ${cleanTitle} audio`;
       const { stdout: streamOut } = await execPromise(
         `yt-dlp -g -f 140/ba/b --no-playlist --no-warnings --socket-timeout 8 "${fastSearchTarget}"`,
-        { timeout: 15000 }
+        { timeout: 12000 }
       );
 
       const directAudioUrl = streamOut.trim().split('\n')[0];
@@ -113,11 +123,9 @@ export async function resolvePrecisionStream(params: {
         streamCache.set(rawKey, entry);
         return { streamUrl: directAudioUrl, provider: 'ytdlp', cached: false };
       }
-    } catch (err: any) {
-      console.warn('yt-dlp resolution fallback:', err.message);
-    }
+    } catch {}
 
-    // 7. Tier D: Final High-Fidelity Live Audio Stream Fallback
+    // 7. Tier D: High-Fidelity Radio Stream Fallback
     const fallbackStream = 'https://stream.zeno.fm/f3wvbbqmdg8uv';
     return { streamUrl: fallbackStream, provider: 'radio-fallback', cached: false };
   })();

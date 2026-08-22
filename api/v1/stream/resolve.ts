@@ -19,23 +19,9 @@ export default async function handler(req: any, res: any) {
   try {
     const result = await resolvePrecisionStream({ title, artist, duration, rawUrl, trackId });
 
-    let playableUrl = result.streamUrl;
-    if (
-      playableUrl.includes('googlevideo.com') ||
-      playableUrl.includes('youtube.com') ||
-      playableUrl.includes('ytimg.com') ||
-      result.provider === 'ytdlp' ||
-      result.provider === 'ytdlp-android' ||
-      result.provider === 'innertube-android' ||
-      result.provider === 'yt-fast-mirror' ||
-      result.provider === 'invidious'
-    ) {
-      playableUrl = `/api/v1/stream/proxy?url=${encodeURIComponent(result.streamUrl)}`;
-    }
-
     return res.status(200).json({
       trackId,
-      streamUrl: playableUrl,
+      streamUrl: result.streamUrl,
       rawDirectUrl: result.streamUrl,
       resolvedProvider: result.provider,
       cached: result.cached
