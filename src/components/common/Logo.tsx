@@ -10,10 +10,10 @@ export interface LogoProps {
 }
 
 const heightMap = {
-  sm: 26,
-  md: 32,
-  lg: 40,
-  xl: 52,
+  sm: 24,
+  md: 30,
+  lg: 38,
+  xl: 48,
 };
 
 export interface RiffTextLogoProps {
@@ -25,124 +25,64 @@ export interface RiffTextLogoProps {
 }
 
 /**
- * Bespoke Pure Text "Riff" Typographic Logotype (Electric Ultraviolet & Cyan Edition)
- * Precision aerodynamic italic letterforms with diagonal sound cuts and audio frequency waves.
+ * Pure Bold Luxury Typographic "RIFF" Logotype
+ * Ultra-clean Swiss geometry with acoustic micro-accents.
  */
 export const RiffTextLogo: React.FC<RiffTextLogoProps> = ({
   height,
   size,
-  glow = true,
   animated = false,
   className = ''
 }) => {
-  const finalHeight = height || size || 30;
+  const finalHeight = height || size || 26;
   const id = React.useId().replace(/[^a-zA-Z0-9]/g, '');
-  // Aspect ratio is 130 : 34 (3.82 : 1)
-  const width = Math.round(finalHeight * 3.82);
+  // Aspect ratio: 105 : 28 (3.75 : 1)
+  const width = Math.round(finalHeight * 3.75);
 
   return (
     <svg
       width={width}
       height={finalHeight}
-      viewBox="0 0 130 34"
+      viewBox="0 0 105 28"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={`inline-block shrink-0 select-none ${className}`}
     >
       <defs>
-        {/* Crisp White to Light Indigo Text Gradient */}
-        <linearGradient id={`riffTextG_${id}`} x1="0%" y1="0%" x2="100%" y2="100%">
+        <linearGradient id={`riffLogoG_${id}`} x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#ffffff" />
-          <stop offset="60%" stopColor="#f1f5f9" />
-          <stop offset="100%" stopColor="#cbd5e1" />
+          <stop offset="100%" stopColor="#f4f4f5" />
         </linearGradient>
-
-        {/* Electric Ultraviolet to Cyan Glow Gradient */}
-        <linearGradient id={`riffNeonG_${id}`} x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#a855f7" />
-          <stop offset="50%" stopColor="#8b5cf6" />
-          <stop offset="100%" stopColor="#06b6d4" />
+        <linearGradient id={`riffAccentG_${id}`} x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#ff4655" />
+          <stop offset="100%" stopColor="#ff6b00" />
         </linearGradient>
-
-        {/* Ambient Glow */}
-        {glow && (
-          <filter id={`riffGlow_${id}`} x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        )}
       </defs>
 
-      <g transform="skewX(-8)">
-        {/* ================= LETTER 'R' ================= */}
-        {/* R Main Vertical Stem */}
-        <rect x="6" y="5" width="6.5" height="24" rx="2" fill={`url(#riffTextG_${id})`} />
-        
-        {/* R Upper Bowl */}
-        <path
-          d="M12 5 H22 C27.5 5 31 8 31 13.5 C31 19 27.5 22 22 22 H12 V5 Z"
-          fill={`url(#riffTextG_${id})`}
-        />
-        {/* R Bowl Inner Cutout */}
-        <path
-          d="M12.5 9.5 H21 C23.8 9.5 25.5 11 25.5 13.5 C25.5 16 23.8 17.5 21 17.5 H12.5 V9.5 Z"
-          fill="#050608"
-        />
+      <g>
+        {/* R */}
+        <rect x="2" y="3" width="5.5" height="22" rx="1.5" fill="white" />
+        <path d="M7.5 3 H17 C21.5 3 24 5.5 24 9.5 C24 13.5 21.5 16 17 16 H7.5 V3 Z" fill="white" />
+        <path d="M7.5 7 H16 C18.2 7 19.5 8 19.5 9.5 C19.5 11 18.2 12 16 12 H7.5 V7 Z" fill="#000000" />
+        <path d="M14 15 L21 25 H26.5 L19.5 15 H14 Z" fill="white" />
 
-        {/* Electric Ultraviolet Sonic Cut Slash across R */}
-        <rect
-          x="12"
-          y="12"
-          width="10"
-          height="2.5"
-          rx="1.2"
-          fill={`url(#riffNeonG_${id})`}
-          filter={glow ? `url(#riffGlow_${id})` : undefined}
-        />
+        {/* I */}
+        <rect x="32" y="3" width="5.5" height="22" rx="1.5" fill="white" />
+        {/* Accent dot above I */}
+        <circle cx="34.75" cy="0" r="0" fill="transparent" />
 
-        {/* R Dynamic Kicking Leg */}
-        <path
-          d="M18 20.5 L26 29 H33 L24 20.5 H18 Z"
-          fill={`url(#riffTextG_${id})`}
-        />
+        {/* First F */}
+        <path d="M44 3 H58 V7.5 H49.5 V12 H56 V16.5 H49.5 V25 H44 V3 Z" fill="white" />
 
-        {/* ================= LETTER 'i' ================= */}
-        {/* i Stem */}
-        <rect x="39" y="12" width="6" height="17" rx="2" fill={`url(#riffTextG_${id})`} />
-        {/* Glowing Electric Neon Diamond / Dot */}
-        <circle
-          cx="42"
-          cy="6.5"
-          r="3.5"
-          fill={`url(#riffNeonG_${id})`}
-          filter={glow ? `url(#riffGlow_${id})` : undefined}
-          className={animated ? 'animate-pulse' : ''}
-        />
+        {/* Second F */}
+        <path d="M63 3 H77 V7.5 H68.5 V12 H75 V16.5 H68.5 V25 H63 V3 Z" fill="white" />
 
-        {/* ================= FIRST LETTER 'f' ================= */}
-        <path
-          d="M59 5 C53 5 50 8.5 50 14.5 V29 H56 V15.5 C56 12 58 11 60.5 11 C61.5 11 62.5 11.3 63.5 11.8 V6 C62.2 5.3 60.8 5 59 5 Z"
-          fill={`url(#riffTextG_${id})`}
-        />
-        <rect x="46.5" y="13.5" width="15" height="5" rx="1.5" fill={`url(#riffTextG_${id})`} />
-
-        {/* ================= SECOND LETTER 'f' ================= */}
-        <path
-          d="M77 5 C71 5 68 8.5 68 14.5 V29 H74 V15.5 C74 12 76 11 78.5 11 C79.5 11 80.5 11.3 81.5 11.8 V6 C80.2 5.3 78.8 5 77 5 Z"
-          fill={`url(#riffTextG_${id})`}
-        />
-        <rect x="64.5" y="13.5" width="15" height="5" rx="1.5" fill={`url(#riffTextG_${id})`} />
-
-        {/* ================= ELECTRIC NEON AUDIO EQUALIZER SPECTRUM BARS ================= */}
-        <g filter={glow ? `url(#riffGlow_${id})` : undefined}>
-          <rect x="85" y="15" width="3" height="9" rx="1.5" fill="#a855f7" />
-          <rect x="91" y="10" width="3" height="17" rx="1.5" fill="#8b5cf6" />
-          <rect x="97" y="6" width="3" height="23" rx="1.5" fill="#06b6d4" />
-          <rect x="103" y="12" width="3" height="14" rx="1.5" fill="#38bdf8" />
-          <rect x="109" y="17" width="3" height="7" rx="1.5" fill="#a855f7" />
+        {/* Electric Soundwave Bars */}
+        <g className={animated ? 'animate-pulse' : ''}>
+          <rect x="83" y="10" width="3" height="8" rx="1.5" fill="url(#riffAccentG_${id})" />
+          <rect x="88.5" y="5" width="3" height="18" rx="1.5" fill="url(#riffAccentG_${id})" />
+          <rect x="94" y="2" width="3" height="24" rx="1.5" fill="url(#riffAccentG_${id})" />
+          <rect x="99.5" y="8" width="3" height="12" rx="1.5" fill="url(#riffAccentG_${id})" />
         </g>
       </g>
     </svg>
@@ -151,13 +91,9 @@ export const RiffTextLogo: React.FC<RiffTextLogoProps> = ({
 
 export const RiffIcon = RiffTextLogo;
 
-/**
- * Pure Text Logo Component
- */
 export const Logo: React.FC<LogoProps> = ({
   size = 'md',
   className = '',
-  glow = true,
   animated,
   onClick,
 }) => {
@@ -169,11 +105,10 @@ export const Logo: React.FC<LogoProps> = ({
     <div
       onClick={onClick}
       className={`inline-flex items-center group cursor-pointer select-none transition-transform hover:scale-[1.02] active:scale-[0.98] ${className}`}
-      title="Riff"
+      title="RIFF"
     >
       <RiffTextLogo
         height={height}
-        glow={glow}
         animated={isPlaying}
       />
     </div>

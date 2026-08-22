@@ -26,18 +26,18 @@ function formatDuration(sec: number): string {
 }
 
 const GENRE_TILES = [
-  { name: 'Pop', color: 'from-pink-600 to-rose-950', query: 'Top Pop' },
-  { name: 'Hip-Hop / Rap', color: 'from-violet-600 to-indigo-950', query: 'Hip Hop Rap' },
-  { name: 'Punjabi & Desi', color: 'from-cyan-600 to-blue-950', query: 'Punjabi Hits' },
-  { name: 'K-Pop', color: 'from-fuchsia-600 to-purple-950', query: 'K-Pop BLACKPINK LISA' },
-  { name: 'Synthwave / Retro', color: 'from-blue-600 to-slate-950', query: 'Synthwave' },
-  { name: 'Lo-Fi Chill', color: 'from-purple-600 to-violet-950', query: 'Lo-Fi Beats' },
-  { name: 'Workout & Hype', color: 'from-red-600 to-rose-950', query: 'Workout Hype' },
-  { name: 'Deep Focus', color: 'from-sky-600 to-slate-900', query: 'Deep Focus Study' },
-  { name: 'Rock & Metal', color: 'from-amber-700 to-stone-950', query: 'Rock Anthems' },
-  { name: 'R&B / Soul', color: 'from-orange-600 to-amber-950', query: 'R&B Soul' },
-  { name: 'Electronic / EDM', color: 'from-teal-600 to-emerald-950', query: 'EDM Electronic' },
-  { name: 'Sleep & Ambient', color: 'from-indigo-800 to-slate-950', query: 'Sleep Ambient' }
+  { name: 'Pop', color: 'from-zinc-900 to-black', query: 'Top Pop' },
+  { name: 'Hip-Hop / Rap', color: 'from-zinc-900 to-black', query: 'Hip Hop Rap' },
+  { name: 'Punjabi & Desi', color: 'from-zinc-900 to-black', query: 'Punjabi Hits' },
+  { name: 'K-Pop', color: 'from-zinc-900 to-black', query: 'K-Pop BLACKPINK LISA' },
+  { name: 'Synthwave / Retro', color: 'from-zinc-900 to-black', query: 'Synthwave' },
+  { name: 'Lo-Fi Chill', color: 'from-zinc-900 to-black', query: 'Lo-Fi Beats' },
+  { name: 'Workout & Hype', color: 'from-zinc-900 to-black', query: 'Workout Hype' },
+  { name: 'Deep Focus', color: 'from-zinc-900 to-black', query: 'Deep Focus Study' },
+  { name: 'Rock & Metal', color: 'from-zinc-900 to-black', query: 'Rock Anthems' },
+  { name: 'R&B / Soul', color: 'from-zinc-900 to-black', query: 'R&B Soul' },
+  { name: 'Electronic / EDM', color: 'from-zinc-900 to-black', query: 'EDM Electronic' },
+  { name: 'Sleep & Ambient', color: 'from-zinc-900 to-black', query: 'Sleep Ambient' }
 ];
 
 export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery = '' }) => {
@@ -133,7 +133,7 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery = '
           value={query}
           onChange={(e) => handleQueryChange(e.target.value)}
           placeholder="What do you want to play? (e.g. 'money by lisa', 'the weeknd', 'punjabi')"
-          className="w-full pl-12 pr-11 py-3.5 rounded-2xl bg-white/[0.07] border border-white/10 text-white placeholder-neutral-500 text-sm font-semibold focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition shadow-lg"
+          className="w-full pl-12 pr-11 py-3.5 rounded-2xl bg-zinc-900/80 border border-white/10 text-white placeholder-neutral-500 text-sm font-semibold focus:outline-none focus:border-white/30 focus:ring-2 focus:ring-white/10 transition shadow-lg"
         />
         {query && (
           <button
@@ -152,7 +152,7 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery = '
       {/* Loading Spinner */}
       {isLoading && (
         <div className="text-center py-12 space-y-3">
-          <Loader2 className="w-8 h-8 text-violet-400 animate-spin mx-auto" />
+          <Loader2 className="w-8 h-8 text-white animate-spin mx-auto" />
           <p className="text-xs text-neutral-400 font-medium">Searching verified catalog and decrypting 320k streams...</p>
         </div>
       )}
@@ -184,7 +184,7 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery = '
                       setQuery(item);
                       performSearch(item);
                     }}
-                    className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.05] hover:border-violet-500/30 text-xs font-bold text-neutral-200 cursor-pointer transition group"
+                    className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-zinc-900 border border-white/[0.06] hover:border-white/20 text-xs font-bold text-neutral-200 cursor-pointer transition group"
                   >
                     <Clock className="w-3.5 h-3.5 text-neutral-400" />
                     <span>{item}</span>
@@ -202,7 +202,7 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery = '
 
           {/* Browse All Genres & Moods */}
           <div className="space-y-3">
-            <h3 className="text-sm md:text-base font-extrabold text-white tracking-tight">Browse All Categories</h3>
+            <h3 className="text-sm md:text-base font-bold text-white tracking-tight">Browse All Categories</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
               {GENRE_TILES.map((tile, i) => (
                 <div
@@ -211,9 +211,9 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery = '
                     setQuery(tile.query);
                     performSearch(tile.query);
                   }}
-                  className={`relative h-24 md:h-28 rounded-2xl bg-gradient-to-br ${tile.color} p-3.5 flex flex-col justify-between overflow-hidden cursor-pointer shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all border border-white/10 hover:border-white/25`}
+                  className="relative h-24 md:h-28 rounded-2xl bg-zinc-900/60 p-3.5 flex flex-col justify-between overflow-hidden cursor-pointer shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all border border-white/[0.06] hover:border-white/20"
                 >
-                  <span className="text-sm font-black text-white tracking-tight">{tile.name}</span>
+                  <span className="text-sm font-bold text-white tracking-tight">{tile.name}</span>
                   <div className="self-end opacity-20">
                     <Music className="w-10 h-10" />
                   </div>
@@ -230,10 +230,10 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery = '
           {/* Top Result Hero Card */}
           {results.topResult && (
             <div className="space-y-2.5">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-violet-400">Top Result</h3>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-400">Top Result</h3>
               <div
                 onClick={() => playTrack(results.topResult!, results.tracks)}
-                className="group relative p-4 md:p-5 rounded-3xl bg-gradient-to-br from-violet-950/40 via-white/[0.04] to-black border border-violet-500/25 hover:border-violet-500/60 cursor-pointer transition-all duration-300 shadow-xl flex flex-col sm:flex-row items-center gap-4"
+                className="group relative p-4 md:p-5 rounded-3xl bg-zinc-900/70 border border-white/[0.08] hover:border-white/20 cursor-pointer transition-all duration-300 shadow-xl flex flex-col sm:flex-row items-center gap-4"
               >
                 <img
                   src={results.topResult.coverUrl}
@@ -241,23 +241,23 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery = '
                   className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl object-cover shadow-2xl flex-shrink-0"
                 />
                 <div className="flex-1 text-center sm:text-left min-w-0 space-y-1">
-                  <h2 className="text-lg md:text-xl font-black text-white truncate group-hover:text-violet-300 transition">
+                  <h2 className="text-lg md:text-xl font-black text-white truncate group-hover:text-neutral-200 transition">
                     {results.topResult.title}
                   </h2>
-                  <p className="text-xs md:text-sm font-semibold text-neutral-300 truncate">
+                  <p className="text-xs md:text-sm font-semibold text-neutral-400 truncate">
                     {results.topResult.artist}
                   </p>
                   <div className="flex items-center justify-center sm:justify-start gap-2 pt-1">
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-violet-500/20 text-violet-300 border border-violet-500/30">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-white/10 text-neutral-300 border border-white/10">
                       Song • 320k Lossless
                     </span>
-                    <span className="text-xs font-mono text-neutral-400">
+                    <span className="text-xs font-mono text-neutral-500">
                       {formatDuration(results.topResult.duration)}
                     </span>
                   </div>
                 </div>
 
-                <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-violet-500 to-cyan-400 text-black flex items-center justify-center shadow-2xl group-hover:scale-105 active:scale-95 transition flex-shrink-0">
+                <div className="w-12 h-12 rounded-full bg-white text-black flex items-center justify-center shadow-2xl group-hover:scale-105 active:scale-95 transition flex-shrink-0">
                   <Play className="w-6 h-6 fill-current ml-0.5" />
                 </div>
               </div>
@@ -278,12 +278,12 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery = '
                   <div
                     key={`${track.id}_${i}`}
                     onClick={() => playTrack(track, results.tracks)}
-                    className="group flex items-center gap-3.5 p-2.5 rounded-2xl hover:bg-white/[0.06] active:bg-white/[0.1] transition cursor-pointer"
+                    className="group flex items-center gap-3.5 p-2.5 rounded-2xl hover:bg-zinc-900 active:bg-zinc-800 transition cursor-pointer"
                   >
                     <span className="w-4 text-center text-xs font-mono text-neutral-500 group-hover:hidden">
                       {i + 1}
                     </span>
-                    <div className="w-4 hidden group-hover:flex items-center justify-center text-violet-400">
+                    <div className="w-4 hidden group-hover:flex items-center justify-center text-white">
                       {isPlaying ? <Pause className="w-3.5 h-3.5 fill-current" /> : <Play className="w-3.5 h-3.5 fill-current" />}
                     </div>
 
@@ -294,7 +294,7 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery = '
                     />
 
                     <div className="flex-1 min-w-0">
-                      <p className={`text-xs md:text-sm font-bold truncate ${isPlaying ? 'text-violet-400' : 'text-white'}`}>
+                      <p className={`text-xs md:text-sm font-bold truncate ${isPlaying ? 'text-white underline' : 'text-white'}`}>
                         {track.title}
                       </p>
                       <p className="text-[11px] md:text-xs text-neutral-400 truncate">{track.artist}</p>
@@ -309,7 +309,7 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery = '
                         }}
                         className="p-1.5 rounded-full text-neutral-500 hover:text-white transition"
                       >
-                        <Heart className={`w-4 h-4 ${isLiked ? 'fill-rose-500 text-rose-500' : ''}`} />
+                        <Heart className={`w-4 h-4 ${isLiked ? 'fill-[#ff4655] text-[#ff4655]' : ''}`} />
                       </button>
                       <span className="text-[11px] font-mono text-neutral-500">
                         {formatDuration(track.duration)}
