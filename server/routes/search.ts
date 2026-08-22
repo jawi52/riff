@@ -1,9 +1,9 @@
 import { FastifyInstance } from 'fastify';
 import { searchSpotifyStyle } from '../services/metadata/spotifyRankingEngine';
 import { searchAppleMusicMetadata } from '../services/metadata/itunes';
-import { searchDeezerMetadata } from '../services/metadata/deezer';
-import { searchSaavnMetadata } from '../services/metadata/spotifyOpen';
+import { searchSaavn } from '../services/providers/saavn';
 import { deduplicateTracks } from '../../src/lib/dedup';
+import { GLOBAL_CATALOG } from '../../src/lib/algorithm';
 
 // In-memory query cache (TTL: 15 minutes)
 const searchCache = new Map<string, { data: any; expiresAt: number }>();
@@ -33,15 +33,14 @@ export async function searchRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // Trending Global Discovery Feed (Apple Music + Deezer + JioSaavn Top Charts)
+  // Trending Global Discovery Feed (JioSaavn 320k + Apple Music + Baseline Catalog)
   fastify.get('/discover/trending', async () => {
-    const [appleHits, deezerHits, saavnTrending] = await Promise.all([
-      searchAppleMusicMetadata('Top Hits').catch(() => []),
-      searchDeezerMetadata('Top Global').catch(() => []),
-      searchSaavnMetadata('Top 50 Global').catch(() => [])
+    const [saavnTrending, appleHits] = await Promise.all([
+      searchSaavn('Top Hits Global').catch(() => []),
+      searchAppleMusicMetadata('Top Hits').catch(() => [])
     ]);
 
-    const combined = [...appleHits, ...deezerHits, ...saavnTrending];
+    const combined = [...saavnTrending, ...appleHits, ...GLOBAL_CATALOG];
     const deduplicated = deduplicateTracks(combined);
     return deduplicated.slice(0, 30);
   });
