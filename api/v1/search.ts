@@ -1,4 +1,4 @@
-﻿import { searchSpotifyStyle } from '../../server/services/metadata/spotifyRankingEngine';
+import { searchSpotifyStyle } from '../../server/services/metadata/spotifyRankingEngine';
 
 export default async function handler(req: any, res: any) {
   res.setHeader('Access-Control-Allow-Origin', '*');

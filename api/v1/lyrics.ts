@@ -1,4 +1,4 @@
-﻿import { fetchSyncedLyrics } from '../../server/services/providers/lrclib';
+import { fetchSyncedLyrics } from '../../server/services/providers/lrclib';
 
 export default async function handler(req: any, res: any) {
   res.setHeader('Access-Control-Allow-Origin', '*');

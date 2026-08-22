@@ -1,4 +1,4 @@
-﻿import { Track } from '../types';
+import { Track } from '../types';
 
 export interface RecentItem {
   id: string;

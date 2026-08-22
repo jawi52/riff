@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Search, Home, ArrowDownCircle, Bell, FolderTree, X, Play, Sparkles, Wifi, Radio, Loader2 } from 'lucide-react';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useSettingsStore } from '../../stores/useSettingsStore';

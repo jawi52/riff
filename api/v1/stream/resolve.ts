@@ -1,4 +1,4 @@
-﻿import { resolvePrecisionStream } from '../../../server/services/resolver/precisionYtResolver';
+import { resolvePrecisionStream } from '../../../server/services/resolver/precisionYtResolver';
 
 export default async function handler(req: any, res: any) {
   res.setHeader('Access-Control-Allow-Origin', '*');

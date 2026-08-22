@@ -1,4 +1,4 @@
-﻿import { Track } from '../../../src/types';
+import { Track } from '../../../src/types';
 import { searchAppleMusicMetadata } from './itunes';
 import { searchDeezerMetadata } from './deezer';
 import { searchSaavn } from '../providers/saavn';

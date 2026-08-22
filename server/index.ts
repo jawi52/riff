@@ -1,4 +1,4 @@
-﻿import Fastify from 'fastify';
+import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import fastifyStatic from '@fastify/static';
 import path from 'path';

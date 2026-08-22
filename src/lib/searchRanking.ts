@@ -1,4 +1,4 @@
-﻿import { Track } from '../types';
+import { Track } from '../types';
 
 /**
  * Computes Levenshtein edit distance between two strings

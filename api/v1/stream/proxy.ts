@@ -1,4 +1,4 @@
-﻿import axios from 'axios';
+import axios from 'axios';
 import { DEFAULT_USER_AGENT } from '../../../server/services/resolver/precisionYtResolver';
 
 export default async function handler(req: any, res: any) {

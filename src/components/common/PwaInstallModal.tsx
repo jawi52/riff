@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Smartphone, ArrowDownToLine, Check, Share, PlusSquare, Sparkles, QrCode } from 'lucide-react';
 import { Logo } from './Logo';
 

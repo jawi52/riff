@@ -1,4 +1,4 @@
-﻿import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { calculateTrackSimilarity, getSmartAutoplayTracks, generateDailyMixes, GLOBAL_CATALOG } from '../../src/lib/algorithm';
 
 describe('Algorithmic Recommendation Engine', () => {

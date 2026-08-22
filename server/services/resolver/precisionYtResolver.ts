@@ -1,4 +1,4 @@
-﻿import { exec } from 'child_process';
+import { exec } from 'child_process';
 import util from 'util';
 import { getInnertubeAudioStream } from '../providers/innertube';
 import { searchSaavn } from '../providers/saavn';
