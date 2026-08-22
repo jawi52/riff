@@ -100,11 +100,11 @@ export const MiniPlayer: React.FC = () => {
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       style={{ transform: `translateX(${swipeOffset}px)` }}
-      className="fixed bottom-[64px] md:bottom-0 left-2.5 right-2.5 md:left-0 md:right-0 z-40 rounded-2xl md:rounded-none bg-zinc-950/95 md:bg-black/95 backdrop-blur-2xl border border-white/[0.1] md:border-t md:border-b-0 md:border-x-0 shadow-2xl select-none transition-transform duration-100 ease-out"
+      className="fixed bottom-[64px] md:bottom-0 left-2.5 right-2.5 md:left-0 md:right-0 z-40 rounded-2xl md:rounded-none bg-[#0e101a]/85 backdrop-blur-3xl border border-white/15 md:border-t md:border-b-0 md:border-x-0 shadow-2xl select-none transition-transform duration-100 ease-out"
     >
       {/* Top Hairline Progress Bar */}
       <div
-        className="group relative h-1 hover:h-1.5 w-full bg-white/[0.08] cursor-pointer transition-all overflow-hidden rounded-t-2xl md:rounded-none"
+        className="group relative h-1 hover:h-1.5 w-full bg-white/10 cursor-pointer transition-all overflow-hidden rounded-t-2xl md:rounded-none"
         onClick={(e) => {
           const rect = e.currentTarget.getBoundingClientRect();
           const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
@@ -112,7 +112,7 @@ export const MiniPlayer: React.FC = () => {
         }}
       >
         <div
-          className="h-full bg-white transition-all duration-100 ease-linear shadow-[0_0_8px_rgba(255,255,255,0.7)]"
+          className="h-full bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 transition-all duration-100 ease-linear shadow-[0_0_8px_rgba(255,255,255,0.7)]"
           style={{ width: `${progressPercent}%` }}
         />
       </div>
@@ -124,7 +124,7 @@ export const MiniPlayer: React.FC = () => {
           className="flex items-center gap-3 min-w-0 flex-1 md:flex-initial md:w-80 cursor-pointer group"
         >
           {/* Artwork Jacket */}
-          <div className="relative w-11 h-11 md:w-13 md:h-13 rounded-xl overflow-hidden flex-shrink-0 shadow-md border border-white/10">
+          <div className="relative w-11 h-11 md:w-13 md:h-13 rounded-xl overflow-hidden flex-shrink-0 shadow-md border border-white/20">
             <img
               src={currentTrack.coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=120&q=80'}
               alt={currentTrack.title}
@@ -143,11 +143,11 @@ export const MiniPlayer: React.FC = () => {
               <span className="text-xs md:text-sm font-bold text-white truncate hover:underline">
                 {currentTrack.title}
               </span>
-              <span className="hidden md:inline-flex px-1.5 py-0.2 text-[9px] font-extrabold uppercase rounded bg-white/10 text-neutral-300 border border-white/10">
+              <span className="hidden md:inline-flex px-1.5 py-0.2 text-[9px] font-extrabold uppercase rounded bg-white/10 text-cyan-200 border border-white/15">
                 320k
               </span>
             </div>
-            <p className="text-[11px] md:text-xs text-neutral-400 truncate hover:text-white transition">
+            <p className="text-[11px] md:text-xs text-slate-300 truncate hover:text-white transition">
               {currentTrack.artist}
             </p>
           </div>
@@ -159,7 +159,7 @@ export const MiniPlayer: React.FC = () => {
             <button
               onClick={toggleShuffle}
               className={`p-2 rounded-full transition cursor-pointer ${
-                isShuffled ? 'text-white bg-white/10' : 'text-neutral-400 hover:text-white'
+                isShuffled ? 'text-white bg-white/15' : 'text-slate-400 hover:text-white'
               }`}
               title="Shuffle"
             >
@@ -168,7 +168,7 @@ export const MiniPlayer: React.FC = () => {
 
             <button
               onClick={previousTrack}
-              className="p-2 text-neutral-300 hover:text-white transition cursor-pointer"
+              className="p-2 text-slate-300 hover:text-white transition cursor-pointer"
               title="Previous"
             >
               <SkipBack className="w-5 h-5 fill-current" />
@@ -188,7 +188,7 @@ export const MiniPlayer: React.FC = () => {
 
             <button
               onClick={nextTrack}
-              className="p-2 text-neutral-300 hover:text-white transition cursor-pointer"
+              className="p-2 text-slate-300 hover:text-white transition cursor-pointer"
               title="Next"
             >
               <SkipForward className="w-5 h-5 fill-current" />
@@ -197,7 +197,7 @@ export const MiniPlayer: React.FC = () => {
             <button
               onClick={cycleRepeatMode}
               className={`p-2 rounded-full transition cursor-pointer ${
-                repeatMode !== 'off' ? 'text-white bg-white/10' : 'text-neutral-400 hover:text-white'
+                repeatMode !== 'off' ? 'text-white bg-white/15' : 'text-slate-400 hover:text-white'
               }`}
               title={`Repeat: ${repeatMode}`}
             >
@@ -207,11 +207,11 @@ export const MiniPlayer: React.FC = () => {
 
           {/* Time Scrubber */}
           <div className="flex items-center gap-2.5 w-full">
-            <span className="text-[11px] font-mono text-neutral-400 w-9 text-right">
+            <span className="text-[11px] font-mono text-slate-400 w-9 text-right">
               {formatTime(currentTime)}
             </span>
             <div
-              className="flex-1 h-1.5 bg-neutral-800 rounded-full cursor-pointer relative group overflow-hidden"
+              className="flex-1 h-1.5 bg-white/10 rounded-full cursor-pointer relative group overflow-hidden"
               onClick={(e) => {
                 const rect = e.currentTarget.getBoundingClientRect();
                 const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
@@ -223,7 +223,7 @@ export const MiniPlayer: React.FC = () => {
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
-            <span className="text-[11px] font-mono text-neutral-400 w-9">
+            <span className="text-[11px] font-mono text-slate-400 w-9">
               {formatTime(duration)}
             </span>
           </div>
@@ -237,9 +237,9 @@ export const MiniPlayer: React.FC = () => {
               if (navigator.vibrate) navigator.vibrate(15);
               toggleLikeTrack(currentTrack);
             }}
-            className="p-2 rounded-full text-neutral-400 hover:text-white transition cursor-pointer"
+            className="p-2 rounded-full text-slate-400 hover:text-white transition cursor-pointer"
           >
-            <Heart className={`w-5 h-5 ${isLiked ? 'fill-[#ff4655] text-[#ff4655]' : ''}`} />
+            <Heart className={`w-5 h-5 ${isLiked ? 'fill-pink-500 text-pink-500' : ''}`} />
           </button>
 
           {/* Mobile Play / Pause Button */}
@@ -258,7 +258,7 @@ export const MiniPlayer: React.FC = () => {
           <div className="hidden md:flex items-center gap-3">
             <button
               onClick={() => setFullscreenOpen(true)}
-              className="p-2 text-neutral-400 hover:text-white transition cursor-pointer"
+              className="p-2 text-slate-400 hover:text-white transition cursor-pointer"
               title="Expand (Full Player)"
             >
               <Maximize2 className="w-4 h-4" />
@@ -267,7 +267,7 @@ export const MiniPlayer: React.FC = () => {
             <div className="flex items-center gap-2 group">
               <button
                 onClick={toggleMute}
-                className="text-neutral-400 hover:text-white transition cursor-pointer"
+                className="text-slate-400 hover:text-white transition cursor-pointer"
               >
                 <VolumeIcon className="w-4 h-4" />
               </button>
@@ -278,7 +278,7 @@ export const MiniPlayer: React.FC = () => {
                 step="0.01"
                 value={isMuted ? 0 : volume}
                 onChange={(e) => setVolume(parseFloat(e.target.value))}
-                className="w-20 h-1 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-white"
+                className="w-20 h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white"
               />
             </div>
           </div>

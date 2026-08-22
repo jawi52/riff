@@ -25,8 +25,8 @@ export interface RiffTextLogoProps {
 }
 
 /**
- * Pure Bold Luxury Typographic "RIFF" Logotype
- * Ultra-clean Swiss geometry with acoustic micro-accents.
+ * Luminous Glassmorphic "riff" Typographic Logotype
+ * Minimalist luxury lowercase geometry with floating sonic wave cutouts.
  */
 export const RiffTextLogo: React.FC<RiffTextLogoProps> = ({
   height,
@@ -34,55 +34,75 @@ export const RiffTextLogo: React.FC<RiffTextLogoProps> = ({
   animated = false,
   className = ''
 }) => {
-  const finalHeight = height || size || 26;
+  const finalHeight = height || size || 28;
   const id = React.useId().replace(/[^a-zA-Z0-9]/g, '');
-  // Aspect ratio: 105 : 28 (3.75 : 1)
-  const width = Math.round(finalHeight * 3.75);
+  // Aspect ratio: 110 : 30 (3.66 : 1)
+  const width = Math.round(finalHeight * 3.66);
 
   return (
     <svg
       width={width}
       height={finalHeight}
-      viewBox="0 0 105 28"
+      viewBox="0 0 110 30"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={`inline-block shrink-0 select-none ${className}`}
     >
       <defs>
-        <linearGradient id={`riffLogoG_${id}`} x1="0%" y1="0%" x2="100%" y2="100%">
+        <linearGradient id={`riffGlassG_${id}`} x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#ffffff" />
-          <stop offset="100%" stopColor="#f4f4f5" />
+          <stop offset="100%" stopColor="#e2e8f0" />
         </linearGradient>
-        <linearGradient id={`riffAccentG_${id}`} x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#ff4655" />
-          <stop offset="100%" stopColor="#ff6b00" />
+        <linearGradient id={`riffGlowG_${id}`} x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#60a5fa" stopOpacity="0.9" />
+          <stop offset="50%" stopColor="#a78bfa" stopOpacity="0.9" />
+          <stop offset="100%" stopColor="#f472b6" stopOpacity="0.9" />
         </linearGradient>
       </defs>
 
       <g>
-        {/* R */}
-        <rect x="2" y="3" width="5.5" height="22" rx="1.5" fill="white" />
-        <path d="M7.5 3 H17 C21.5 3 24 5.5 24 9.5 C24 13.5 21.5 16 17 16 H7.5 V3 Z" fill="white" />
-        <path d="M7.5 7 H16 C18.2 7 19.5 8 19.5 9.5 C19.5 11 18.2 12 16 12 H7.5 V7 Z" fill="#000000" />
-        <path d="M14 15 L21 25 H26.5 L19.5 15 H14 Z" fill="white" />
+        {/* ================= LOWERCASE 'r' ================= */}
+        {/* Stem */}
+        <rect x="4" y="9" width="5" height="17" rx="2.5" fill="url(#riffGlassG_${id})" />
+        {/* Arch */}
+        <path
+          d="M8.5 13 C10.5 10 14 8.5 18 9 C19.5 9.2 20.8 9.8 21.5 10.5 L19.5 14.5 C19 14 18 13.5 17 13.5 C14.5 13.5 13 15 13 18.5 V26 H8 V13 Z"
+          fill="url(#riffGlassG_${id})"
+        />
 
-        {/* I */}
-        <rect x="32" y="3" width="5.5" height="22" rx="1.5" fill="white" />
-        {/* Accent dot above I */}
-        <circle cx="34.75" cy="0" r="0" fill="transparent" />
+        {/* ================= LOWERCASE 'i' ================= */}
+        {/* Stem */}
+        <rect x="27" y="9" width="5" height="17" rx="2.5" fill="url(#riffGlassG_${id})" />
+        {/* Glowing Luminous Dot */}
+        <circle
+          cx="29.5"
+          cy="4"
+          r="3"
+          fill="url(#riffGlowG_${id})"
+          className={animated ? 'animate-pulse' : ''}
+        />
 
-        {/* First F */}
-        <path d="M44 3 H58 V7.5 H49.5 V12 H56 V16.5 H49.5 V25 H44 V3 Z" fill="white" />
+        {/* ================= FIRST 'f' ================= */}
+        <path
+          d="M44 4 C39 4 36.5 7 36.5 12.5 V26 H41.5 V14 C41.5 11.5 42.8 10 45 10 C45.8 10 46.5 10.2 47 10.6 V5.2 C46.2 4.4 45.2 4 44 4 Z"
+          fill="url(#riffGlassG_${id})"
+        />
+        <rect x="33.5" y="11" width="13" height="4" rx="2" fill="url(#riffGlassG_${id})" />
 
-        {/* Second F */}
-        <path d="M63 3 H77 V7.5 H68.5 V12 H75 V16.5 H68.5 V25 H63 V3 Z" fill="white" />
+        {/* ================= SECOND 'f' ================= */}
+        <path
+          d="M59 4 C54 4 51.5 7 51.5 12.5 V26 H56.5 V14 C56.5 11.5 57.8 10 60 10 C60.8 10 61.5 10.2 62 10.6 V5.2 C61.2 4.4 60.2 4 59 4 Z"
+          fill="url(#riffGlassG_${id})"
+        />
+        <rect x="48.5" y="11" width="13" height="4" rx="2" fill="url(#riffGlassG_${id})" />
 
-        {/* Electric Soundwave Bars */}
+        {/* ================= GLASS SOUNDWAVE ORBS ================= */}
         <g className={animated ? 'animate-pulse' : ''}>
-          <rect x="83" y="10" width="3" height="8" rx="1.5" fill="url(#riffAccentG_${id})" />
-          <rect x="88.5" y="5" width="3" height="18" rx="1.5" fill="url(#riffAccentG_${id})" />
-          <rect x="94" y="2" width="3" height="24" rx="1.5" fill="url(#riffAccentG_${id})" />
-          <rect x="99.5" y="8" width="3" height="12" rx="1.5" fill="url(#riffAccentG_${id})" />
+          <circle cx="70" cy="15" r="2.5" fill="url(#riffGlowG_${id})" />
+          <rect x="76" y="8" width="3.5" height="14" rx="1.75" fill="url(#riffGlowG_${id})" />
+          <rect x="83" y="4" width="3.5" height="22" rx="1.75" fill="url(#riffGlowG_${id})" />
+          <rect x="90" y="9" width="3.5" height="12" rx="1.75" fill="url(#riffGlowG_${id})" />
+          <circle cx="99" cy="15" r="2.5" fill="url(#riffGlowG_${id})" />
         </g>
       </g>
     </svg>
@@ -104,8 +124,8 @@ export const Logo: React.FC<LogoProps> = ({
   return (
     <div
       onClick={onClick}
-      className={`inline-flex items-center group cursor-pointer select-none transition-transform hover:scale-[1.02] active:scale-[0.98] ${className}`}
-      title="RIFF"
+      className={`inline-flex items-center group cursor-pointer select-none transition-transform hover:scale-[1.03] active:scale-[0.97] ${className}`}
+      title="riff"
     >
       <RiffTextLogo
         height={height}

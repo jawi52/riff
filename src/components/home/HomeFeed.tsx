@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Play, Pause, ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { Track } from '../../types';
 import { usePlayerStore } from '../../stores/usePlayerStore';
@@ -23,10 +23,10 @@ const TOP_CURATED_ARTISTS = [
 ];
 
 const SOUNDSCAPE_VIBES = [
-  { id: 'vibe_latenight', title: 'Late Night 3 AM', desc: 'Dark synth, atmospheric bass & lo-fi focus', gradient: 'from-zinc-900 to-black', query: 'Late Night Chill' },
-  { id: 'vibe_gym', title: 'Gym & Adrenaline Hype', desc: 'Fast BPMs, heavy 808s and workout motivation', gradient: 'from-zinc-900 to-black', query: 'Workout Hype' },
-  { id: 'vibe_goldenhour', title: 'Golden Hour Drives', desc: 'Warm nostalgic synthpop & sunset cruising', gradient: 'from-zinc-900 to-black', query: 'Golden Hour' },
-  { id: 'vibe_coding', title: 'Deep Cyber Focus', desc: 'Zero vocal electronica & coding flow', gradient: 'from-zinc-900 to-black', query: 'Cyberpunk Synthwave' }
+  { id: 'vibe_latenight', title: 'Late Night 3 AM', desc: 'Dark synth, atmospheric bass & lo-fi focus', gradient: 'from-indigo-600/30 via-purple-900/30 to-black/40', query: 'Late Night Chill' },
+  { id: 'vibe_gym', title: 'Gym & Adrenaline Hype', desc: 'Fast BPMs, heavy 808s and workout motivation', gradient: 'from-pink-600/30 via-rose-900/30 to-black/40', query: 'Workout Hype' },
+  { id: 'vibe_goldenhour', title: 'Golden Hour Drives', desc: 'Warm nostalgic synthpop & sunset cruising', gradient: 'from-amber-600/30 via-orange-900/30 to-black/40', query: 'Golden Hour' },
+  { id: 'vibe_coding', title: 'Deep Cyber Focus', desc: 'Zero vocal electronica & coding flow', gradient: 'from-cyan-600/30 via-blue-900/30 to-black/40', query: 'Cyberpunk Synthwave' }
 ];
 
 interface HomeFeedProps {
@@ -92,40 +92,44 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ onSelectGenre }) => {
 
   return (
     <div className="space-y-6 pb-36 select-none animate-in fade-in duration-300">
-      {/* 1. Ultra-Clean Greeting Only (Categories & clutter removed as requested) */}
-      <div className="pt-1">
+      {/* 1. Clean Luminous Greeting */}
+      <div className="pt-1 flex items-center justify-between">
         <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">
           {greeting}
         </h1>
+        <span className="px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-white/[0.08] backdrop-blur-md text-cyan-200 border border-white/15 flex items-center gap-1.5 shadow-sm">
+          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+          320k Lossless
+        </span>
       </div>
 
       {/* ========================================================================= */}
-      {/* 2. THE CLEAN HERO SPOTLIGHT CAROUSEL */}
+      {/* 2. THE FROSTED GLASS HERO SPOTLIGHT CAROUSEL */}
       {/* ========================================================================= */}
       <div className="space-y-2">
         <div
           onTouchStart={handleHeroTouchStart}
           onTouchEnd={handleHeroTouchEnd}
-          className="relative rounded-3xl p-5 md:p-6 bg-gradient-to-b from-zinc-900/90 to-black border border-white/[0.08] overflow-hidden shadow-2xl transition-all duration-300"
+          className="relative rounded-3xl p-5 md:p-6 glass-panel overflow-hidden transition-all duration-300"
         >
-          {/* Subtle Ambient Background Light */}
+          {/* Luminous Ambient Reflection */}
           <div
-            className="absolute -right-12 -top-12 w-64 h-64 rounded-full blur-[90px] opacity-25 pointer-events-none"
-            style={{ backgroundImage: `url(${currentHero.track.coverUrl})` }}
+            className="absolute -right-8 -top-8 w-64 h-64 rounded-full blur-[80px] opacity-35 pointer-events-none"
+            style={{ backgroundImage: `radial-gradient(circle, rgba(167, 139, 250, 0.4) 0%, rgba(56, 189, 248, 0.3) 50%, transparent 80%)` }}
           />
 
           <div className="relative z-10 flex items-center justify-between gap-4">
             {/* Left: Artwork Jacket */}
             <div 
               onClick={() => playTrack(currentHero.track, heroItems.map((h) => h.track))}
-              className="relative w-28 h-28 sm:w-36 sm:h-36 rounded-2xl overflow-hidden shadow-2xl flex-shrink-0 border border-white/10 group cursor-pointer"
+              className="relative w-28 h-28 sm:w-36 sm:h-36 rounded-2xl overflow-hidden shadow-2xl flex-shrink-0 border border-white/20 group cursor-pointer"
             >
               <img
                 src={currentHero.track.coverUrl}
                 alt={currentHero.track.title}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />
-              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+              <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity backdrop-blur-xs">
                 <div className="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center shadow-xl">
                   <Play className="w-5 h-5 fill-current ml-0.5" />
                 </div>
@@ -134,7 +138,7 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ onSelectGenre }) => {
 
             {/* Right: Metadata & Actions */}
             <div className="flex-1 min-w-0 space-y-1.5">
-              <span className="inline-block px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-white/10 text-neutral-300 border border-white/10">
+              <span className="inline-block px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-white/10 text-cyan-200 border border-white/15 backdrop-blur-md">
                 {currentHero.badge}
               </span>
 
@@ -142,7 +146,7 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ onSelectGenre }) => {
                 {currentHero.track.title}
               </h2>
 
-              <p className="text-xs sm:text-sm font-semibold text-neutral-400 truncate">
+              <p className="text-xs sm:text-sm font-semibold text-slate-300 truncate">
                 {currentHero.track.artist}
               </p>
 
@@ -154,7 +158,7 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ onSelectGenre }) => {
                   <Play className="w-3.5 h-3.5 fill-current" />
                   Play
                 </button>
-                <span className="text-[11px] font-medium text-neutral-500 truncate">
+                <span className="text-[11px] font-medium text-slate-400 truncate">
                   {currentHero.track.genre}
                 </span>
               </div>
@@ -162,10 +166,10 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ onSelectGenre }) => {
           </div>
 
           {/* Carousel Dot Indicators & Navigation */}
-          <div className="flex items-center justify-between pt-3 mt-3 border-t border-white/[0.06]">
+          <div className="flex items-center justify-between pt-3 mt-3 border-t border-white/10">
             <button
               onClick={() => setHeroIndex((prev) => (prev - 1 + heroItems.length) % heroItems.length)}
-              className="p-1 text-neutral-500 hover:text-white transition cursor-pointer"
+              className="p-1 text-slate-400 hover:text-white transition cursor-pointer"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -176,7 +180,7 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ onSelectGenre }) => {
                   key={idx}
                   onClick={() => setHeroIndex(idx)}
                   className={`h-1.5 rounded-full transition-all cursor-pointer ${
-                    heroIndex === idx ? 'w-5 bg-white' : 'w-1.5 bg-white/20 hover:bg-white/40'
+                    heroIndex === idx ? 'w-5 bg-gradient-to-r from-cyan-300 to-purple-300 shadow-sm' : 'w-1.5 bg-white/25 hover:bg-white/40'
                   }`}
                 />
               ))}
@@ -184,7 +188,7 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ onSelectGenre }) => {
 
             <button
               onClick={() => setHeroIndex((prev) => (prev + 1) % heroItems.length)}
-              className="p-1 text-neutral-500 hover:text-white transition cursor-pointer"
+              className="p-1 text-slate-400 hover:text-white transition cursor-pointer"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -196,7 +200,7 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ onSelectGenre }) => {
       {/* 3. RECENT SONGS & JUMP-BACK-IN TILES (2x3 Grid) */}
       {/* ========================================================================= */}
       <div className="space-y-2.5">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-400">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
           Jump Back In
         </h3>
 
@@ -207,7 +211,7 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ onSelectGenre }) => {
               <div
                 key={i}
                 onClick={() => playTrack(tile.track)}
-                className="group relative flex items-center gap-3 bg-zinc-900/60 hover:bg-zinc-800/80 active:scale-[0.98] rounded-xl overflow-hidden cursor-pointer transition-all duration-200 border border-white/[0.06] p-0"
+                className="group relative flex items-center gap-3 glass-card active:scale-[0.98] rounded-xl overflow-hidden cursor-pointer p-0"
               >
                 <img
                   src={tile.cover}
@@ -215,10 +219,10 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ onSelectGenre }) => {
                   className="w-12 h-12 md:w-14 md:h-14 object-cover flex-shrink-0"
                 />
                 <div className="min-w-0 flex-1 pr-2">
-                  <p className="text-xs md:text-sm font-bold text-white truncate group-hover:text-neutral-200 transition">
+                  <p className="text-xs md:text-sm font-bold text-white truncate group-hover:text-cyan-200 transition">
                     {tile.title}
                   </p>
-                  <p className="text-[10px] md:text-xs text-neutral-400 truncate">{tile.subtitle}</p>
+                  <p className="text-[10px] md:text-xs text-slate-400 truncate">{tile.subtitle}</p>
                 </div>
 
                 <div className="mr-3 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:flex">
@@ -239,7 +243,7 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ onSelectGenre }) => {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg md:text-xl font-bold text-white tracking-tight">Most Listened Artists</h2>
-            <p className="text-xs text-neutral-500">Global Verified Discographies</p>
+            <p className="text-xs text-slate-400">Global Verified Discographies</p>
           </div>
         </div>
 
@@ -250,15 +254,15 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ onSelectGenre }) => {
               onClick={() => navigateToArtist(artist.name)}
               className="flex flex-col items-center space-y-2 flex-shrink-0 cursor-pointer group w-24 md:w-28"
             >
-              <div className="relative w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden shadow-xl border border-white/10 group-hover:border-white/40 transition-all">
-                <img src={artist.avatar} alt={artist.name} className="w-full h-full object-cover rounded-full group-hover:scale-105 transition-transform duration-500" />
+              <div className="relative w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden shadow-xl border border-white/20 p-0.5 bg-gradient-to-tr from-cyan-500 via-purple-500 to-pink-500 group-hover:scale-105 transition-all">
+                <img src={artist.avatar} alt={artist.name} className="w-full h-full object-cover rounded-full" />
               </div>
               <div className="text-center w-full space-y-0.5">
                 <div className="flex items-center justify-center gap-1">
-                  <p className="text-xs font-bold text-white truncate group-hover:text-neutral-200 transition">{artist.name}</p>
-                  <CheckCircle2 className="w-3 h-3 text-white fill-white/20 flex-shrink-0" />
+                  <p className="text-xs font-bold text-white truncate group-hover:text-cyan-200 transition">{artist.name}</p>
+                  <CheckCircle2 className="w-3 h-3 text-cyan-300 fill-cyan-400/20 flex-shrink-0" />
                 </div>
-                <span className="text-[10px] text-neutral-500 block truncate">{artist.followers}</span>
+                <span className="text-[10px] text-slate-400 block truncate">{artist.followers}</span>
               </div>
             </div>
           ))}
@@ -266,21 +270,21 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ onSelectGenre }) => {
       </div>
 
       {/* ========================================================================= */}
-      {/* 5. SPOTIFY-STYLE CONTEXTUAL DAYLIST */}
+      {/* 5. FROSTED GLASS CONTEXTUAL DAYLIST */}
       {/* ========================================================================= */}
       <div 
         onClick={() => playTrack(daylist.tracks[0] || GLOBAL_CATALOG[0])}
-        className="relative p-5 md:p-6 rounded-3xl bg-zinc-950 border border-white/[0.08] overflow-hidden cursor-pointer group shadow-xl"
+        className="relative p-5 md:p-6 rounded-3xl glass-panel overflow-hidden cursor-pointer group shadow-xl"
       >
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
-            <span className="text-[10px] font-mono font-bold tracking-widest uppercase text-neutral-400">
+            <span className="text-[10px] font-mono font-bold tracking-widest uppercase text-cyan-300">
               CONTEXTUAL DAYLIST
             </span>
             <h2 className="text-xl md:text-2xl font-black text-white tracking-tight lowercase">
               {daylist.title}
             </h2>
-            <p className="text-xs text-neutral-400 max-w-lg">{daylist.subtitle}</p>
+            <p className="text-xs text-slate-300 max-w-lg">{daylist.subtitle}</p>
           </div>
 
           <div className="flex items-center gap-3">
@@ -298,7 +302,7 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ onSelectGenre }) => {
       <div className="space-y-3">
         <div>
           <h2 className="text-lg md:text-xl font-bold text-white tracking-tight">Soundscapes & Moods</h2>
-          <p className="text-xs text-neutral-500">Sonic atmosphere tailored to your routine</p>
+          <p className="text-xs text-slate-400">Sonic atmosphere tailored to your routine</p>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-2.5 md:gap-3">
@@ -306,10 +310,10 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ onSelectGenre }) => {
             <div
               key={vibe.id}
               onClick={() => onSelectGenre(vibe.query)}
-              className="group p-4 rounded-2xl bg-zinc-900/60 border border-white/[0.06] hover:border-white/20 cursor-pointer transition shadow-lg space-y-1"
+              className={`group p-4 rounded-2xl bg-gradient-to-br ${vibe.gradient} glass-card cursor-pointer transition space-y-1`}
             >
               <h3 className="text-xs md:text-sm font-bold text-white tracking-tight">{vibe.title}</h3>
-              <p className="text-[11px] text-neutral-400 line-clamp-2">{vibe.desc}</p>
+              <p className="text-[11px] text-slate-300 line-clamp-2">{vibe.desc}</p>
             </div>
           ))}
         </div>
@@ -322,7 +326,7 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ onSelectGenre }) => {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg md:text-xl font-bold text-white tracking-tight">Trending Worldwide</h2>
-            <p className="text-xs text-neutral-500">Direct 320kbps CD Quality Audio Streams</p>
+            <p className="text-xs text-slate-400">Direct 320kbps CD Quality Audio Streams</p>
           </div>
         </div>
 
@@ -333,7 +337,7 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ onSelectGenre }) => {
               <div
                 key={t.id}
                 onClick={() => playTrack(t)}
-                className="group relative p-3 rounded-2xl bg-zinc-900/40 hover:bg-zinc-800/60 border border-white/[0.05] hover:border-white/20 cursor-pointer transition-all duration-200"
+                className="group relative p-3 rounded-2xl glass-card cursor-pointer"
               >
                 <div className="relative aspect-square rounded-xl overflow-hidden mb-2.5 shadow-md">
                   <img src={t.coverUrl} alt={t.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -344,7 +348,7 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ onSelectGenre }) => {
                   </div>
                 </div>
                 <h3 className="text-xs font-bold text-white truncate">{t.title}</h3>
-                <p className="text-[11px] text-neutral-400 truncate">{t.artist}</p>
+                <p className="text-[11px] text-slate-400 truncate">{t.artist}</p>
               </div>
             );
           })}
@@ -358,7 +362,7 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ onSelectGenre }) => {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg md:text-xl font-bold text-white tracking-tight">Made For You</h2>
-            <p className="text-xs text-neutral-500">Personalized algorithmic daily playlists</p>
+            <p className="text-xs text-slate-400">Personalized algorithmic daily playlists</p>
           </div>
         </div>
 
@@ -367,16 +371,16 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ onSelectGenre }) => {
             <div
               key={mix.id}
               onClick={() => playTrack(mix.tracks[0] || GLOBAL_CATALOG[0])}
-              className="group p-3.5 rounded-2xl bg-zinc-900/40 hover:bg-zinc-800/60 border border-white/[0.05] hover:border-white/20 cursor-pointer transition-all"
+              className="group p-3.5 rounded-2xl glass-card cursor-pointer"
             >
               <div className="relative aspect-square rounded-xl overflow-hidden mb-2.5 shadow-md">
                 <img src={mix.coverUrl} alt={mix.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                 <div className="absolute bottom-0 inset-x-0 p-2.5 bg-gradient-to-t from-black/90 to-transparent">
-                  <span className="text-[10px] font-extrabold uppercase text-neutral-300 tracking-wider">{mix.genre}</span>
+                  <span className="text-[10px] font-extrabold uppercase text-cyan-200 tracking-wider">{mix.genre}</span>
                 </div>
               </div>
               <h3 className="text-xs md:text-sm font-bold text-white truncate">{mix.title}</h3>
-              <p className="text-[11px] text-neutral-400 line-clamp-1">{mix.subtitle}</p>
+              <p className="text-[11px] text-slate-400 line-clamp-1">{mix.subtitle}</p>
             </div>
           ))}
         </div>
