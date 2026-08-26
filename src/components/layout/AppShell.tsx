@@ -8,7 +8,6 @@ import { LibraryView } from '../library/LibraryView';
 import { ArtistView } from '../artist/ArtistView';
 import { PlaylistDetailView } from '../playlist/PlaylistDetailView';
 import { StatsView } from '../stats/StatsView';
-import { RadioDirectoryView } from '../radio/RadioDirectoryView';
 import { QueueDrawer } from '../queue/QueueDrawer';
 import { NowPlayingSidebar } from './NowPlayingSidebar';
 import { MiniPlayer } from '../player/MiniPlayer';
@@ -77,8 +76,6 @@ export const AppShell: React.FC = () => {
           {activeMainView === 'playlist' && <PlaylistDetailView />}
 
           {activeMainView === 'stats' && <StatsView />}
-
-          {activeMainView === 'radio' && <RadioDirectoryView />}
         </main>
 
         {/* Right Floating Panel: Now Playing & Audio Studio Hub */}

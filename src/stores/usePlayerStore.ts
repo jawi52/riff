@@ -65,7 +65,6 @@ interface PlayerState {
   navigateToPlaylist: (playlist: Playlist) => void;
   navigateToAlbum: (album: Album) => void;
   navigateToStats: () => void;
-  navigateToRadio: () => void;
 
   initAudioListeners: () => void;
 }
@@ -404,11 +403,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     const current = get().activeMainView;
     const prev = current === 'artist' || current === 'playlist' ? get().previousMainView : (current as any);
     set({ activeMainView: 'stats', previousMainView: prev || 'home' });
-  },
-  navigateToRadio: () => {
-    const current = get().activeMainView;
-    const prev = current === 'artist' || current === 'playlist' ? get().previousMainView : (current as any);
-    set({ activeMainView: 'radio', previousMainView: prev || 'home' });
   },
 
   initAudioListeners: () => {

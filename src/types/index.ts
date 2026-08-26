@@ -117,7 +117,7 @@ export type PlaybackState = 'idle' | 'resolving' | 'buffering' | 'playing' | 'pa
 
 export type RepeatMode = 'off' | 'all' | 'one';
 
-export type MainViewType = 'home' | 'search' | 'library' | 'artist' | 'playlist' | 'stats' | 'radio';
+export type MainViewType = 'home' | 'search' | 'library' | 'artist' | 'playlist' | 'stats';
 
 export type StatsTimeframe = 'today' | 'week' | 'this_month' | 'last_month' | 'this_year' | 'all_time';
 

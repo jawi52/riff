@@ -9,7 +9,6 @@ import {
   Pin,
   Home,
   BarChart3,
-  Radio,
   Compass
 } from 'lucide-react';
 import { useLibraryStore } from '../../stores/useLibraryStore';
@@ -54,8 +53,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onOpe
           { id: 'home', label: 'Home Feed', icon: Home },
           { id: 'search', label: 'Search & Explore', icon: Compass },
           { id: 'library', label: 'Your Library', icon: Library },
-          { id: 'stats', label: 'Stats & Insights', icon: BarChart3, badge: 'Insights' },
-          { id: 'radio', label: 'Live Radio (30k+)', icon: Radio, badge: 'Live' }
+          { id: 'stats', label: 'Stats & Insights', icon: BarChart3, badge: 'Insights' }
         ].map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
