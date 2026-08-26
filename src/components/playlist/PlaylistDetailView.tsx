@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, Pause, Heart, Download, CheckCircle2, Clock, ArrowLeft } from 'lucide-react';
+import { Play, Pause, Heart, Download, ChevronLeft, Music2 } from 'lucide-react';
 import { usePlayerStore } from '../../stores/usePlayerStore';
 import { useLibraryStore } from '../../stores/useLibraryStore';
 import { GLOBAL_CATALOG } from '../../lib/algorithm';
@@ -16,6 +16,7 @@ export const PlaylistDetailView: React.FC = () => {
   const {
     selectedPlaylist,
     selectedAlbum,
+    previousMainView,
     setActiveMainView,
     playTrack,
     currentTrack,
@@ -36,7 +37,7 @@ export const PlaylistDetailView: React.FC = () => {
   const tracks: Track[] =
     selectedAlbum?.tracks ||
     selectedPlaylist?.tracks ||
-    GLOBAL_CATALOG.slice(0, 6);
+    GLOBAL_CATALOG.slice(0, 8);
 
   const totalDurationSec = tracks.reduce((acc, t) => acc + (t.duration || 0), 0);
   const totalMins = Math.floor(totalDurationSec / 60);
@@ -55,60 +56,60 @@ export const PlaylistDetailView: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8 pb-36 select-none animate-in fade-in duration-300">
+    <div className="space-y-6 pb-20 select-none animate-in fade-in duration-300">
       {/* Back Button */}
       <button
-        onClick={() => setActiveMainView('home')}
-        className="flex items-center gap-2 text-xs font-mono text-neutral-400 hover:text-white transition-colors"
+        onClick={() => setActiveMainView(previousMainView || 'home')}
+        className="flex items-center gap-1.5 text-xs font-bold text-neutral-400 hover:text-white transition cursor-pointer -ml-1"
       >
-        <ArrowLeft className="w-4 h-4" />
-        <span>BACK TO EXPLORE</span>
+        <ChevronLeft className="w-5 h-5" />
+        <span className="capitalize">Back to {previousMainView || 'Home'}</span>
       </button>
 
       {/* 1. PLAYLIST / ALBUM HERO HEADER */}
-      <div className="relative rounded-3xl overflow-hidden glass-editorial p-6 md:p-10 border border-white/[0.08] shadow-2xl">
-        <div className="flex flex-col md:flex-row items-center md:items-end gap-6 md:gap-8">
+      <div className="relative rounded-3xl overflow-hidden glass-panel p-6 md:p-8 border border-white/[0.08] shadow-2xl">
+        <div className="flex flex-col sm:flex-row items-center sm:items-end gap-6">
           {/* Cover Artwork */}
-          <div className="w-48 h-48 md:w-56 md:h-56 rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/15 flex-shrink-0 bg-neutral-900">
+          <div className="w-40 h-40 sm:w-48 sm:h-48 rounded-2xl overflow-hidden shadow-2xl border border-white/10 flex-shrink-0 bg-neutral-900">
             <img src={coverUrl} alt={title} className="w-full h-full object-cover" />
           </div>
 
           {/* Details */}
-          <div className="space-y-3 text-center md:text-left flex-1 min-w-0">
-            <span className="text-[10px] font-mono font-bold tracking-widest uppercase text-[#1db954]">
-              {isAlbum ? 'STUDIO ALBUM // MASTER AUDIO' : 'CURATED PLAYLIST // VERIFIED'}
+          <div className="space-y-2 text-center sm:text-left flex-1 min-w-0">
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-white/10 text-neutral-300 border border-white/10">
+              {isAlbum ? 'Studio Album' : 'Curated Playlist'}
             </span>
 
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black font-mono text-white tracking-tight uppercase leading-tight truncate">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-white tracking-tight truncate leading-tight">
               {title}
             </h1>
 
-            <div className="flex items-center justify-center md:justify-start gap-2 text-xs font-mono text-neutral-300 flex-wrap">
+            <div className="flex items-center justify-center sm:justify-start gap-2 text-xs font-medium text-neutral-300 flex-wrap">
               <span
                 onClick={() => isAlbum && navigateToArtist(subtitle)}
-                className={`font-bold ${isAlbum ? 'text-white hover:text-[#1db954] cursor-pointer underline' : ''}`}
+                className={`font-bold ${isAlbum ? 'text-white hover:text-cyan-400 cursor-pointer underline' : ''}`}
               >
                 {subtitle}
               </span>
               <span>•</span>
-              <span>{tracks.length} TRACKS</span>
+              <span>{tracks.length} songs</span>
               <span>•</span>
-              <span className="text-neutral-500">{totalMins} MINS TOTAL</span>
+              <span className="text-neutral-400">{totalMins} min</span>
             </div>
 
             {/* Action Row */}
-            <div className="pt-2 flex items-center justify-center md:justify-start gap-4">
+            <div className="pt-2 flex items-center justify-center sm:justify-start gap-3">
               <button
                 onClick={handlePlayAll}
-                className="btn-spotify-emerald flex items-center gap-2.5 px-7 py-3.5 rounded-full text-black font-mono font-black text-xs tracking-wider uppercase shadow-xl"
+                className="flex items-center gap-2 px-6 py-3 rounded-full bg-white text-black font-black text-xs hover:bg-neutral-200 active:scale-95 transition shadow-xl cursor-pointer"
               >
-                {isThisSetPlaying ? <Pause className="w-4 h-4 fill-black" /> : <Play className="w-4 h-4 fill-black" />}
-                <span>{isThisSetPlaying ? 'PAUSE' : 'PLAY ALL'}</span>
+                {isThisSetPlaying ? <Pause className="w-4 h-4 fill-black text-black" /> : <Play className="w-4 h-4 fill-black text-black ml-0.5" />}
+                <span>{isThisSetPlaying ? 'Pause' : 'Play All'}</span>
               </button>
 
               <button
                 onClick={handleDownloadAll}
-                className="p-3 rounded-full border border-white/10 hover:border-white/30 text-neutral-400 hover:text-white hover:bg-white/5 transition-all"
+                className="p-3 rounded-full border border-white/10 hover:border-white/30 text-neutral-400 hover:text-white hover:bg-white/5 transition cursor-pointer"
                 title="Download All for Offline"
               >
                 <Download className="w-4 h-4" />
@@ -118,91 +119,76 @@ export const PlaylistDetailView: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. TRACKLIST TABLE */}
-      <section className="space-y-4">
-        {/* Table Header */}
-        <div className="grid grid-cols-12 px-4 py-2 text-[11px] font-mono font-bold text-neutral-500 uppercase border-b border-white/[0.08]">
-          <span className="col-span-1 text-center">#</span>
-          <span className="col-span-6 md:col-span-5">TITLE</span>
-          <span className="col-span-3 hidden md:block">ALBUM</span>
-          <span className="col-span-2 hidden md:block">GENRE</span>
-          <span className="col-span-5 md:col-span-1 text-right flex items-center justify-end">
-            <Clock className="w-3.5 h-3.5" />
-          </span>
+      {/* 2. TRACKLIST */}
+      <section className="space-y-2">
+        <div className="flex items-center gap-2 px-1 text-white font-bold text-sm">
+          <Music2 className="w-4 h-4 text-cyan-400" />
+          <span>Tracks ({tracks.length})</span>
         </div>
 
-        {/* Track Rows */}
         <div className="space-y-1">
           {tracks.map((track, index) => {
             const isPlayingThis = currentTrack?.id === track.id && playbackState === 'playing';
             const isLiked = likedTracks.some((t) => t.id === track.id);
             const isOffline = offlineTracks.some((t) => t.id === track.id);
-            const rankFormatted = (index + 1).toString().padStart(2, '0');
 
             return (
               <div
-                key={track.id}
+                key={`${track.id}_${index}`}
                 onClick={() => playTrack(track, tracks)}
-                className={`grid grid-cols-12 items-center px-4 py-3 rounded-xl border transition-all cursor-pointer group select-none ${
-                  isPlayingThis
-                    ? 'bg-[#1db954]/15 border-[#1db954]/50 text-[#1db954]'
-                    : 'border-transparent hover:bg-white/[0.04] text-neutral-300'
-                }`}
+                className="group flex items-center gap-3.5 p-2.5 rounded-2xl hover:bg-white/[0.04] active:bg-white/[0.08] transition cursor-pointer"
               >
-                {/* Number / Play */}
-                <div className="col-span-1 text-center flex items-center justify-center">
-                  <span className="font-mono text-xs text-neutral-500 group-hover:hidden">
-                    {rankFormatted}
-                  </span>
-                  <Play className="w-3.5 h-3.5 text-white fill-white hidden group-hover:block" />
+                {/* Index / Play */}
+                <span className="w-4 text-center text-xs font-mono text-neutral-500 group-hover:hidden">
+                  {index + 1}
+                </span>
+                <div className="w-4 hidden group-hover:flex items-center justify-center text-white">
+                  {isPlayingThis ? <Pause className="w-3.5 h-3.5 fill-current" /> : <Play className="w-3.5 h-3.5 fill-current ml-0.5" />}
                 </div>
+
+                {/* Cover Art */}
+                <img
+                  src={track.coverUrl}
+                  alt={track.title}
+                  className="w-11 h-11 rounded-xl object-cover shadow-sm flex-shrink-0"
+                />
 
                 {/* Title & Artist */}
-                <div className="col-span-6 md:col-span-5 flex items-center gap-3 min-w-0 pr-2">
-                  <img src={track.coverUrl} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
-                  <div className="min-w-0">
-                    <p className={`text-xs font-bold font-mono tracking-tight truncate ${isPlayingThis ? 'text-[#1db954]' : 'text-white group-hover:text-[#1db954]'}`}>
-                      {track.title}
-                    </p>
-                    <p
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigateToArtist(track.artist);
-                      }}
-                      className="text-[11px] text-neutral-400 font-mono truncate hover:underline hover:text-white mt-0.5"
-                    >
-                      {track.artist}
-                    </p>
-                  </div>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-xs md:text-sm font-bold truncate ${isPlayingThis ? 'text-cyan-400 underline' : 'text-white'}`}>
+                    {track.title}
+                  </p>
+                  <p
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigateToArtist(track.artist);
+                    }}
+                    className="text-[11px] text-neutral-400 truncate hover:text-white transition mt-0.5"
+                  >
+                    {track.artist}
+                  </p>
                 </div>
 
-                {/* Album */}
-                <div className="col-span-3 hidden md:block text-xs font-mono text-neutral-400 truncate pr-2">
-                  {track.album || title}
-                </div>
-
-                {/* Genre */}
-                <div className="col-span-2 hidden md:block text-[11px] font-mono text-neutral-500 uppercase truncate">
-                  {track.genre || 'Lossless'}
-                </div>
-
-                {/* Duration & Like */}
-                <div className="col-span-5 md:col-span-1 flex items-center justify-end gap-3">
-                  {isOffline && <CheckCircle2 className="w-3.5 h-3.5 text-[#1db954]" />}
+                {/* Duration, Likes & Offline */}
+                <div className="flex items-center gap-3">
+                  {isOffline && (
+                    <div className="w-4 h-4 rounded-full bg-emerald-500 text-black flex items-center justify-center text-[9px] font-black">
+                      ↓
+                    </div>
+                  )}
 
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
+                      if (navigator.vibrate) navigator.vibrate(15);
                       toggleLikeTrack(track);
                     }}
-                    className={`p-1.5 rounded-full hover:bg-white/10 transition-colors ${
-                      isLiked ? 'text-[#1db954] fill-[#1db954]' : 'text-neutral-500 opacity-0 group-hover:opacity-100 hover:text-white'
-                    }`}
+                    className="p-1.5 rounded-full text-neutral-500 hover:text-white transition cursor-pointer"
                   >
-                    <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-[#1db954]' : ''}`} />
+                    <Heart className={`w-4 h-4 ${isLiked ? 'fill-rose-500 text-rose-500' : ''}`} />
                   </button>
 
-                  <span className="text-xs font-mono text-neutral-500">
+                  <span className="text-[11px] font-mono text-neutral-500">
                     {formatDuration(track.duration)}
                   </span>
                 </div>
@@ -214,3 +200,5 @@ export const PlaylistDetailView: React.FC = () => {
     </div>
   );
 };
+
+export default PlaylistDetailView;

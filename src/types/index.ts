@@ -116,3 +116,58 @@ export interface AppSettings {
 export type PlaybackState = 'idle' | 'resolving' | 'buffering' | 'playing' | 'paused' | 'error';
 
 export type RepeatMode = 'off' | 'all' | 'one';
+
+export type MainViewType = 'home' | 'search' | 'library' | 'artist' | 'playlist' | 'stats' | 'radio';
+
+export type StatsTimeframe = 'today' | 'week' | 'this_month' | 'last_month' | 'this_year' | 'all_time';
+
+export interface ArtistStatItem {
+  artist: string;
+  avatarUrl: string;
+  genre: string;
+  plays: number;
+  totalDurationSec: number;
+  formattedDuration: string;
+  topSongTitle: string;
+  percentage: number;
+}
+
+export interface TrackStatItem {
+  trackId: string;
+  title: string;
+  artist: string;
+  coverUrl: string;
+  plays: number;
+  totalDurationSec: number;
+  formattedDuration: string;
+  lastListenedAt: number;
+}
+
+export interface GenreStatItem {
+  genre: string;
+  plays: number;
+  totalDurationSec: number;
+  percentage: number;
+}
+
+export interface ChartDataPoint {
+  label: string;
+  minutes: number;
+  plays: number;
+}
+
+export interface ListeningStatsReport {
+  timeframe: StatsTimeframe;
+  timeframeLabel: string;
+  totalDurationSec: number;
+  formattedTotalDuration: string;
+  totalPlays: number;
+  completedPlays: number;
+  completionRatePercent: number;
+  dailyStreakDays: number;
+  peakListeningHour: string;
+  topArtists: ArtistStatItem[];
+  topTracks: TrackStatItem[];
+  topGenres: GenreStatItem[];
+  chartData: ChartDataPoint[];
+}

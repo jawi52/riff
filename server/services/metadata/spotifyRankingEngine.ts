@@ -1,4 +1,4 @@
-﻿import { Track } from '../../../src/types';
+import { Track } from '../../../src/types';
 import { searchAppleMusicMetadata } from './itunes';
 import { searchDeezerMetadata } from './deezer';
 import { searchSaavn } from '../providers/saavn';
@@ -83,31 +83,43 @@ function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T
 export async function searchSpotifyStyle(query: string): Promise<SpotifySearchResult> {
   const rawQ = query.trim();
   const searchPromises: Promise<Track[]>[] = [
-    withTimeout(searchSaavn(rawQ).catch(() => []), 3500, []),
-    withTimeout(searchAppleMusicMetadata(rawQ).catch(() => []), 3500, []),
-    withTimeout(searchDeezerMetadata(rawQ).catch(() => []), 3500, []),
-    withTimeout(searchInnertubeMusic(rawQ).catch(() => []), 3500, [])
+    withTimeout(searchSaavn(rawQ).catch(() => []), 6000, []),
+    withTimeout(searchAppleMusicMetadata(rawQ).catch(() => []), 6000, []),
+    withTimeout(searchDeezerMetadata(rawQ).catch(() => []), 6000, []),
+    withTimeout(searchInnertubeMusic(rawQ).catch(() => []), 6000, [])
   ];
 
+  let targetTitle = '';
+  let targetArtist = '';
+  if (rawQ.toLowerCase().includes(' by ')) {
+    const p = rawQ.split(/ by /i);
+    targetTitle = cleanStr(p[0]);
+    targetArtist = cleanStr(p[1]);
+  } else if (rawQ.includes(' - ')) {
+    const p = rawQ.split(' - ');
+    targetTitle = cleanStr(p[0]);
+    targetArtist = cleanStr(p[1]);
+  }
+
   // If query has "by" or " - ", search structured title + artist combinations
-  if (rawQ.toLowerCase().includes(' by ') || rawQ.includes(' - ')) {
-    const parts = rawQ.toLowerCase().includes(' by ') ? rawQ.split(/ by /i) : rawQ.split(' - ');
-    const titlePart = parts[0].trim();
-    const artistPart = parts[1]?.trim() || '';
-    if (titlePart && artistPart) {
-      searchPromises.push(withTimeout(searchAppleMusicMetadata(`${artistPart} ${titlePart}`).catch(() => []), 3500, []));
-      searchPromises.push(withTimeout(searchDeezerMetadata(`${artistPart} ${titlePart}`).catch(() => []), 3500, []));
-      searchPromises.push(withTimeout(searchInnertubeMusic(`${artistPart} ${titlePart}`).catch(() => []), 3500, []));
-      searchPromises.push(withTimeout(searchSaavn(`${artistPart} ${titlePart}`).catch(() => []), 3500, []));
-    }
+  if (targetTitle && targetArtist) {
+    searchPromises.push(withTimeout(searchAppleMusicMetadata(`${targetArtist} ${targetTitle}`).catch(() => []), 6000, []));
+    searchPromises.push(withTimeout(searchDeezerMetadata(`${targetArtist} ${targetTitle}`).catch(() => []), 6000, []));
+    searchPromises.push(withTimeout(searchInnertubeMusic(`${targetArtist} ${targetTitle}`).catch(() => []), 6000, []));
+    searchPromises.push(withTimeout(searchSaavn(`${targetArtist} ${targetTitle}`).catch(() => []), 6000, []));
   }
 
   const results = await Promise.all(searchPromises);
-  const localMatching = GLOBAL_CATALOG.filter(
-    (t) =>
-      cleanStr(t.title).includes(cleanStr(rawQ)) ||
-      cleanStr(t.artist).includes(cleanStr(rawQ))
-  );
+  const cleanQ = cleanStr(rawQ);
+  const qTokens = cleanQ.split(' ').filter(Boolean);
+
+  const localMatching = GLOBAL_CATALOG.filter((t) => {
+    const cT = cleanStr(t.title);
+    const cA = cleanStr(t.artist);
+    if (targetTitle && targetArtist && cT.includes(targetTitle) && cA.includes(targetArtist)) return true;
+    if (cT.includes(cleanQ) || cA.includes(cleanQ)) return true;
+    return qTokens.some((tok) => cT.includes(tok) || cA.includes(tok));
+  });
 
   const allInitial = [...results.flat(), ...localMatching];
 
@@ -124,17 +136,6 @@ export async function searchSpotifyStyle(query: string): Promise<SpotifySearchRe
   }
 
   // Token-based fuzzy ranking
-  const cleanQ = cleanStr(rawQ);
-  const qTokens = cleanQ.split(' ').filter(Boolean);
-
-  let targetTitle = '';
-  let targetArtist = '';
-  if (rawQ.toLowerCase().includes(' by ')) {
-    const p = rawQ.split(/ by /i);
-    targetTitle = cleanStr(p[0]);
-    targetArtist = cleanStr(p[1]);
-  }
-
   const scored = allInitial.map((track) => {
     const cTitle = cleanStr(track.title);
     const cArtist = cleanStr(track.artist);

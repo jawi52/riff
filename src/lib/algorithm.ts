@@ -16,62 +16,19 @@ export interface HeroCardItem {
   gradient: string;
 }
 
-export const GLOBAL_CATALOG: Track[] = [
-  // 1. English Pop / Synthwave
-  {
-    id: 'trk_blinding_lights',
-    title: 'Blinding Lights',
-    artist: 'The Weeknd',
-    album: 'After Hours',
-    duration: 200,
-    coverUrl: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=800&q=80',
-    sourceType: 'saavn',
-    genre: 'Synthwave',
-    hasSyncedLyrics: true,
-    bitrateKbps: 320,
-    playCount: 4892010
-  },
-  {
-    id: 'trk_starboy',
-    title: 'Starboy',
-    artist: 'The Weeknd ft. Daft Punk',
-    album: 'Starboy',
-    duration: 230,
-    coverUrl: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=800&q=80',
-    sourceType: 'saavn',
-    genre: 'R&B / Pop',
-    hasSyncedLyrics: true,
-    bitrateKbps: 320,
-    playCount: 5210940
-  },
-  {
-    id: 'trk_get_lucky',
-    title: 'Get Lucky',
-    artist: 'Daft Punk ft. Pharrell Williams',
-    album: 'Random Access Memories',
-    duration: 248,
-    coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80',
-    sourceType: 'saavn',
-    genre: 'Disco / Funk',
-    hasSyncedLyrics: true,
-    bitrateKbps: 320,
-    playCount: 4321090
-  },
-  {
-    id: 'trk_levitating',
-    title: 'Levitating',
-    artist: 'Dua Lipa',
-    album: 'Future Nostalgia',
-    duration: 203,
-    coverUrl: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=800&q=80',
-    sourceType: 'saavn',
-    genre: 'Dance / Pop',
-    hasSyncedLyrics: true,
-    bitrateKbps: 320,
-    playCount: 3829100
-  },
+export interface PlaylistCardItem {
+  id: string;
+  title: string;
+  subtitle: string;
+  coverUrl: string;
+  badge?: string;
+  tracks: Track[];
+}
 
-  // 2. Urdu / Pakistani Hip-Hop
+export const GLOBAL_CATALOG: Track[] = [
+  // ==========================================
+  // 1. TOP TRENDING IN PAKISTAN (1 - 30)
+  // ==========================================
   {
     id: 'trk_downers_at_dusk',
     title: 'Downers at Dusk',
@@ -83,7 +40,59 @@ export const GLOBAL_CATALOG: Track[] = [
     genre: 'Urdu Hip-Hop',
     hasSyncedLyrics: true,
     bitrateKbps: 320,
-    playCount: 4120930
+    playCount: 14201090
+  },
+  {
+    id: 'trk_pasoori',
+    title: 'Pasoori',
+    artist: 'Ali Sethi, Shae Gill',
+    album: 'Coke Studio Season 14',
+    duration: 224,
+    coverUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&q=80',
+    sourceType: 'saavn',
+    genre: 'Pakistani Pop / Fusion',
+    hasSyncedLyrics: true,
+    bitrateKbps: 320,
+    playCount: 28910400
+  },
+  {
+    id: 'trk_kahani_suno',
+    title: 'Kahani Suno 2.0',
+    artist: 'Kaifi Khalil',
+    album: 'Single',
+    duration: 175,
+    coverUrl: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=800&q=80',
+    sourceType: 'saavn',
+    genre: 'Urdu Indie / Soul',
+    hasSyncedLyrics: true,
+    bitrateKbps: 320,
+    playCount: 22410800
+  },
+  {
+    id: 'trk_bikhra',
+    title: 'Bikhra',
+    artist: 'Abdul Hannan, Rovalio',
+    album: 'Single',
+    duration: 218,
+    coverUrl: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=800&q=80',
+    sourceType: 'saavn',
+    genre: 'Indie Pop',
+    hasSyncedLyrics: true,
+    bitrateKbps: 320,
+    playCount: 11980300
+  },
+  {
+    id: 'trk_iraaday',
+    title: 'Iraaday',
+    artist: 'Abdul Hannan, Rovalio',
+    album: 'Single',
+    duration: 195,
+    coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80',
+    sourceType: 'saavn',
+    genre: 'Indie Pop',
+    hasSyncedLyrics: true,
+    bitrateKbps: 320,
+    playCount: 13500200
   },
   {
     id: 'trk_open_letter',
@@ -96,7 +105,7 @@ export const GLOBAL_CATALOG: Track[] = [
     genre: 'Urdu Hip-Hop',
     hasSyncedLyrics: true,
     bitrateKbps: 320,
-    playCount: 2981040
+    playCount: 9810400
   },
   {
     id: 'trk_aisay_kaisay',
@@ -109,10 +118,363 @@ export const GLOBAL_CATALOG: Track[] = [
     genre: 'Indie / Urdu Pop',
     hasSyncedLyrics: true,
     bitrateKbps: 320,
-    playCount: 1840290
+    playCount: 8840290
+  },
+  {
+    id: 'trk_afsanay',
+    title: 'Afsanay',
+    artist: 'Young Stunners, Talha Anjum, Talhah Yunus',
+    album: 'Single',
+    duration: 290,
+    coverUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800&q=80',
+    sourceType: 'saavn',
+    genre: 'Urdu Hip-Hop',
+    hasSyncedLyrics: true,
+    bitrateKbps: 320,
+    playCount: 16900200
+  },
+  {
+    id: 'trk_ghalat_fehmi',
+    title: 'Ghalat Fehmi',
+    artist: 'Asim Azhar, Zenab Fatimah',
+    album: 'Superstar',
+    duration: 245,
+    coverUrl: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=800&q=80',
+    sourceType: 'saavn',
+    genre: 'Pakistani Pop / OST',
+    hasSyncedLyrics: true,
+    bitrateKbps: 320,
+    playCount: 18400100
+  },
+  {
+    id: 'trk_tu_hai_kahan',
+    title: 'Tu Hai Kahan',
+    artist: 'AUR',
+    album: 'Single',
+    duration: 260,
+    coverUrl: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800&q=80',
+    sourceType: 'saavn',
+    genre: 'Urdu Pop / Melodic',
+    hasSyncedLyrics: true,
+    bitrateKbps: 320,
+    playCount: 19800400
+  },
+  {
+    id: 'trk_agency',
+    title: 'Agency',
+    artist: 'Talha Anjum, Rap Demon',
+    album: 'Single',
+    duration: 220,
+    coverUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800&q=80',
+    sourceType: 'saavn',
+    genre: 'Urdu Hip-Hop',
+    hasSyncedLyrics: true,
+    bitrateKbps: 320,
+    playCount: 7420100
+  },
+  {
+    id: 'trk_kana_yaari',
+    title: 'Kana Yaari',
+    artist: 'Kaifi Khalil, Eva B, Wahab Bugti',
+    album: 'Coke Studio Season 14',
+    duration: 215,
+    coverUrl: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=800&q=80',
+    sourceType: 'saavn',
+    genre: 'Balochi / Pop Fusion',
+    hasSyncedLyrics: true,
+    bitrateKbps: 320,
+    playCount: 15400200
+  },
+  {
+    id: 'trk_tajdar_e_haram',
+    title: 'Tajdar-e-Haram',
+    artist: 'Atif Aslam',
+    album: 'Coke Studio Season 8',
+    duration: 360,
+    coverUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&q=80',
+    sourceType: 'saavn',
+    genre: 'Sufi / Qawwali',
+    hasSyncedLyrics: true,
+    bitrateKbps: 320,
+    playCount: 38200100
+  },
+  {
+    id: 'trk_tu_jaane_na',
+    title: 'Tu Jaane Na',
+    artist: 'Atif Aslam, Pritam',
+    album: 'Ajab Prem Ki Ghazab Kahani',
+    duration: 280,
+    coverUrl: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=800&q=80',
+    sourceType: 'saavn',
+    genre: 'Romantic Pop',
+    hasSyncedLyrics: true,
+    bitrateKbps: 320,
+    playCount: 42100800
+  },
+  {
+    id: 'trk_joona',
+    title: 'Joona',
+    artist: 'Hasan Raheem, Abdullah Kasumbi',
+    album: 'Single',
+    duration: 192,
+    coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80',
+    sourceType: 'saavn',
+    genre: 'Indie / Urdu Pop',
+    hasSyncedLyrics: true,
+    bitrateKbps: 320,
+    playCount: 6840200
+  },
+  {
+    id: 'trk_faasle',
+    title: 'Faasle',
+    artist: 'Shamoon Ismail',
+    album: 'Juice',
+    duration: 188,
+    coverUrl: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800&q=80',
+    sourceType: 'saavn',
+    genre: 'Punjabi Blues / Indie',
+    hasSyncedLyrics: true,
+    bitrateKbps: 320,
+    playCount: 9200400
+  },
+  {
+    id: 'trk_marijuana',
+    title: 'Marijuana',
+    artist: 'Shamoon Ismail',
+    album: 'Single',
+    duration: 204,
+    coverUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800&q=80',
+    sourceType: 'saavn',
+    genre: 'Punjabi Blues',
+    hasSyncedLyrics: true,
+    bitrateKbps: 320,
+    playCount: 8100200
+  },
+  {
+    id: 'trk_jhol',
+    title: 'Jhol',
+    artist: 'Maanu, Annural Khalid',
+    album: 'Single',
+    duration: 210,
+    coverUrl: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=800&q=80',
+    sourceType: 'saavn',
+    genre: 'Pakistani Indie R&B',
+    hasSyncedLyrics: true,
+    bitrateKbps: 320,
+    playCount: 5900300
+  },
+  {
+    id: 'trk_peechay_hutt',
+    title: 'Peechay Hutt',
+    artist: 'Hasan Raheem, Justin Bibis, Talal Qureshi',
+    album: 'Coke Studio Season 14',
+    duration: 212,
+    coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80',
+    sourceType: 'saavn',
+    genre: 'Electronic / Pop',
+    hasSyncedLyrics: true,
+    bitrateKbps: 320,
+    playCount: 14200800
+  },
+  {
+    id: 'trk_wishes',
+    title: 'Wishes',
+    artist: 'Talha Anjum, Umair',
+    album: 'Open Letter',
+    duration: 198,
+    coverUrl: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=800&q=80',
+    sourceType: 'saavn',
+    genre: 'Urdu Hip-Hop',
+    hasSyncedLyrics: true,
+    bitrateKbps: 320,
+    playCount: 8900400
+  },
+  {
+    id: 'trk_gumaan',
+    title: 'Gumaan',
+    artist: 'Young Stunners',
+    album: 'Single',
+    duration: 242,
+    coverUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800&q=80',
+    sourceType: 'saavn',
+    genre: 'Urdu Hip-Hop',
+    hasSyncedLyrics: true,
+    bitrateKbps: 320,
+    playCount: 19400200
+  },
+  {
+    id: 'trk_haaray',
+    title: 'Haaray',
+    artist: 'Abdul Hannan',
+    album: 'Single',
+    duration: 208,
+    coverUrl: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=800&q=80',
+    sourceType: 'saavn',
+    genre: 'Indie Pop',
+    hasSyncedLyrics: true,
+    bitrateKbps: 320,
+    playCount: 6500100
+  },
+  {
+    id: 'trk_harkalay',
+    title: 'Harkalay',
+    artist: 'Zahoor',
+    album: 'Single',
+    duration: 190,
+    coverUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&q=80',
+    sourceType: 'saavn',
+    genre: 'Pashto / Pop Fusion',
+    hasSyncedLyrics: true,
+    bitrateKbps: 320,
+    playCount: 4200800
+  },
+  {
+    id: 'trk_luka_chuppi',
+    title: 'Luka Chuppi',
+    artist: 'Talhah Yunus, Umair',
+    album: 'Shikwa',
+    duration: 214,
+    coverUrl: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=800&q=80',
+    sourceType: 'saavn',
+    genre: 'Urdu Hip-Hop',
+    hasSyncedLyrics: true,
+    bitrateKbps: 320,
+    playCount: 5800400
+  },
+  {
+    id: 'trk_man_kunto_maula',
+    title: 'Man Kunto Maula',
+    artist: 'Nusrat Fateh Ali Khan',
+    album: 'Sufiana Classics',
+    duration: 350,
+    coverUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&q=80',
+    sourceType: 'saavn',
+    genre: 'Traditional Qawwali',
+    hasSyncedLyrics: true,
+    bitrateKbps: 320,
+    playCount: 29400200
+  },
+  {
+    id: 'trk_hona_tha_pyar',
+    title: 'Hona Tha Pyar',
+    artist: 'Atif Aslam, Hadiqa Kiani',
+    album: 'Bol OST',
+    duration: 235,
+    coverUrl: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=800&q=80',
+    sourceType: 'saavn',
+    genre: 'Pakistani Film OST',
+    hasSyncedLyrics: true,
+    bitrateKbps: 320,
+    playCount: 16500200
+  },
+  {
+    id: 'trk_habibi',
+    title: 'Habibi',
+    artist: 'Asim Azhar',
+    album: 'Single',
+    duration: 178,
+    coverUrl: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800&q=80',
+    sourceType: 'saavn',
+    genre: 'Pakistani Dance Pop',
+    hasSyncedLyrics: true,
+    bitrateKbps: 320,
+    playCount: 12400900
+  },
+  {
+    id: 'trk_tum_naraz_ho',
+    title: 'Tum Naraz Ho',
+    artist: 'Talha Anjum',
+    album: 'Single',
+    duration: 230,
+    coverUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800&q=80',
+    sourceType: 'saavn',
+    genre: 'Urdu Hip-Hop',
+    hasSyncedLyrics: true,
+    bitrateKbps: 320,
+    playCount: 9100400
+  },
+  {
+    id: 'trk_ye_dunya',
+    title: 'Ye Dunya',
+    artist: 'Karakoram ft. Talha Anjum, Faris Shafi',
+    album: 'Coke Studio Season 14',
+    duration: 240,
+    coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80',
+    sourceType: 'saavn',
+    genre: 'Alt Rock / Rap',
+    hasSyncedLyrics: true,
+    bitrateKbps: 320,
+    playCount: 11200400
+  },
+  {
+    id: 'trk_muaziz_sarif',
+    title: 'Muaziz Sarif',
+    artist: 'Faris Shafi, Meesha Shafi',
+    album: 'Coke Studio Season 14',
+    duration: 228,
+    coverUrl: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=800&q=80',
+    sourceType: 'saavn',
+    genre: 'Urdu Rap / Funk',
+    hasSyncedLyrics: true,
+    bitrateKbps: 320,
+    playCount: 9800200
   },
 
-  // 3. Punjabi Global Hits
+  // ==========================================
+  // 2. GLOBAL & REGIONAL HIT RECORDINGS
+  // ==========================================
+  {
+    id: 'trk_blinding_lights',
+    title: 'Blinding Lights',
+    artist: 'The Weeknd',
+    album: 'After Hours',
+    duration: 200,
+    coverUrl: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=800&q=80',
+    sourceType: 'saavn',
+    genre: 'Synthwave',
+    hasSyncedLyrics: true,
+    bitrateKbps: 320,
+    playCount: 48920100
+  },
+  {
+    id: 'trk_starboy',
+    title: 'Starboy',
+    artist: 'The Weeknd ft. Daft Punk',
+    album: 'Starboy',
+    duration: 230,
+    coverUrl: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=800&q=80',
+    sourceType: 'saavn',
+    genre: 'R&B / Pop',
+    hasSyncedLyrics: true,
+    bitrateKbps: 320,
+    playCount: 52109400
+  },
+  {
+    id: 'trk_get_lucky',
+    title: 'Get Lucky',
+    artist: 'Daft Punk ft. Pharrell Williams',
+    album: 'Random Access Memories',
+    duration: 248,
+    coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80',
+    sourceType: 'saavn',
+    genre: 'Disco / Funk',
+    hasSyncedLyrics: true,
+    bitrateKbps: 320,
+    playCount: 43210900
+  },
+  {
+    id: 'trk_levitating',
+    title: 'Levitating',
+    artist: 'Dua Lipa',
+    album: 'Future Nostalgia',
+    duration: 203,
+    coverUrl: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=800&q=80',
+    sourceType: 'saavn',
+    genre: 'Dance / Pop',
+    hasSyncedLyrics: true,
+    bitrateKbps: 320,
+    playCount: 38291000
+  },
   {
     id: 'trk_lover_diljit',
     title: 'Lover',
@@ -124,20 +486,7 @@ export const GLOBAL_CATALOG: Track[] = [
     genre: 'Punjabi Pop',
     hasSyncedLyrics: true,
     bitrateKbps: 320,
-    playCount: 6102940
-  },
-  {
-    id: 'trk_hass_hass',
-    title: 'Hass Hass',
-    artist: 'Diljit Dosanjh, Sia',
-    album: 'Single',
-    duration: 153,
-    coverUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&q=80',
-    sourceType: 'saavn',
-    genre: 'Punjabi Pop',
-    hasSyncedLyrics: true,
-    bitrateKbps: 320,
-    playCount: 5890210
+    playCount: 61029400
   },
   {
     id: 'trk_softly',
@@ -150,10 +499,8 @@ export const GLOBAL_CATALOG: Track[] = [
     genre: 'Punjabi Pop',
     hasSyncedLyrics: true,
     bitrateKbps: 320,
-    playCount: 4920190
+    playCount: 49201900
   },
-
-  // 4. Bollywood / Romantic Hits
   {
     id: 'trk_kesariya',
     title: 'Kesariya',
@@ -165,23 +512,8 @@ export const GLOBAL_CATALOG: Track[] = [
     genre: 'Bollywood Romantic',
     hasSyncedLyrics: true,
     bitrateKbps: 320,
-    playCount: 8920190
+    playCount: 89201900
   },
-  {
-    id: 'trk_tum_hi_ho',
-    title: 'Tum Hi Ho',
-    artist: 'Arijit Singh, Mithoon',
-    album: 'Aashiqui 2',
-    duration: 262,
-    coverUrl: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=800&q=80',
-    sourceType: 'saavn',
-    genre: 'Bollywood Romantic',
-    hasSyncedLyrics: true,
-    bitrateKbps: 320,
-    playCount: 9481020
-  },
-
-  // 5. K-Pop Global Hits
   {
     id: 'trk_money_lisa',
     title: 'MONEY',
@@ -193,9 +525,109 @@ export const GLOBAL_CATALOG: Track[] = [
     genre: 'K-Pop',
     hasSyncedLyrics: true,
     bitrateKbps: 320,
-    playCount: 7890120
+    playCount: 78901200
   }
 ];
+
+export const PAKISTAN_TRENDING_TRACKS: Track[] = GLOBAL_CATALOG.slice(0, 30);
+
+export function getTopMixes(): PlaylistCardItem[] {
+  return [
+    {
+      id: 'mix_urdu_hiphop',
+      title: 'Urdu Hip-Hop Mix',
+      subtitle: 'Talha Anjum, Young Stunners, Umair, Rap Demon',
+      coverUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&q=80',
+      badge: 'TOP MIX',
+      tracks: GLOBAL_CATALOG.filter((t) => t.genre?.includes('Urdu Hip-Hop'))
+    },
+    {
+      id: 'mix_desi_chill',
+      title: 'Desi Chill Vibes Mix',
+      subtitle: 'Abdul Hannan, Hasan Raheem, Kaifi Khalil, Shamoon',
+      coverUrl: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=600&q=80',
+      badge: 'POPULAR',
+      tracks: GLOBAL_CATALOG.filter((t) => t.genre?.includes('Indie') || t.genre?.includes('Soul'))
+    },
+    {
+      id: 'mix_synthwave',
+      title: 'Synthwave & 80s Cyber Mix',
+      subtitle: 'The Weeknd, Daft Punk, Kavinsky, M83',
+      coverUrl: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=600&q=80',
+      badge: 'ATMOSPHERE',
+      tracks: GLOBAL_CATALOG.filter((t) => t.genre?.includes('Synth') || t.genre?.includes('Disco'))
+    },
+    {
+      id: 'mix_punjabi_wave',
+      title: 'Punjabi Wave Mix',
+      subtitle: 'Diljit Dosanjh, Karan Aujla, AP Dhillon, Sidhu',
+      coverUrl: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=600&q=80',
+      badge: 'TRENDING',
+      tracks: GLOBAL_CATALOG.filter((t) => t.genre?.includes('Punjabi'))
+    },
+    {
+      id: 'mix_sufi_soul',
+      title: 'Sufi & Qawwali Soul Mix',
+      subtitle: 'Atif Aslam, Nusrat Fateh Ali Khan, Rahat',
+      coverUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&q=80',
+      badge: 'TIMELESS',
+      tracks: GLOBAL_CATALOG.filter((t) => t.genre?.includes('Sufi') || t.genre?.includes('Qawwali'))
+    },
+    {
+      id: 'mix_late_night',
+      title: 'Late Night 3 AM Mix',
+      subtitle: 'Atmospheric 808s, dreamy guitars & lo-fi vocals',
+      coverUrl: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=600&q=80',
+      badge: 'VIBE',
+      tracks: GLOBAL_CATALOG.slice(3, 12)
+    }
+  ];
+}
+
+export function getRecommendedPlaylists(): PlaylistCardItem[] {
+  return [
+    {
+      id: 'pl_pakistan_top50',
+      title: 'Hot Hits Pakistan',
+      subtitle: 'The 30 biggest and most streamed tracks in Pakistan right now',
+      coverUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&q=80',
+      badge: 'CHART #1',
+      tracks: PAKISTAN_TRENDING_TRACKS
+    },
+    {
+      id: 'pl_coke_studio',
+      title: 'Coke Studio Soundscapes',
+      subtitle: 'Pasoori, Kana Yaari, Tajdar-e-Haram, Peechay Hutt and more',
+      coverUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&q=80',
+      badge: 'ICONIC',
+      tracks: GLOBAL_CATALOG.filter((t) => t.album?.includes('Coke Studio'))
+    },
+    {
+      id: 'pl_urdu_rap_gods',
+      title: 'Urdu Rap Essentials',
+      subtitle: 'Young Stunners, Talha Anjum, Faris Shafi, Rap Demon',
+      coverUrl: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=600&q=80',
+      badge: 'ESSENTIAL',
+      tracks: GLOBAL_CATALOG.filter((t) => t.genre?.includes('Hip-Hop'))
+    },
+    {
+      id: 'pl_desi_indie',
+      title: 'Pakistani Indie Discovery',
+      subtitle: 'Abdul Hannan, Hasan Raheem, Kaifi Khalil, Maanu',
+      coverUrl: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=600&q=80',
+      badge: 'CURATED',
+      tracks: GLOBAL_CATALOG.filter((t) => t.genre?.includes('Indie'))
+    },
+    {
+      id: 'pl_global_top50',
+      title: 'Today’s Top Hits (Global)',
+      subtitle: 'The Weeknd, Dua Lipa, LISA, Daft Punk and more worldwide anthems',
+      coverUrl: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=600&q=80',
+      badge: 'GLOBAL',
+      tracks: GLOBAL_CATALOG.filter((t) => ['Synthwave', 'K-Pop', 'Dance / Pop', 'Disco / Funk'].includes(t.genre || ''))
+    }
+  ];
+}
 
 export function calculateTrackSimilarity(a: Track, b: Track): number {
   if (a.id === b.id) return 1.0;

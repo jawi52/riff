@@ -7,6 +7,9 @@ import { SearchExplorer } from '../search/SearchExplorer';
 import { LibraryView } from '../library/LibraryView';
 import { ArtistView } from '../artist/ArtistView';
 import { PlaylistDetailView } from '../playlist/PlaylistDetailView';
+import { StatsView } from '../stats/StatsView';
+import { RadioDirectoryView } from '../radio/RadioDirectoryView';
+import { QueueDrawer } from '../queue/QueueDrawer';
 import { NowPlayingSidebar } from './NowPlayingSidebar';
 import { MiniPlayer } from '../player/MiniPlayer';
 import { FullscreenPlayerModal } from '../player/FullscreenPlayerModal';
@@ -55,7 +58,7 @@ export const AppShell: React.FC = () => {
         />
 
         {/* Center Floating Panel: Main Content Viewport */}
-        <main className="flex-1 rounded-2xl bg-[#12131a]/90 backdrop-blur-2xl border border-white/[0.07] flex flex-col overflow-y-auto shadow-2xl relative min-w-0 h-full p-4 md:p-6 pb-28 custom-scrollbar">
+        <main className="flex-1 rounded-2xl bg-[#12131a]/90 backdrop-blur-2xl border border-white/[0.07] flex flex-col overflow-y-auto shadow-2xl relative min-w-0 h-full p-3.5 md:p-6 pb-16 md:pb-20 custom-scrollbar">
           {activeMainView === 'home' && (
             <HomeFeed
               onSelectGenre={(genre) => {
@@ -72,6 +75,10 @@ export const AppShell: React.FC = () => {
           {activeMainView === 'artist' && <ArtistView />}
 
           {activeMainView === 'playlist' && <PlaylistDetailView />}
+
+          {activeMainView === 'stats' && <StatsView />}
+
+          {activeMainView === 'radio' && <RadioDirectoryView />}
         </main>
 
         {/* Right Floating Panel: Now Playing & Audio Studio Hub */}
@@ -90,6 +97,9 @@ export const AppShell: React.FC = () => {
 
       {/* Fullscreen Player Modal */}
       <FullscreenPlayerModal />
+
+      {/* Up Next Queue Drawer */}
+      <QueueDrawer />
 
       {/* Settings Drawer */}
       <SettingsDrawer />

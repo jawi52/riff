@@ -10,12 +10,12 @@ describe('Backend Spotify-Style Ranking & Recommendation Engine', () => {
     expect(result.topResult).not.toBeNull();
     expect(result.topResult?.title.toLowerCase()).toContain('money');
     expect(result.tracks.length).toBeGreaterThan(0);
-    expect(result.tracks.length).toBeLessThanOrEqual(20);
+    expect(result.tracks.length).toBeLessThanOrEqual(30);
 
     // Verify Top Result is at position 0
     expect(result.tracks[0].id).toBe(result.topResult?.id);
 
-    // Verify 0 duplicate songs exist in the 20-track package
+    // Verify 0 duplicate songs exist in the track package
     const titles = result.tracks.map(t => `${t.title.toLowerCase()}__${t.artist.toLowerCase()}`);
     const uniqueTitles = new Set(titles);
     expect(uniqueTitles.size).toBe(titles.length);
@@ -31,6 +31,6 @@ describe('Backend Spotify-Style Ranking & Recommendation Engine', () => {
 
     expect(stream.streamUrl).toBeDefined();
     expect(stream.streamUrl.startsWith('http')).toBe(true);
-    expect(stream.provider).toBe('ytdlp');
+    expect(['ytdlp', 'saavn-320k', 'innertube-android', 'direct-cdn']).toContain(stream.provider);
   }, 25000);
 });

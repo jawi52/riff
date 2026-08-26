@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Track, PlaybackState, RepeatMode, QualityTier, Album, Playlist } from '../types';
+import { Track, PlaybackState, RepeatMode, QualityTier, Album, Playlist, MainViewType } from '../types';
 import { audioEngine } from '../lib/audioEngine';
 import { getActiveLyricIndex } from '../lib/lyrics';
 import { db } from '../lib/db';
@@ -29,7 +29,8 @@ interface PlayerState {
   sleepTimerEndTimestamp: number | null;
 
   // View Navigation States
-  activeMainView: 'home' | 'search' | 'library' | 'artist' | 'playlist';
+  activeMainView: MainViewType;
+  previousMainView: MainViewType;
   selectedArtistName: string | null;
   selectedPlaylist: Playlist | null;
   selectedAlbum: Album | null;
@@ -59,10 +60,12 @@ interface PlayerState {
   setSleepTimer: (minutes: number | null) => void;
   
   // Navigation Actions
-  setActiveMainView: (view: 'home' | 'search' | 'library' | 'artist' | 'playlist') => void;
+  setActiveMainView: (view: MainViewType) => void;
   navigateToArtist: (artistName: string) => void;
   navigateToPlaylist: (playlist: Playlist) => void;
   navigateToAlbum: (album: Album) => void;
+  navigateToStats: () => void;
+  navigateToRadio: () => void;
 
   initAudioListeners: () => void;
 }
@@ -92,6 +95,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   sleepTimerEndTimestamp: null,
 
   activeMainView: 'home',
+  previousMainView: 'home',
   selectedArtistName: null,
   selectedPlaylist: null,
   selectedAlbum: null,
@@ -381,11 +385,31 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   setActiveMainView: (view) => set({ activeMainView: view }),
-  navigateToArtist: (artistName) =>
-    set({ selectedArtistName: artistName, activeMainView: 'artist' }),
-  navigateToPlaylist: (playlist) =>
-    set({ selectedPlaylist: playlist, activeMainView: 'playlist' }),
-  navigateToAlbum: (album) => set({ selectedAlbum: album, activeMainView: 'playlist' }),
+  navigateToArtist: (artistName) => {
+    const current = get().activeMainView;
+    const prev = current === 'artist' || current === 'playlist' ? get().previousMainView : (current as any);
+    set({ selectedArtistName: artistName, activeMainView: 'artist', previousMainView: prev || 'home' });
+  },
+  navigateToPlaylist: (playlist) => {
+    const current = get().activeMainView;
+    const prev = current === 'artist' || current === 'playlist' ? get().previousMainView : (current as any);
+    set({ selectedPlaylist: playlist, selectedAlbum: null, activeMainView: 'playlist', previousMainView: prev || 'home' });
+  },
+  navigateToAlbum: (album) => {
+    const current = get().activeMainView;
+    const prev = current === 'artist' || current === 'playlist' ? get().previousMainView : (current as any);
+    set({ selectedAlbum: album, selectedPlaylist: null, activeMainView: 'playlist', previousMainView: prev || 'home' });
+  },
+  navigateToStats: () => {
+    const current = get().activeMainView;
+    const prev = current === 'artist' || current === 'playlist' ? get().previousMainView : (current as any);
+    set({ activeMainView: 'stats', previousMainView: prev || 'home' });
+  },
+  navigateToRadio: () => {
+    const current = get().activeMainView;
+    const prev = current === 'artist' || current === 'playlist' ? get().previousMainView : (current as any);
+    set({ activeMainView: 'radio', previousMainView: prev || 'home' });
+  },
 
   initAudioListeners: () => {
     const audio = audioEngine.getAudioElement();

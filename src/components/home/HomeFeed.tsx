@@ -1,44 +1,51 @@
-﻿import React, { useEffect, useState, useRef } from 'react';
-import { Play, Pause, ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react';
-import { Track } from '../../types';
+import React, { useState, useRef } from 'react';
+import { Play, Pause, ChevronLeft, ChevronRight, CheckCircle2, Flame, ListMusic, Sparkles, TrendingUp } from 'lucide-react';
 import { usePlayerStore } from '../../stores/usePlayerStore';
 import { useLibraryStore } from '../../stores/useLibraryStore';
 import {
   generateDailyMixes,
-  getContextualDaylist,
   getHeroTasteTracks,
+  getTopMixes,
+  getRecommendedPlaylists,
+  PAKISTAN_TRENDING_TRACKS,
   HeroCardItem,
   GLOBAL_CATALOG
 } from '../../lib/algorithm';
 
-const FEATURED_TRACKS: Track[] = GLOBAL_CATALOG.slice(0, 4);
-
 const TOP_CURATED_ARTISTS = [
-  { name: 'The Weeknd', avatar: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=400&q=80', genre: 'Synthwave / R&B', followers: '112M monthly listeners' },
-  { name: 'Talha Anjum', avatar: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=400&q=80', genre: 'Urdu Hip-Hop', followers: '4.8M monthly listeners' },
-  { name: 'Diljit Dosanjh', avatar: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&q=80', genre: 'Punjabi Pop', followers: '21M monthly listeners' },
-  { name: 'Arijit Singh', avatar: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=400&q=80', genre: 'Bollywood Soul', followers: '42M monthly listeners' },
-  { name: 'LISA', avatar: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=400&q=80', genre: 'K-Pop / Pop', followers: '28M monthly listeners' },
-  { name: 'Daft Punk', avatar: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&q=80', genre: 'Electronic / Funk', followers: '24M monthly listeners' }
-];
-
-const SOUNDSCAPE_VIBES = [
-  { id: 'vibe_latenight', title: 'Late Night 3 AM', desc: 'Dark synth, atmospheric bass & lo-fi focus', gradient: 'from-slate-900/60 to-black/80', query: 'Late Night Chill' },
-  { id: 'vibe_gym', title: 'Gym & Adrenaline Hype', desc: 'Fast BPMs, heavy 808s and workout motivation', gradient: 'from-zinc-900/60 to-black/80', query: 'Workout Hype' },
-  { id: 'vibe_goldenhour', title: 'Golden Hour Drives', desc: 'Warm nostalgic synthpop & sunset cruising', gradient: 'from-stone-900/60 to-black/80', query: 'Golden Hour' },
-  { id: 'vibe_coding', title: 'Deep Cyber Focus', desc: 'Zero vocal electronica & coding flow', gradient: 'from-cyan-950/40 to-black/80', query: 'Cyberpunk Synthwave' }
+  { name: 'The Weeknd', avatar: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=400&q=80', genre: 'Synthwave / R&B' },
+  { name: 'Talha Anjum', avatar: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=400&q=80', genre: 'Urdu Hip-Hop' },
+  { name: 'Diljit Dosanjh', avatar: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&q=80', genre: 'Punjabi Pop' },
+  { name: 'Arijit Singh', avatar: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=400&q=80', genre: 'Bollywood Soul' },
+  { name: 'LISA', avatar: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=400&q=80', genre: 'K-Pop / Pop' },
+  { name: 'Daft Punk', avatar: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&q=80', genre: 'Electronic / Funk' },
+  { name: 'Drake', avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&q=80', genre: 'Hip-Hop / Rap' },
+  { name: 'Taylor Swift', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&q=80', genre: 'Pop' },
+  { name: 'Kendrick Lamar', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80', genre: 'Hip-Hop' },
+  { name: 'Travis Scott', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&q=80', genre: 'Trap / Rap' },
+  { name: 'Dua Lipa', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&q=80', genre: 'Dance Pop' },
+  { name: 'Billie Eilish', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400&q=80', genre: 'Alt Pop' },
+  { name: 'Post Malone', avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400&q=80', genre: 'Pop / Hip-Hop' },
+  { name: 'Bruno Mars', avatar: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=400&q=80', genre: 'Funk / Pop' },
+  { name: 'Sidhu Moose Wala', avatar: 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=400&q=80', genre: 'Punjabi Rap' },
+  { name: 'AP Dhillon', avatar: 'https://images.unsplash.com/photo-1528892952291-009c663ce843?w=400&q=80', genre: 'Punjabi Wave' },
+  { name: 'Atif Aslam', avatar: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=400&q=80', genre: 'Sufi / Pop' },
+  { name: 'Karan Aujla', avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&q=80', genre: 'Punjabi Pop' },
+  { name: 'Eminem', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&q=80', genre: 'Hip-Hop' },
+  { name: 'Justin Bieber', avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&q=80', genre: 'Pop / R&B' },
+  { name: 'SZA', avatar: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=400&q=80', genre: 'R&B / Soul' },
+  { name: 'Bad Bunny', avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&q=80', genre: 'Reggaeton / Latin' }
 ];
 
 interface HomeFeedProps {
-  onSelectGenre: (genreQuery: string) => void;
+  onSelectGenre?: (genreQuery: string) => void;
 }
 
-export const HomeFeed: React.FC<HomeFeedProps> = ({ onSelectGenre }) => {
+export const HomeFeed: React.FC<HomeFeedProps> = () => {
   const { playTrack, currentTrack, playbackState, navigateToArtist } = usePlayerStore();
-  const { likedTracks } = useLibraryStore();
-  const [trendingTracks, setTrendingTracks] = useState<Track[]>(FEATURED_TRACKS);
+  const { likedTracks, playlists } = useLibraryStore();
 
-  // 5-Card Hero Carousel State
+  // 5-Card Everyday Taste Carousel State
   const [heroIndex, setHeroIndex] = useState(0);
   const touchStartX = useRef<number | null>(null);
 
@@ -46,21 +53,11 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ onSelectGenre }) => {
   const currentHero = heroItems[heroIndex] || heroItems[0];
 
   const dailyMixes = generateDailyMixes(likedTracks);
-  const daylist = getContextualDaylist();
+  const topMixes = getTopMixes();
+  const recommendedPlaylists = getRecommendedPlaylists();
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
-
-  useEffect(() => {
-    fetch('/api/v1/discover/trending')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
-          setTrendingTracks(data);
-        }
-      })
-      .catch(() => {});
-  }, []);
 
   // Hero Touch Gesture Handlers
   const handleHeroTouchStart = (e: React.TouchEvent) => {
@@ -82,29 +79,25 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ onSelectGenre }) => {
 
   // 6 Quick-Access Jump Tiles
   const quickAccessTiles = [
-    { title: 'After Hours', subtitle: 'The Weeknd', cover: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=400&q=80', track: GLOBAL_CATALOG[0] },
-    { title: 'Open Letter', subtitle: 'Talha Anjum, Umair', cover: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=400&q=80', track: GLOBAL_CATALOG[4] },
-    { title: 'Lover', subtitle: 'Diljit Dosanjh', cover: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&q=80', track: GLOBAL_CATALOG[7] },
-    { title: 'Random Access Memories', subtitle: 'Daft Punk', cover: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&q=80', track: GLOBAL_CATALOG[2] },
-    { title: 'Brahmastra', subtitle: 'Arijit Singh, Pritam', cover: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=400&q=80', track: GLOBAL_CATALOG[10] },
-    { title: 'LALISA', subtitle: 'LISA', cover: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=400&q=80', track: GLOBAL_CATALOG[12] }
+    { title: 'Downers at Dusk', subtitle: 'Talha Anjum, Umair', cover: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=400&q=80', track: PAKISTAN_TRENDING_TRACKS[0] },
+    { title: 'Pasoori', subtitle: 'Ali Sethi, Shae Gill', cover: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&q=80', track: PAKISTAN_TRENDING_TRACKS[1] },
+    { title: 'After Hours', subtitle: 'The Weeknd', cover: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=400&q=80', track: GLOBAL_CATALOG.find((t) => t.id === 'trk_blinding_lights') || GLOBAL_CATALOG[0] },
+    { title: 'Kahani Suno 2.0', subtitle: 'Kaifi Khalil', cover: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=400&q=80', track: PAKISTAN_TRENDING_TRACKS[2] },
+    { title: 'Bikhra', subtitle: 'Abdul Hannan, Rovalio', cover: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=400&q=80', track: PAKISTAN_TRENDING_TRACKS[3] },
+    { title: 'Lover', subtitle: 'Diljit Dosanjh', cover: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&q=80', track: GLOBAL_CATALOG.find((t) => t.id === 'trk_lover_diljit') || GLOBAL_CATALOG[4] }
   ];
 
   return (
-    <div className="space-y-6 pb-36 select-none animate-in fade-in duration-300">
-      {/* 1. Ultra-Clean Greeting Only */}
-      <div className="pt-1 flex items-center justify-between">
+    <div className="space-y-6 pb-6 select-none animate-in fade-in duration-300">
+      {/* 1. Greeting */}
+      <div className="pt-1">
         <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">
           {greeting}
         </h1>
-        <span className="px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-white/[0.04] backdrop-blur-md text-neutral-300 border border-white/[0.08] flex items-center gap-1.5 shadow-sm">
-          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-          320k Lossless
-        </span>
       </div>
 
       {/* ========================================================================= */}
-      {/* 2. THE SMOKED DARK GLASS HERO SPOTLIGHT CAROUSEL */}
+      {/* 2. EVERYDAY 5 SONGS (HERO TASTE SPOTLIGHT) */}
       {/* ========================================================================= */}
       <div className="space-y-2">
         <div
@@ -119,7 +112,6 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ onSelectGenre }) => {
           />
 
           <div className="relative z-10 flex items-center justify-between gap-4">
-            {/* Left: Artwork Jacket */}
             <div 
               onClick={() => playTrack(currentHero.track, heroItems.map((h) => h.track))}
               className="relative w-28 h-28 sm:w-36 sm:h-36 rounded-2xl overflow-hidden shadow-2xl flex-shrink-0 border border-white/10 group cursor-pointer"
@@ -136,7 +128,6 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ onSelectGenre }) => {
               </div>
             </div>
 
-            {/* Right: Metadata & Actions */}
             <div className="flex-1 min-w-0 space-y-1.5">
               <span className="inline-block px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-white/[0.08] text-neutral-300 border border-white/10 backdrop-blur-md">
                 {currentHero.badge}
@@ -165,7 +156,7 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ onSelectGenre }) => {
             </div>
           </div>
 
-          {/* Carousel Dot Indicators & Navigation */}
+          {/* Carousel Dot Indicators */}
           <div className="flex items-center justify-between pt-3 mt-3 border-t border-white/[0.06]">
             <button
               onClick={() => setHeroIndex((prev) => (prev - 1 + heroItems.length) % heroItems.length)}
@@ -197,7 +188,7 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ onSelectGenre }) => {
       </div>
 
       {/* ========================================================================= */}
-      {/* 3. RECENT SONGS & JUMP-BACK-IN TILES (2x3 Grid) */}
+      {/* 3. JUMP BACK IN (2x3 Grid) */}
       {/* ========================================================================= */}
       <div className="space-y-2.5">
         <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-400">
@@ -237,32 +228,116 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ onSelectGenre }) => {
       </div>
 
       {/* ========================================================================= */}
-      {/* 4. MOST LISTENED ARTISTS */}
+      {/* 4. TOP 30 TRENDING IN PAKISTAN 🇵🇰 (Horizontal Swipable Carousel) */}
       {/* ========================================================================= */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg md:text-xl font-bold text-white tracking-tight">Most Listened Artists</h2>
-            <p className="text-xs text-neutral-500">Global Verified Discographies</p>
+        <div className="flex items-center gap-2">
+          <Flame className="w-5 h-5 text-amber-400" />
+          <h2 className="text-lg md:text-xl font-bold text-white tracking-tight">
+            Top 30 Trending in Pakistan 🇵🇰
+          </h2>
+        </div>
+
+        {/* Horizontal Swipable All 30 Songs */}
+        <div className="flex gap-3 overflow-x-auto no-scrollbar scroll-smooth pb-2">
+          {PAKISTAN_TRENDING_TRACKS.map((track, idx) => {
+            const isPlaying = currentTrack?.id === track.id && playbackState === 'playing';
+            return (
+              <div
+                key={track.id}
+                onClick={() => playTrack(track, PAKISTAN_TRENDING_TRACKS)}
+                className="group relative p-3 rounded-2xl glass-card cursor-pointer w-36 sm:w-44 flex-shrink-0 transition-all hover:scale-[1.02] active:scale-[0.98]"
+              >
+                <div className="relative aspect-square rounded-xl overflow-hidden mb-2 shadow-md">
+                  <img
+                    src={track.coverUrl}
+                    alt={track.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <span className={`absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-black backdrop-blur-md border ${
+                    idx < 3 ? 'bg-amber-500/90 text-black border-amber-400' : 'bg-black/80 text-white border-white/10'
+                  }`}>
+                    #{idx + 1}
+                  </span>
+                  <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center shadow-xl">
+                      {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}
+                    </div>
+                  </div>
+                </div>
+                <h3 className="text-xs font-bold text-white truncate">{track.title}</h3>
+                <p className="text-[11px] text-neutral-400 truncate">{track.artist}</p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 5. YOUR PLAYLISTS (Only shown when user has generated/created playlists) */}
+      {/* ========================================================================= */}
+      {playlists && playlists.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <ListMusic className="w-5 h-5 text-cyan-400" />
+            <h2 className="text-lg md:text-xl font-bold text-white tracking-tight">Your Playlists</h2>
+          </div>
+
+          <div className="flex gap-3 overflow-x-auto no-scrollbar scroll-smooth pb-2">
+            {playlists.map((pl) => (
+              <div
+                key={pl.id}
+                onClick={() => {
+                  if (pl.tracks && pl.tracks.length > 0) {
+                    playTrack(pl.tracks[0], pl.tracks);
+                  }
+                }}
+                className="group relative p-3 rounded-2xl glass-card cursor-pointer w-36 sm:w-44 flex-shrink-0 transition-all hover:scale-[1.02]"
+              >
+                <div className="relative aspect-square rounded-xl overflow-hidden mb-2 shadow-md bg-neutral-900">
+                  <img
+                    src={pl.coverUrl || 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=400&q=80'}
+                    alt={pl.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-black/70 backdrop-blur-md text-white">
+                    {pl.trackCount || pl.tracks?.length || 0} TRACKS
+                  </div>
+                </div>
+                <h3 className="text-xs font-bold text-white truncate">{pl.title}</h3>
+                <p className="text-[11px] text-neutral-400 truncate">Curated by You</p>
+              </div>
+            ))}
           </div>
         </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 6. MOST LISTENED ARTISTS (22+ Artists) */}
+      {/* ========================================================================= */}
+      <div className="space-y-3">
+        <h2 className="text-lg md:text-xl font-bold text-white tracking-tight">Most Listened Artists</h2>
 
         <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
           {TOP_CURATED_ARTISTS.map((artist, idx) => (
             <div
               key={idx}
               onClick={() => navigateToArtist(artist.name)}
-              className="flex flex-col items-center space-y-2 flex-shrink-0 cursor-pointer group w-24 md:w-28"
+              className="flex flex-col items-center space-y-2 flex-shrink-0 cursor-pointer group w-20 md:w-24"
             >
-              <div className="relative w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden shadow-xl border border-white/10 group-hover:border-white/30 transition-all p-0.5 bg-white/[0.04]">
-                <img src={artist.avatar} alt={artist.name} className="w-full h-full object-cover rounded-full group-hover:scale-105 transition-transform duration-500" />
+              <div className="relative w-18 h-18 md:w-22 md:h-22 rounded-full overflow-hidden shadow-xl border border-white/10 group-hover:border-white/30 transition-all p-0.5 bg-white/[0.04]">
+                <img
+                  src={artist.avatar}
+                  alt={artist.name}
+                  className="w-full h-full object-cover rounded-full group-hover:scale-105 transition-transform duration-500"
+                />
               </div>
               <div className="text-center w-full space-y-0.5">
                 <div className="flex items-center justify-center gap-1">
                   <p className="text-xs font-bold text-white truncate group-hover:text-neutral-200 transition">{artist.name}</p>
                   <CheckCircle2 className="w-3 h-3 text-white/80 fill-white/20 flex-shrink-0" />
                 </div>
-                <span className="text-[10px] text-neutral-500 block truncate">{artist.followers}</span>
+                <span className="text-[10px] text-neutral-500 block truncate">{artist.genre}</span>
               </div>
             </div>
           ))}
@@ -270,77 +345,132 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ onSelectGenre }) => {
       </div>
 
       {/* ========================================================================= */}
-      {/* 5. SMOKED GLASS CONTEXTUAL DAYLIST */}
-      {/* ========================================================================= */}
-      <div 
-        onClick={() => playTrack(daylist.tracks[0] || GLOBAL_CATALOG[0])}
-        className="relative p-5 md:p-6 rounded-3xl glass-panel overflow-hidden cursor-pointer group shadow-xl"
-      >
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <span className="text-[10px] font-mono font-bold tracking-widest uppercase text-neutral-400">
-              CONTEXTUAL DAYLIST
-            </span>
-            <h2 className="text-xl md:text-2xl font-black text-white tracking-tight lowercase">
-              {daylist.title}
-            </h2>
-            <p className="text-xs text-neutral-400 max-w-lg">{daylist.subtitle}</p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button className="px-5 py-2.5 rounded-full bg-white text-black font-black text-xs flex items-center gap-2 hover:scale-105 active:scale-95 transition shadow-lg">
-              <Play className="w-3.5 h-3.5 fill-current" />
-              Play Daylist
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* ========================================================================= */}
-      {/* 6. VIBE SOUNDSCAPES */}
+      {/* 7. YOUR TOP MIXES */}
       {/* ========================================================================= */}
       <div className="space-y-3">
-        <div>
-          <h2 className="text-lg md:text-xl font-bold text-white tracking-tight">Soundscapes & Moods</h2>
-          <p className="text-xs text-neutral-500">Sonic atmosphere tailored to your routine</p>
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-5 h-5 text-violet-400" />
+          <h2 className="text-lg md:text-xl font-bold text-white tracking-tight">Your Top Mixes</h2>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-2.5 md:gap-3">
-          {SOUNDSCAPE_VIBES.map((vibe) => (
+        <div className="flex gap-3 overflow-x-auto no-scrollbar scroll-smooth pb-2">
+          {topMixes.map((mix) => (
             <div
-              key={vibe.id}
-              onClick={() => onSelectGenre(vibe.query)}
-              className="group p-4 rounded-2xl glass-card cursor-pointer transition space-y-1"
+              key={mix.id}
+              onClick={() => playTrack(mix.tracks[0] || GLOBAL_CATALOG[0], mix.tracks)}
+              className="group p-3.5 rounded-2xl glass-card cursor-pointer w-40 sm:w-48 flex-shrink-0 transition-all hover:scale-[1.02]"
             >
-              <h3 className="text-xs md:text-sm font-bold text-white tracking-tight">{vibe.title}</h3>
-              <p className="text-[11px] text-neutral-400 line-clamp-2">{vibe.desc}</p>
+              <div className="relative aspect-square rounded-xl overflow-hidden mb-2.5 shadow-md">
+                <img
+                  src={mix.coverUrl}
+                  alt={mix.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-black/70 backdrop-blur-md text-white">
+                  {mix.badge}
+                </div>
+                <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center shadow-xl">
+                    <Play className="w-4 h-4 fill-current ml-0.5" />
+                  </div>
+                </div>
+              </div>
+              <h3 className="text-xs md:text-sm font-bold text-white truncate">{mix.title}</h3>
+              <p className="text-[11px] text-neutral-400 line-clamp-1">{mix.subtitle}</p>
             </div>
           ))}
         </div>
       </div>
 
       {/* ========================================================================= */}
-      {/* 7. TRENDING WORLDWIDE (Live from Custom API) */}
+      {/* 8. RECOMMENDED PLAYLISTS */}
       {/* ========================================================================= */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg md:text-xl font-bold text-white tracking-tight">Trending Worldwide</h2>
-            <p className="text-xs text-neutral-500">Direct 320kbps CD Quality Audio Streams</p>
-          </div>
+        <h2 className="text-lg md:text-xl font-bold text-white tracking-tight">Recommended Playlists</h2>
+
+        <div className="flex gap-3 overflow-x-auto no-scrollbar scroll-smooth pb-2">
+          {recommendedPlaylists.map((pl) => (
+            <div
+              key={pl.id}
+              onClick={() => playTrack(pl.tracks[0] || GLOBAL_CATALOG[0], pl.tracks)}
+              className="group p-3.5 rounded-2xl glass-card cursor-pointer w-40 sm:w-48 flex-shrink-0 transition-all hover:scale-[1.02]"
+            >
+              <div className="relative aspect-square rounded-xl overflow-hidden mb-2.5 shadow-md">
+                <img
+                  src={pl.coverUrl}
+                  alt={pl.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-white text-black">
+                  {pl.badge}
+                </div>
+                <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center shadow-xl">
+                    <Play className="w-4 h-4 fill-current ml-0.5" />
+                  </div>
+                </div>
+              </div>
+              <h3 className="text-xs md:text-sm font-bold text-white truncate">{pl.title}</h3>
+              <p className="text-[11px] text-neutral-400 line-clamp-1">{pl.subtitle}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 9. MADE FOR YOU (Daily Mixes) */}
+      {/* ========================================================================= */}
+      <div className="space-y-3">
+        <h2 className="text-lg md:text-xl font-bold text-white tracking-tight">Made For You</h2>
+
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+          {dailyMixes.slice(0, 4).map((mix) => (
+            <div
+              key={mix.id}
+              onClick={() => playTrack(mix.tracks[0] || GLOBAL_CATALOG[0], mix.tracks)}
+              className="group p-3.5 rounded-2xl glass-card cursor-pointer"
+            >
+              <div className="relative aspect-square rounded-xl overflow-hidden mb-2.5 shadow-md">
+                <img
+                  src={mix.coverUrl}
+                  alt={mix.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute bottom-0 inset-x-0 p-2.5 bg-gradient-to-t from-black/90 to-transparent">
+                  <span className="text-[10px] font-extrabold uppercase text-neutral-300 tracking-wider">{mix.genre}</span>
+                </div>
+              </div>
+              <h3 className="text-xs md:text-sm font-bold text-white truncate">{mix.title}</h3>
+              <p className="text-[11px] text-neutral-400 line-clamp-1">{mix.subtitle}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 10. TRENDING WORLDWIDE */}
+      {/* ========================================================================= */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <TrendingUp className="w-5 h-5 text-cyan-400" />
+          <h2 className="text-lg md:text-xl font-bold text-white tracking-tight">Trending Worldwide</h2>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
-          {trendingTracks.slice(0, 6).map((t) => {
+          {GLOBAL_CATALOG.filter((t) => ['trk_blinding_lights', 'trk_starboy', 'trk_get_lucky', 'trk_levitating', 'trk_lover_diljit', 'trk_money_lisa'].includes(t.id)).map((t) => {
             const isPlaying = currentTrack?.id === t.id && playbackState === 'playing';
             return (
               <div
                 key={t.id}
-                onClick={() => playTrack(t)}
+                onClick={() => playTrack(t, GLOBAL_CATALOG)}
                 className="group relative p-3 rounded-2xl glass-card cursor-pointer"
               >
                 <div className="relative aspect-square rounded-xl overflow-hidden mb-2.5 shadow-md">
-                  <img src={t.coverUrl} alt={t.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  <img
+                    src={t.coverUrl}
+                    alt={t.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
                   <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <div className="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center shadow-xl">
                       {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}
@@ -354,37 +484,8 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ onSelectGenre }) => {
           })}
         </div>
       </div>
-
-      {/* ========================================================================= */}
-      {/* 8. MADE FOR YOU (Daily Mixes) */}
-      {/* ========================================================================= */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg md:text-xl font-bold text-white tracking-tight">Made For You</h2>
-            <p className="text-xs text-neutral-500">Personalized algorithmic daily playlists</p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-          {dailyMixes.slice(0, 4).map((mix) => (
-            <div
-              key={mix.id}
-              onClick={() => playTrack(mix.tracks[0] || GLOBAL_CATALOG[0])}
-              className="group p-3.5 rounded-2xl glass-card cursor-pointer"
-            >
-              <div className="relative aspect-square rounded-xl overflow-hidden mb-2.5 shadow-md">
-                <img src={mix.coverUrl} alt={mix.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                <div className="absolute bottom-0 inset-x-0 p-2.5 bg-gradient-to-t from-black/90 to-transparent">
-                  <span className="text-[10px] font-extrabold uppercase text-neutral-300 tracking-wider">{mix.genre}</span>
-                </div>
-              </div>
-              <h3 className="text-xs md:text-sm font-bold text-white truncate">{mix.title}</h3>
-              <p className="text-[11px] text-neutral-400 line-clamp-1">{mix.subtitle}</p>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 };
+
+export default HomeFeed;

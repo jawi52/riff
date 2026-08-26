@@ -1,5 +1,5 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
-import { Search, Bell, X, Settings, User, Zap, Sparkles } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Search, Bell, X, Settings, User, Zap, Sparkles, BarChart3 } from 'lucide-react';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useSettingsStore } from '../../stores/useSettingsStore';
 import { usePlayerStore } from '../../stores/usePlayerStore';
@@ -12,7 +12,7 @@ interface HeaderProps {
   setActiveTab: (tab: string) => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onSearchSubmit, setActiveTab }) => {
+export const Header: React.FC<HeaderProps> = ({ onSearchSubmit, activeTab, setActiveTab }) => {
   const [searchInput, setSearchInput] = useState('');
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [showFlowToast, setShowFlowToast] = useState(false);
@@ -83,6 +83,18 @@ export const Header: React.FC<HeaderProps> = ({ onSearchSubmit, setActiveTab }) 
             <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 absolute top-2 right-2 ring-2 ring-[#07080c]" />
           </button>
 
+          {/* 📊 Stats & Insights Button */}
+          <button
+            onClick={() => {
+              if (navigator.vibrate) navigator.vibrate(10);
+              setActiveTab('stats');
+            }}
+            className="p-2 rounded-full bg-white/[0.04] hover:bg-white/[0.09] border border-white/[0.08] text-white active:scale-90 transition relative cursor-pointer"
+            title="Listening Insights & Stats"
+          >
+            <BarChart3 className="w-4 h-4 text-violet-400" />
+          </button>
+
           {/* Settings & Equalizer */}
           <button
             onClick={() => {
@@ -137,6 +149,17 @@ export const Header: React.FC<HeaderProps> = ({ onSearchSubmit, setActiveTab }) 
         </form>
 
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => setActiveTab('stats')}
+            className={`p-2 rounded-full border border-white/[0.08] transition cursor-pointer flex items-center gap-1.5 px-3 text-xs font-bold ${
+              activeTab === 'stats' ? 'bg-white text-black font-black' : 'bg-white/[0.04] hover:bg-white/[0.08] text-neutral-300 hover:text-white'
+            }`}
+            title="Listening Stats & Insights"
+          >
+            <BarChart3 className="w-4 h-4 text-violet-400" />
+            <span>Stats</span>
+          </button>
+
           <button
             onClick={() => setSettingsOpen(true)}
             className="p-2 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-neutral-300 hover:text-white transition cursor-pointer"
