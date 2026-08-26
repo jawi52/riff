@@ -1,7 +1,18 @@
 import React from 'react';
-import { Play, Pause, Heart, Download, ChevronLeft, Music2 } from 'lucide-react';
+import {
+  Play,
+  Pause,
+  Heart,
+  Download,
+  ChevronLeft,
+  Music2,
+  Sparkles,
+  QrCode,
+  FileText
+} from 'lucide-react';
 import { usePlayerStore } from '../../stores/usePlayerStore';
 import { useLibraryStore } from '../../stores/useLibraryStore';
+import { useSettingsStore } from '../../stores/useSettingsStore';
 import { GLOBAL_CATALOG } from '../../lib/algorithm';
 import { Track } from '../../types';
 
@@ -21,10 +32,13 @@ export const PlaylistDetailView: React.FC = () => {
     playTrack,
     currentTrack,
     playbackState,
-    navigateToArtist
+    navigateToArtist,
+    toggleSmartShuffle,
+    smartShuffle
   } = usePlayerStore();
 
   const { toggleLikeTrack, likedTracks, offlineTracks, cacheTrackForOffline } = useLibraryStore();
+  const { setWaveTagModalOpen, setCreditsModalOpen } = useSettingsStore();
 
   const isAlbum = !!selectedAlbum;
   const title = selectedAlbum?.title || selectedPlaylist?.title || 'Editorial Collection';
@@ -60,56 +74,81 @@ export const PlaylistDetailView: React.FC = () => {
       {/* Back Button */}
       <button
         onClick={() => setActiveMainView(previousMainView || 'home')}
-        className="flex items-center gap-1.5 text-xs font-bold text-neutral-400 hover:text-white transition cursor-pointer -ml-1"
+        className="flex items-center gap-1.5 text-neutral-400 hover:text-white transition text-xs font-bold px-1 cursor-pointer"
       >
-        <ChevronLeft className="w-5 h-5" />
-        <span className="capitalize">Back to {previousMainView || 'Home'}</span>
+        <ChevronLeft className="w-4 h-4" />
+        <span>Back to {previousMainView === 'library' ? 'Library' : 'Home'}</span>
       </button>
 
-      {/* 1. PLAYLIST / ALBUM HERO HEADER */}
-      <div className="relative rounded-3xl overflow-hidden glass-panel p-6 md:p-8 border border-white/[0.08] shadow-2xl">
-        <div className="flex flex-col sm:flex-row items-center sm:items-end gap-6">
-          {/* Cover Artwork */}
-          <div className="w-40 h-40 sm:w-48 sm:h-48 rounded-2xl overflow-hidden shadow-2xl border border-white/10 flex-shrink-0 bg-neutral-900">
+      {/* 1. HERO HEADER */}
+      <div className="relative rounded-3xl p-6 md:p-8 bg-gradient-to-b from-white/[0.08] to-transparent border border-white/[0.08] overflow-hidden">
+        <div
+          className="absolute -right-20 -top-20 w-80 h-80 rounded-full blur-[100px] opacity-20 pointer-events-none"
+          style={{ backgroundImage: `url(${coverUrl})` }}
+        />
+
+        <div className="relative z-10 flex flex-col sm:flex-row items-center sm:items-end gap-6 text-center sm:text-left">
+          {/* Cover Art */}
+          <div className="w-40 h-40 sm:w-48 sm:h-48 rounded-2xl overflow-hidden shadow-2xl flex-shrink-0 border border-white/20">
             <img src={coverUrl} alt={title} className="w-full h-full object-cover" />
           </div>
 
           {/* Details */}
-          <div className="space-y-2 text-center sm:text-left flex-1 min-w-0">
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-white/10 text-neutral-300 border border-white/10">
-              {isAlbum ? 'Studio Album' : 'Curated Playlist'}
+          <div className="space-y-2 flex-1 min-w-0">
+            <span className="text-[10px] font-black uppercase tracking-widest text-cyan-400">
+              {isAlbum ? 'ALBUM' : 'PLAYLIST'}
             </span>
-
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-white tracking-tight truncate leading-tight">
+            <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight truncate">
               {title}
             </h1>
-
-            <div className="flex items-center justify-center sm:justify-start gap-2 text-xs font-medium text-neutral-300 flex-wrap">
-              <span
-                onClick={() => isAlbum && navigateToArtist(subtitle)}
-                className={`font-bold ${isAlbum ? 'text-white hover:text-cyan-400 cursor-pointer underline' : ''}`}
-              >
-                {subtitle}
-              </span>
-              <span>•</span>
-              <span>{tracks.length} songs</span>
-              <span>•</span>
-              <span className="text-neutral-400">{totalMins} min</span>
-            </div>
+            <p className="text-xs sm:text-sm text-neutral-400">
+              {subtitle} • {tracks.length} songs, ~{totalMins} min
+            </p>
 
             {/* Action Row */}
-            <div className="pt-2 flex items-center justify-center sm:justify-start gap-3">
+            <div className="pt-2 flex items-center justify-center sm:justify-start gap-2.5 flex-wrap">
               <button
                 onClick={handlePlayAll}
-                className="flex items-center gap-2 px-6 py-3 rounded-full bg-white text-black font-black text-xs hover:bg-neutral-200 active:scale-95 transition shadow-xl cursor-pointer"
+                className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-white text-black font-black text-xs hover:bg-neutral-200 active:scale-95 transition shadow-xl cursor-pointer"
               >
                 {isThisSetPlaying ? <Pause className="w-4 h-4 fill-black text-black" /> : <Play className="w-4 h-4 fill-black text-black ml-0.5" />}
                 <span>{isThisSetPlaying ? 'Pause' : 'Play All'}</span>
               </button>
 
+              {/* Enhance / Smart Shuffle Toggle */}
+              <button
+                onClick={toggleSmartShuffle}
+                className={`flex items-center gap-1.5 px-3.5 py-2.5 rounded-full border text-xs font-bold transition cursor-pointer ${
+                  smartShuffle
+                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50 shadow-sm'
+                    : 'bg-white/[0.06] text-neutral-300 border-white/10 hover:text-white hover:bg-white/10'
+                }`}
+                title="Enhance Playlist with Smart Injected Recommendations"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                <span>{smartShuffle ? 'Enhanced' : 'Enhance'}</span>
+              </button>
+
+              {/* WaveTag Barcode */}
+              <button
+                onClick={() =>
+                  setWaveTagModalOpen(true, {
+                    id: selectedPlaylist?.id || selectedAlbum?.id || 'set_1',
+                    title: title,
+                    subtitle: subtitle,
+                    coverUrl: coverUrl,
+                    type: 'playlist'
+                  })
+                }
+                className="p-2.5 rounded-full border border-white/10 hover:border-white/30 text-neutral-300 hover:text-cyan-400 hover:bg-white/5 transition cursor-pointer"
+                title="Share Riff WaveTag Barcode"
+              >
+                <QrCode className="w-4 h-4" />
+              </button>
+
               <button
                 onClick={handleDownloadAll}
-                className="p-3 rounded-full border border-white/10 hover:border-white/30 text-neutral-400 hover:text-white hover:bg-white/5 transition cursor-pointer"
+                className="p-2.5 rounded-full border border-white/10 hover:border-white/30 text-neutral-400 hover:text-white hover:bg-white/5 transition cursor-pointer"
                 title="Download All for Offline"
               >
                 <Download className="w-4 h-4" />
@@ -169,8 +208,38 @@ export const PlaylistDetailView: React.FC = () => {
                   </p>
                 </div>
 
-                {/* Duration, Likes & Offline */}
-                <div className="flex items-center gap-3">
+                {/* Duration, Credits, WaveTag & Likes */}
+                <div className="flex items-center gap-2.5 shrink-0">
+                  {/* Credits */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCreditsModalOpen(true, track);
+                    }}
+                    className="p-1 rounded-full text-neutral-500 hover:text-white transition opacity-0 group-hover:opacity-100"
+                    title="View Song Credits"
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                  </button>
+
+                  {/* WaveTag */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setWaveTagModalOpen(true, {
+                        id: track.id,
+                        title: track.title,
+                        subtitle: track.artist,
+                        coverUrl: track.coverUrl,
+                        type: 'track'
+                      });
+                    }}
+                    className="p-1 rounded-full text-neutral-500 hover:text-cyan-400 transition opacity-0 group-hover:opacity-100"
+                    title="Share WaveTag"
+                  >
+                    <QrCode className="w-3.5 h-3.5" />
+                  </button>
+
                   {isOffline && (
                     <div className="w-4 h-4 rounded-full bg-emerald-500 text-black flex items-center justify-center text-[9px] font-black">
                       ↓

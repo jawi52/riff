@@ -3,7 +3,7 @@ import { Track, PlaybackState, RepeatMode, QualityTier, Album, Playlist, MainVie
 import { audioEngine } from '../lib/audioEngine';
 import { getActiveLyricIndex } from '../lib/lyrics';
 import { db } from '../lib/db';
-import { getSmartAutoplayTracks, recordTrackInteraction } from '../lib/algorithm';
+import { getSmartAutoplayTracks, recordTrackInteraction, GLOBAL_CATALOG } from '../lib/algorithm';
 import { addRecentTrack } from '../lib/recentSearches';
 
 interface PlayerState {
@@ -27,6 +27,8 @@ interface PlayerState {
   networkMode: 'wifi' | 'cellular';
   sleepTimerMinutes: number | null;
   sleepTimerEndTimestamp: number | null;
+  sleepTimerMode: 'minutes' | 'end_of_track' | null;
+  smartShuffle: boolean;
 
   // View Navigation States
   activeMainView: MainViewType;
@@ -44,11 +46,13 @@ interface PlayerState {
   setVolume: (val: number) => void;
   toggleMute: () => void;
   toggleShuffle: () => void;
+  toggleSmartShuffle: () => void;
   cycleRepeatMode: () => void;
   addToQueue: (track: Track) => void;
   removeFromQueue: (index: number) => void;
   reorderQueue: (startIndex: number, endIndex: number) => void;
   clearQueue: () => void;
+  generateSongRadio: (seedTrack: Track) => Promise<void>;
   setFullscreenOpen: (open: boolean) => void;
   setLyricsOpen: (open: boolean) => void;
   setQueueOpen: (open: boolean) => void;
@@ -57,7 +61,7 @@ interface PlayerState {
   toggleRightSidebar: () => void;
   setQualityTier: (tier: QualityTier) => void;
   setNetworkMode: (mode: 'wifi' | 'cellular') => void;
-  setSleepTimer: (minutes: number | null) => void;
+  setSleepTimer: (minutes: number | null, mode?: 'minutes' | 'end_of_track') => void;
   
   // Navigation Actions
   setActiveMainView: (view: MainViewType) => void;
@@ -92,6 +96,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   networkMode: 'wifi',
   sleepTimerMinutes: null,
   sleepTimerEndTimestamp: null,
+  sleepTimerMode: null,
+  smartShuffle: false,
 
   activeMainView: 'home',
   previousMainView: 'home',
@@ -353,6 +359,30 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     set({ queue: result, queueIndex: newIndex });
   },
 
+  toggleSmartShuffle: () => {
+    const isSmart = !get().smartShuffle;
+    set({ smartShuffle: isSmart });
+    if (isSmart) {
+      const current = get().currentTrack;
+      const recs = current ? getSmartAutoplayTracks(current, 5) : GLOBAL_CATALOG.slice(0, 5);
+      const queue = [...get().queue];
+      const qIdx = get().queueIndex;
+      // Interleave recommendations into upcoming queue
+      recs.forEach((rec: Track, i: number) => {
+        if (!queue.some((q) => q.id === rec.id)) {
+          queue.splice(qIdx + 1 + i * 2, 0, rec);
+        }
+      });
+      set({ queue });
+    }
+  },
+
+  generateSongRadio: async (seedTrack: Track) => {
+    const similarTracks = getSmartAutoplayTracks(seedTrack, 25);
+    const radioQueue = [seedTrack, ...similarTracks.filter((t) => t.id !== seedTrack.id)];
+    await get().playTrack(seedTrack, radioQueue);
+  },
+
   clearQueue: () => set({ queue: [], queueIndex: -1 }),
   setFullscreenOpen: (open) => set({ isFullscreenOpen: open }),
   setLyricsOpen: (open) => set({ isLyricsOpen: open }),
@@ -363,23 +393,28 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   setQualityTier: (tier) => set({ qualityTier: tier }),
   setNetworkMode: (mode) => set({ networkMode: mode }),
 
-  setSleepTimer: (minutes) => {
+  setSleepTimer: (minutes, mode = 'minutes') => {
     if (sleepTimerTimeout) {
       clearTimeout(sleepTimerTimeout);
       sleepTimerTimeout = null;
     }
 
+    if (mode === 'end_of_track') {
+      set({ sleepTimerMode: 'end_of_track', sleepTimerMinutes: null, sleepTimerEndTimestamp: null });
+      return;
+    }
+
     if (!minutes) {
-      set({ sleepTimerMinutes: null, sleepTimerEndTimestamp: null });
+      set({ sleepTimerMinutes: null, sleepTimerEndTimestamp: null, sleepTimerMode: null });
       return;
     }
 
     const endTimestamp = Date.now() + minutes * 60 * 1000;
-    set({ sleepTimerMinutes: minutes, sleepTimerEndTimestamp: endTimestamp });
+    set({ sleepTimerMinutes: minutes, sleepTimerEndTimestamp: endTimestamp, sleepTimerMode: 'minutes' });
 
     sleepTimerTimeout = setTimeout(() => {
       audioEngine.pause();
-      set({ playbackState: 'paused', sleepTimerMinutes: null, sleepTimerEndTimestamp: null });
+      set({ playbackState: 'paused', sleepTimerMinutes: null, sleepTimerEndTimestamp: null, sleepTimerMode: null });
     }, minutes * 60 * 1000);
   },
 
@@ -442,9 +477,16 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     };
 
     audio.onended = () => {
-      const { repeatMode, currentTrack } = get();
+      const { repeatMode, currentTrack, sleepTimerMode } = get();
       if (currentTrack) {
         recordTrackInteraction(currentTrack, 'complete');
+      }
+
+      // Check if End-of-Track Sleep Timer is active
+      if (sleepTimerMode === 'end_of_track') {
+        audioEngine.pause();
+        set({ playbackState: 'paused', sleepTimerMode: null, sleepTimerMinutes: null, sleepTimerEndTimestamp: null });
+        return;
       }
 
       if (repeatMode === 'one') {

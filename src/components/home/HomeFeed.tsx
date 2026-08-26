@@ -1,7 +1,19 @@
 import React, { useState, useRef } from 'react';
-import { Play, Pause, ChevronLeft, ChevronRight, CheckCircle2, Flame, ListMusic, Sparkles, TrendingUp } from 'lucide-react';
+import {
+  Play,
+  Pause,
+  ChevronLeft,
+  ChevronRight,
+  CheckCircle2,
+  Flame,
+  ListMusic,
+  Sparkles,
+  TrendingUp,
+  Users
+} from 'lucide-react';
 import { usePlayerStore } from '../../stores/usePlayerStore';
 import { useLibraryStore } from '../../stores/useLibraryStore';
+import { useSettingsStore } from '../../stores/useSettingsStore';
 import {
   generateDailyMixes,
   getHeroTasteTracks,
@@ -44,6 +56,7 @@ interface HomeFeedProps {
 export const HomeFeed: React.FC<HomeFeedProps> = () => {
   const { playTrack, currentTrack, playbackState, navigateToArtist } = usePlayerStore();
   const { likedTracks, playlists } = useLibraryStore();
+  const { setAiPromptModalOpen, setJamModalOpen } = useSettingsStore();
 
   // 5-Card Everyday Taste Carousel State
   const [heroIndex, setHeroIndex] = useState(0);
@@ -58,6 +71,21 @@ export const HomeFeed: React.FC<HomeFeedProps> = () => {
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const currentDay = dayNames[new Date().getDay()];
+  const daylistVibe =
+    hour < 5
+      ? { title: `${currentDay} Late Night Euphoria`, desc: 'Deep synthwave, bass & lo-fi trance', badge: 'daylist • 3:00 AM' }
+      : hour < 12
+      ? { title: `${currentDay} Morning Acoustic Awakening`, desc: 'Warm coffee, acoustic indie & peaceful vocal flow', badge: 'daylist • morning' }
+      : hour < 17
+      ? { title: `${currentDay} Afternoon Focus & Flow`, desc: 'Deep house, lo-fi beats & productive focus', badge: 'daylist • afternoon' }
+      : hour < 21
+      ? { title: `${currentDay} Sunset Chillout & Highway`, desc: 'Melodic pop, neo-soul & evening highway cruise', badge: 'daylist • sunset' }
+      : { title: `${currentDay} Night Drive & Phonk Energy`, desc: 'Heavy trap, phonk & midnight basslines', badge: 'daylist • night' };
+
+  const daylistTracks = GLOBAL_CATALOG.slice(0, 15);
 
   // Hero Touch Gesture Handlers
   const handleHeroTouchStart = (e: React.TouchEvent) => {
@@ -89,11 +117,63 @@ export const HomeFeed: React.FC<HomeFeedProps> = () => {
 
   return (
     <div className="space-y-6 pb-6 select-none animate-in fade-in duration-300">
-      {/* 1. Greeting */}
-      <div className="pt-1">
-        <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">
-          {greeting}
-        </h1>
+      {/* 1. Greeting & Quick AI/Jam Actions */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">
+            {greeting}
+          </h1>
+          <p className="text-xs text-neutral-400 font-semibold mt-0.5">
+            Your personalized audio cosmos and real-time taste graph
+          </p>
+        </div>
+
+        {/* Quick Launch Action Pills */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setAiPromptModalOpen(true)}
+            className="px-3.5 py-1.5 rounded-full bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/40 text-cyan-300 text-xs font-black flex items-center gap-1.5 transition cursor-pointer shadow-sm active:scale-95"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+            <span>AI Prompt DJ</span>
+          </button>
+
+          <button
+            onClick={() => setJamModalOpen(true)}
+            className="px-3.5 py-1.5 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-white text-xs font-bold flex items-center gap-1.5 transition cursor-pointer active:scale-95"
+          >
+            <Users className="w-3.5 h-3.5 text-violet-400" />
+            <span>Riff Jam</span>
+          </button>
+        </div>
+      </div>
+
+      {/* 2. DYNAMIC DAYLIST MIX CARD */}
+      <div
+        onClick={() => playTrack(daylistTracks[0], daylistTracks)}
+        className="relative rounded-3xl p-5 md:p-6 bg-gradient-to-r from-violet-950/60 via-[#16132b]/80 to-cyan-950/60 border border-violet-500/30 overflow-hidden shadow-2xl transition hover:scale-[1.008] active:scale-[0.99] cursor-pointer group"
+      >
+        <div className="absolute -right-10 -bottom-10 w-48 h-48 rounded-full bg-violet-600/20 blur-3xl pointer-events-none" />
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1.5 min-w-0">
+            <span className="inline-block px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-violet-500/20 text-violet-300 border border-violet-500/40 backdrop-blur-md">
+              {daylistVibe.badge}
+            </span>
+            <h2 className="text-lg md:text-2xl font-black text-white tracking-tight truncate group-hover:text-cyan-300 transition">
+              {daylistVibe.title}
+            </h2>
+            <p className="text-xs md:text-sm text-neutral-300 font-medium truncate">
+              {daylistVibe.desc}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3 shrink-0">
+            <span className="text-xs font-mono text-neutral-400 hidden sm:inline">15 curated songs</span>
+            <div className="w-11 h-11 rounded-full bg-white text-black flex items-center justify-center shadow-xl group-hover:scale-110 group-hover:bg-cyan-400 transition">
+              <Play className="w-5 h-5 fill-current ml-0.5" />
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* ========================================================================= */}

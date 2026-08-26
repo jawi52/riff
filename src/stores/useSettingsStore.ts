@@ -1,14 +1,24 @@
 import { create } from 'zustand';
-import { AppSettings, QualityTier } from '../types';
+import { AppSettings, QualityTier, Track } from '../types';
 import { audioEngine } from '../lib/audioEngine';
 
 interface SettingsState extends AppSettings {
   isSettingsOpen: boolean;
   isAuthModalOpen: boolean;
+  isAiPromptModalOpen: boolean;
+  isWaveTagModalOpen: boolean;
+  isCreditsModalOpen: boolean;
+  isJamModalOpen: boolean;
+  activeCreditsTrack: Track | null;
+  activeWaveTagData: { title: string; subtitle: string; coverUrl: string; id: string; type: 'track' | 'playlist' } | null;
 
   // Actions
   setSettingsOpen: (open: boolean) => void;
   setAuthModalOpen: (open: boolean) => void;
+  setAiPromptModalOpen: (open: boolean) => void;
+  setWaveTagModalOpen: (open: boolean, data?: SettingsState['activeWaveTagData']) => void;
+  setCreditsModalOpen: (open: boolean, track?: Track | null) => void;
+  setJamModalOpen: (open: boolean) => void;
   setStreamingQuality: (quality: QualityTier) => void;
   setDataSaverEnabled: (enabled: boolean) => void;
   setCellularQuality: (quality: 'standard' | 'saver') => void;
@@ -17,6 +27,14 @@ interface SettingsState extends AppSettings {
   setEQBand: (index: number, value: number) => void;
   setPushEnabled: (enabled: boolean) => void;
   setTheme: (theme: AppSettings['theme']) => void;
+  setCrossfadeSeconds: (seconds: number) => void;
+  setNormalizeLoudness: (enabled: boolean) => void;
+  setLoudnessPreset: (preset: 'normal' | 'quiet' | 'loud') => void;
+  setMonoAudio: (enabled: boolean) => void;
+  setPrivateSessionEnabled: (enabled: boolean) => void;
+  setExplicitFilterEnabled: (enabled: boolean) => void;
+  setSmartShuffleActive: (active: boolean) => void;
+  setFriendActivityEnabled: (enabled: boolean) => void;
 }
 
 const EQ_PRESETS: Record<AppSettings['equalizerPreset'], number[]> = {
@@ -38,11 +56,33 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   equalizerPreset: 'flat',
   eqBands: [0, 0, 0, 0, 0],
   pushEnabled: false,
+  
+  // Advanced Audio & Privacy Defaults
+  crossfadeSeconds: 4,
+  normalizeLoudness: true,
+  loudnessPreset: 'normal',
+  isMonoAudio: false,
+  privateSessionEnabled: false,
+  explicitFilterEnabled: false,
+  smartShuffleActive: false,
+  friendActivityEnabled: true,
+
+  // Modals
   isSettingsOpen: false,
   isAuthModalOpen: false,
+  isAiPromptModalOpen: false,
+  isWaveTagModalOpen: false,
+  isCreditsModalOpen: false,
+  isJamModalOpen: false,
+  activeCreditsTrack: null,
+  activeWaveTagData: null,
 
   setSettingsOpen: (open) => set({ isSettingsOpen: open }),
   setAuthModalOpen: (open) => set({ isAuthModalOpen: open }),
+  setAiPromptModalOpen: (open) => set({ isAiPromptModalOpen: open }),
+  setWaveTagModalOpen: (open, data) => set({ isWaveTagModalOpen: open, activeWaveTagData: data || null }),
+  setCreditsModalOpen: (open, track) => set({ isCreditsModalOpen: open, activeCreditsTrack: track || null }),
+  setJamModalOpen: (open) => set({ isJamModalOpen: open }),
   setStreamingQuality: (quality) => set({ streamingQuality: quality }),
   setDataSaverEnabled: (enabled) => set({ dataSaverEnabled: enabled }),
   setCellularQuality: (quality) => set({ cellularQuality: quality }),
@@ -62,5 +102,23 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   },
 
   setPushEnabled: (enabled) => set({ pushEnabled: enabled }),
-  setTheme: (theme) => set({ theme })
+  setTheme: (theme) => set({ theme }),
+
+  setCrossfadeSeconds: (seconds) => set({ crossfadeSeconds: Math.max(0, Math.min(12, seconds)) }),
+  setNormalizeLoudness: (enabled) => {
+    audioEngine.setLoudnessNormalization(enabled, get().loudnessPreset);
+    set({ normalizeLoudness: enabled });
+  },
+  setLoudnessPreset: (preset) => {
+    audioEngine.setLoudnessNormalization(get().normalizeLoudness, preset);
+    set({ loudnessPreset: preset });
+  },
+  setMonoAudio: (enabled) => {
+    audioEngine.setMonoAudio(enabled);
+    set({ isMonoAudio: enabled });
+  },
+  setPrivateSessionEnabled: (enabled) => set({ privateSessionEnabled: enabled }),
+  setExplicitFilterEnabled: (enabled) => set({ explicitFilterEnabled: enabled }),
+  setSmartShuffleActive: (active) => set({ smartShuffleActive: active }),
+  setFriendActivityEnabled: (enabled) => set({ friendActivityEnabled: enabled })
 }));

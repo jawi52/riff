@@ -139,6 +139,137 @@ export const SettingsDrawer: React.FC = () => {
             />
           </div>
 
+          {/* Advanced Audio DSP Studio */}
+          <div className="space-y-3 pt-1">
+            <h3 className="text-xs font-mono font-bold tracking-wider uppercase text-neutral-400 flex items-center gap-2">
+              <SlidersHorizontal className="w-4 h-4 text-[#1db954]" />
+              <span>ADVANCED AUDIO DSP & PLAYBACK</span>
+            </h3>
+
+            {/* Crossfade Slider */}
+            <div className="p-4 rounded-2xl glass-card-editorial border border-white/[0.08] space-y-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-mono font-bold text-white uppercase">AUDIO CROSSFADE</h4>
+                  <p className="text-[11px] font-mono text-neutral-500">Smooth volume transition between songs</p>
+                </div>
+                <span className="text-xs font-mono font-bold text-cyan-400">{useSettingsStore.getState().crossfadeSeconds}s</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="12"
+                step="1"
+                value={useSettingsStore.getState().crossfadeSeconds}
+                onChange={(e) => useSettingsStore.getState().setCrossfadeSeconds(parseInt(e.target.value))}
+                className="w-full accent-cyan-400 bg-white/10 h-1.5 rounded-lg cursor-pointer"
+              />
+              <div className="flex justify-between text-[10px] font-mono text-neutral-500">
+                <span>0s (Off)</span>
+                <span>6s</span>
+                <span>12s (Long)</span>
+              </div>
+            </div>
+
+            {/* ReplayGain Normalization */}
+            <div className="p-4 rounded-2xl glass-card-editorial border border-white/[0.08] space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-mono font-bold text-white uppercase">LOUDNESS NORMALIZATION</h4>
+                  <p className="text-[11px] font-mono text-neutral-500">Normalizes tracks to consistent volume level</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={useSettingsStore.getState().normalizeLoudness}
+                  onChange={(e) => useSettingsStore.getState().setNormalizeLoudness(e.target.checked)}
+                  className="w-5 h-5 accent-[#1db954] rounded cursor-pointer"
+                />
+              </div>
+
+              {useSettingsStore.getState().normalizeLoudness && (
+                <div className="grid grid-cols-3 gap-1.5 pt-1">
+                  {(['quiet', 'normal', 'loud'] as const).map((preset) => (
+                    <button
+                      key={preset}
+                      onClick={() => useSettingsStore.getState().setLoudnessPreset(preset)}
+                      className={`py-1.5 px-2 rounded-xl text-[10px] font-mono font-bold uppercase transition cursor-pointer ${
+                        useSettingsStore.getState().loudnessPreset === preset
+                          ? 'bg-[#1db954] text-black shadow-md'
+                          : 'bg-white/5 text-neutral-400 hover:text-white'
+                      }`}
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Mono Audio Toggle */}
+            <div className="p-4 rounded-2xl glass-card-editorial border border-white/[0.08] flex items-center justify-between">
+              <div>
+                <h4 className="text-xs font-mono font-bold text-white uppercase">MONO AUDIO DOWNMIX</h4>
+                <p className="text-[11px] font-mono text-neutral-500">Combines stereo channels for single earbud listening</p>
+              </div>
+              <input
+                type="checkbox"
+                checked={useSettingsStore.getState().isMonoAudio}
+                onChange={(e) => useSettingsStore.getState().setMonoAudio(e.target.checked)}
+                className="w-5 h-5 accent-[#1db954] rounded cursor-pointer"
+              />
+            </div>
+          </div>
+
+          {/* Privacy & Content Controls */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-mono font-bold tracking-wider uppercase text-neutral-400 flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-[#1db954]" />
+              <span>PRIVACY & SOCIAL CONTROLS</span>
+            </h3>
+
+            {/* Private Session (Incognito) */}
+            <div className="p-4 rounded-2xl glass-card-editorial border border-white/[0.08] flex items-center justify-between">
+              <div>
+                <h4 className="text-xs font-mono font-bold text-white uppercase">PRIVATE LISTENING SESSION</h4>
+                <p className="text-[11px] font-mono text-neutral-500">Temporarily pause history recording & presence broadcast</p>
+              </div>
+              <input
+                type="checkbox"
+                checked={useSettingsStore.getState().privateSessionEnabled}
+                onChange={(e) => useSettingsStore.getState().setPrivateSessionEnabled(e.target.checked)}
+                className="w-5 h-5 accent-[#1db954] rounded cursor-pointer"
+              />
+            </div>
+
+            {/* Explicit Content Filter */}
+            <div className="p-4 rounded-2xl glass-card-editorial border border-white/[0.08] flex items-center justify-between">
+              <div>
+                <h4 className="text-xs font-mono font-bold text-white uppercase">EXPLICIT CONTENT FILTER</h4>
+                <p className="text-[11px] font-mono text-neutral-500">Filter explicit (E) songs from catalog feeds</p>
+              </div>
+              <input
+                type="checkbox"
+                checked={useSettingsStore.getState().explicitFilterEnabled}
+                onChange={(e) => useSettingsStore.getState().setExplicitFilterEnabled(e.target.checked)}
+                className="w-5 h-5 accent-[#1db954] rounded cursor-pointer"
+              />
+            </div>
+
+            {/* Friend Activity Toggle */}
+            <div className="p-4 rounded-2xl glass-card-editorial border border-white/[0.08] flex items-center justify-between">
+              <div>
+                <h4 className="text-xs font-mono font-bold text-white uppercase">FRIEND ACTIVITY FEED</h4>
+                <p className="text-[11px] font-mono text-neutral-500">Show desktop live listening presence sidebar</p>
+              </div>
+              <input
+                type="checkbox"
+                checked={useSettingsStore.getState().friendActivityEnabled}
+                onChange={(e) => useSettingsStore.getState().setFriendActivityEnabled(e.target.checked)}
+                className="w-5 h-5 accent-[#1db954] rounded cursor-pointer"
+              />
+            </div>
+          </div>
+
           {/* Storage Quota & Cache Cleaner */}
           <div className="p-4 rounded-2xl glass-card-editorial border border-white/[0.08] space-y-3">
             <div className="flex items-center justify-between">

@@ -32,6 +32,17 @@ export interface Track {
   playCount?: number;
   localBlobKey?: string;              // For local/OPFS audio tracks
   availableSources?: AudioSourceType[];
+  isExplicit?: boolean;
+  credits?: {
+    performers?: string[];
+    writers?: string[];
+    producers?: string[];
+    mixEngineers?: string[];
+    label?: string;
+    isrc?: string;
+    bpm?: number;
+    key?: string;
+  };
 }
 
 export interface Artist {
@@ -54,6 +65,12 @@ export interface Album {
   tracks?: Track[];
 }
 
+export interface PlaylistFolder {
+  id: string;
+  name: string;
+  createdAt: number;
+}
+
 export interface Playlist {
   id: string;
   title: string;
@@ -65,6 +82,24 @@ export interface Playlist {
   trackCount: number;
   tracks?: Track[];
   updatedAt?: number;
+  folderId?: string;
+}
+
+export interface FriendActivityItem {
+  id: string;
+  user: string;
+  avatarUrl: string;
+  track: Track;
+  timestamp: string;
+  isLive: boolean;
+}
+
+export interface JamSession {
+  id: string;
+  code: string;
+  hostName: string;
+  participantsCount: number;
+  currentTrackId: string;
 }
 
 export interface RadioStation {
@@ -81,7 +116,7 @@ export interface RadioStation {
 
 export interface SearchResults {
   query: string;
-  selectedCategory: 'all' | 'tracks' | 'artists' | 'playlists' | 'albums' | 'radio' | 'local';
+  selectedCategory: 'all' | 'tracks' | 'artists' | 'playlists' | 'albums' | 'local';
   topResult?: {
     type: 'track' | 'artist' | 'album' | 'playlist';
     data: Track | Artist | Album | Playlist;
@@ -90,7 +125,6 @@ export interface SearchResults {
   artists: Artist[];
   playlists: Playlist[];
   albums: Album[];
-  radioStations: RadioStation[];
 }
 
 export interface UserProfile {
@@ -111,6 +145,18 @@ export interface AppSettings {
   equalizerPreset: 'flat' | 'bass_boost' | 'vocal' | 'electronic' | 'rock' | 'acoustic';
   eqBands: number[]; // 5 band values (-12 to +12 dB)
   pushEnabled: boolean;
+  
+  // Advanced Audio & DSP Settings
+  crossfadeSeconds: number; // 0 to 12s
+  normalizeLoudness: boolean;
+  loudnessPreset: 'normal' | 'quiet' | 'loud';
+  isMonoAudio: boolean;
+  
+  // Privacy & Content Controls
+  privateSessionEnabled: boolean;
+  explicitFilterEnabled: boolean;
+  smartShuffleActive: boolean;
+  friendActivityEnabled: boolean;
 }
 
 export type PlaybackState = 'idle' | 'resolving' | 'buffering' | 'playing' | 'paused' | 'error';

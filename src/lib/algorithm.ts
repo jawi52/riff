@@ -653,14 +653,23 @@ export function calculateTrackSimilarity(a: Track, b: Track): number {
   return Math.min(1.0, score);
 }
 
-export function getSmartAutoplayTracks(seedTrack: Track, existingQueueIds: Set<string>, limit = 6): Track[] {
-  const candidates = GLOBAL_CATALOG.filter((t) => !existingQueueIds.has(t.id) && t.id !== seedTrack.id);
+export function getSmartAutoplayTracks(seedTrack: Track, existingQueueIds?: Set<string> | number, limit = 6): Track[] {
+  let idSet = new Set<string>();
+  let actualLimit = limit;
+
+  if (typeof existingQueueIds === 'number') {
+    actualLimit = existingQueueIds;
+  } else if (existingQueueIds instanceof Set) {
+    idSet = existingQueueIds;
+  }
+
+  const candidates = GLOBAL_CATALOG.filter((t) => !idSet.has(t.id) && t.id !== seedTrack.id);
   const ranked = candidates.map((track) => ({
     track,
     score: calculateTrackSimilarity(seedTrack, track) + (Math.random() - 0.5) * 0.2
   }));
   ranked.sort((a, b) => b.score - a.score);
-  return ranked.slice(0, limit).map((r) => r.track);
+  return ranked.slice(0, actualLimit).map((r) => r.track);
 }
 
 export function recordTrackInteraction(trackOrId: Track | string, action: 'play' | 'skip' | 'complete' | 'like'): void {

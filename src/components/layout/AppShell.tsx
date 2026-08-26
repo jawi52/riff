@@ -10,10 +10,15 @@ import { PlaylistDetailView } from '../playlist/PlaylistDetailView';
 import { StatsView } from '../stats/StatsView';
 import { QueueDrawer } from '../queue/QueueDrawer';
 import { NowPlayingSidebar } from './NowPlayingSidebar';
+import { FriendActivitySidebar } from '../social/FriendActivitySidebar';
 import { MiniPlayer } from '../player/MiniPlayer';
 import { FullscreenPlayerModal } from '../player/FullscreenPlayerModal';
 import { SettingsDrawer } from '../settings/SettingsDrawer';
 import { AuthModal } from '../settings/AuthModal';
+import { AiPromptModal } from '../ai/AiPromptModal';
+import { SongCreditsModal } from '../common/SongCreditsModal';
+import { WaveTagModal } from '../common/WaveTagModal';
+import { RiffJamModal } from '../social/RiffJamModal';
 import { usePlayerStore } from '../../stores/usePlayerStore';
 import { useLibraryStore } from '../../stores/useLibraryStore';
 import { useAuthStore } from '../../stores/useAuthStore';
@@ -80,6 +85,9 @@ export const AppShell: React.FC = () => {
 
         {/* Right Floating Panel: Now Playing & Audio Studio Hub */}
         <NowPlayingSidebar />
+
+        {/* Right Floating Panel: Live Friend Activity Presence */}
+        <FriendActivitySidebar />
       </div>
 
       {/* 3. Persistent Bottom Mini Player */}
@@ -103,6 +111,18 @@ export const AppShell: React.FC = () => {
 
       {/* Auth Modal */}
       <AuthModal />
+
+      {/* Riff AI Prompt DJ Modal */}
+      <AiPromptModal />
+
+      {/* Deep Song Credits Modal */}
+      <SongCreditsModal />
+
+      {/* Riff WaveTag Soundwave Barcode Modal */}
+      <WaveTagModal />
+
+      {/* Riff Jam Group Session Modal */}
+      <RiffJamModal />
     </div>
   );
 };

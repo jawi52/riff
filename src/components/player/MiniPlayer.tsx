@@ -1,4 +1,4 @@
-﻿import React, { useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   Play,
   Pause,
@@ -12,10 +12,14 @@ import {
   VolumeX,
   Maximize2,
   Heart,
-  Loader2
+  Loader2,
+  Sparkles,
+  QrCode,
+  FileText
 } from 'lucide-react';
 import { usePlayerStore } from '../../stores/usePlayerStore';
 import { useLibraryStore } from '../../stores/useLibraryStore';
+import { useSettingsStore } from '../../stores/useSettingsStore';
 
 function formatTime(seconds: number): string {
   if (!seconds || isNaN(seconds)) return '0:00';
@@ -33,6 +37,7 @@ export const MiniPlayer: React.FC = () => {
     volume,
     isMuted,
     isShuffled,
+    smartShuffle,
     repeatMode,
     togglePlayPause,
     seek,
@@ -41,11 +46,13 @@ export const MiniPlayer: React.FC = () => {
     setVolume,
     toggleMute,
     toggleShuffle,
+    toggleSmartShuffle,
     cycleRepeatMode,
     setFullscreenOpen
   } = usePlayerStore();
 
-  const { toggleLikeTrack, likedTracks } = useLibraryStore();
+  const { likedTracks, toggleLikeTrack } = useLibraryStore();
+  const { setWaveTagModalOpen, setCreditsModalOpen } = useSettingsStore();
 
   // Mobile Touch Gestures
   const touchStartX = useRef<number | null>(null);
@@ -155,7 +162,18 @@ export const MiniPlayer: React.FC = () => {
 
         {/* CENTER MODULE: Desktop Playback Transport Controls */}
         <div className="hidden md:flex flex-col items-center gap-1.5 flex-1 max-w-2xl">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            {/* Smart Shuffle ("Enhance") */}
+            <button
+              onClick={toggleSmartShuffle}
+              className={`p-2 rounded-full transition cursor-pointer flex items-center gap-1 text-[11px] font-black ${
+                smartShuffle ? 'text-emerald-400 bg-emerald-500/20 border border-emerald-500/40 shadow-sm' : 'text-slate-400 hover:text-white'
+              }`}
+              title="Smart Shuffle (AI Injected Recommendations)"
+            >
+              <Sparkles className={`w-3.5 h-3.5 ${smartShuffle ? 'text-emerald-400' : ''}`} />
+            </button>
+
             <button
               onClick={toggleShuffle}
               className={`p-2 rounded-full transition cursor-pointer ${
@@ -255,10 +273,36 @@ export const MiniPlayer: React.FC = () => {
           </button>
 
           {/* Desktop Tools */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-2">
+            {/* Song Credits */}
+            <button
+              onClick={() => setCreditsModalOpen(true, currentTrack)}
+              className="p-1.5 text-slate-400 hover:text-white transition cursor-pointer rounded-full hover:bg-white/10"
+              title="Song Credits & Metadata"
+            >
+              <FileText className="w-4 h-4" />
+            </button>
+
+            {/* Riff WaveTag Barcode */}
+            <button
+              onClick={() =>
+                setWaveTagModalOpen(true, {
+                  id: currentTrack.id,
+                  title: currentTrack.title,
+                  subtitle: currentTrack.artist,
+                  coverUrl: currentTrack.coverUrl,
+                  type: 'track'
+                })
+              }
+              className="p-1.5 text-slate-400 hover:text-cyan-400 transition cursor-pointer rounded-full hover:bg-white/10"
+              title="Share Riff WaveTag"
+            >
+              <QrCode className="w-4 h-4" />
+            </button>
+
             <button
               onClick={() => setFullscreenOpen(true)}
-              className="p-2 text-slate-400 hover:text-white transition cursor-pointer"
+              className="p-1.5 text-slate-400 hover:text-white transition cursor-pointer rounded-full hover:bg-white/10"
               title="Expand (Full Player)"
             >
               <Maximize2 className="w-4 h-4" />

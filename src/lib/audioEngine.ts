@@ -6,17 +6,31 @@ export class RiffAudioEngine {
   private audioContext: AudioContext | null = null;
   private sourceNode: MediaElementAudioSourceNode | null = null;
   private gainNode: GainNode | null = null;
+  private compressorNode: DynamicsCompressorNode | null = null;
   private analyserNode: AnalyserNode | null = null;
   private eqFilters: BiquadFilterNode[] = [];
   private isDspConnected = false;
+  public isMono = false;
 
   private readonly EQ_FREQUENCIES = [60, 250, 1000, 4000, 14000];
 
   private constructor() {
-    this.audio = new Audio();
-    this.audio.crossOrigin = 'anonymous';
-    this.audio.preload = 'auto';
-    this.audio.autoplay = false;
+    if (typeof Audio !== 'undefined') {
+      this.audio = new Audio();
+      this.audio.crossOrigin = 'anonymous';
+      this.audio.preload = 'auto';
+      this.audio.autoplay = false;
+    } else {
+      this.audio = {
+        play: async () => {},
+        pause: () => {},
+        load: () => {},
+        currentTime: 0,
+        duration: 0,
+        volume: 1,
+        src: ''
+      } as unknown as HTMLAudioElement;
+    }
   }
 
   public static getInstance(): RiffAudioEngine {
@@ -35,6 +49,15 @@ export class RiffAudioEngine {
 
       this.audioContext = new AudioCtx();
       this.gainNode = this.audioContext.createGain();
+      this.compressorNode = this.audioContext.createDynamicsCompressor();
+      
+      // Default -14 LUFS standard compressor settings
+      this.compressorNode.threshold.value = -14;
+      this.compressorNode.knee.value = 12;
+      this.compressorNode.ratio.value = 4;
+      this.compressorNode.attack.value = 0.003;
+      this.compressorNode.release.value = 0.25;
+
       this.analyserNode = this.audioContext.createAnalyser();
       this.analyserNode.fftSize = 128;
       this.analyserNode.smoothingTimeConstant = 0.8;
@@ -62,7 +85,8 @@ export class RiffAudioEngine {
           return filter;
         });
 
-        lastNode.connect(this.gainNode);
+        lastNode.connect(this.compressorNode);
+        this.compressorNode.connect(this.gainNode);
         this.gainNode.connect(this.analyserNode);
         this.analyserNode.connect(this.audioContext.destination);
 
@@ -93,7 +117,6 @@ export class RiffAudioEngine {
       await this.audio.play();
     } catch (err: any) {
       console.warn('Playback play() call:', err.message);
-      // Retry on user interaction
       throw err;
     }
   }
@@ -120,11 +143,48 @@ export class RiffAudioEngine {
   public setVolume(val: number): void {
     const clamped = Math.max(0, Math.min(1, val));
     this.audio.volume = clamped;
-    if (this.gainNode) {
+    if (this.gainNode && this.audioContext) {
       try {
-        this.gainNode.gain.value = clamped;
+        this.gainNode.gain.setValueAtTime(clamped, this.audioContext.currentTime);
       } catch {}
     }
+  }
+
+  public fadeVolume(targetVolume: number, durationSec: number): void {
+    if (!this.gainNode || !this.audioContext) {
+      this.setVolume(targetVolume);
+      return;
+    }
+    try {
+      const now = this.audioContext.currentTime;
+      this.gainNode.gain.cancelScheduledValues(now);
+      this.gainNode.gain.setValueAtTime(this.gainNode.gain.value, now);
+      this.gainNode.gain.linearRampToValueAtTime(Math.max(0, Math.min(1, targetVolume)), now + durationSec);
+    } catch {
+      this.setVolume(targetVolume);
+    }
+  }
+
+  public setLoudnessNormalization(enabled: boolean, preset: 'normal' | 'quiet' | 'loud' = 'normal'): void {
+    if (!this.compressorNode || !this.audioContext) return;
+    try {
+      if (!enabled) {
+        this.compressorNode.threshold.value = 0;
+        this.compressorNode.ratio.value = 1;
+        return;
+      }
+      const thresholds = {
+        quiet: -19,
+        normal: -14,
+        loud: -11
+      };
+      this.compressorNode.threshold.value = thresholds[preset] || -14;
+      this.compressorNode.ratio.value = preset === 'loud' ? 5 : 3.5;
+    } catch {}
+  }
+
+  public setMonoAudio(enabled: boolean): void {
+    this.isMono = enabled;
   }
 
   public setEQGains(gains: number[]): void {
@@ -137,7 +197,6 @@ export class RiffAudioEngine {
 
   public getFrequencyData(): Uint8Array {
     if (!this.analyserNode) {
-      // Return simulated subtle frequency waves if analyser node is detached
       const simulated = new Uint8Array(64);
       if (!this.audio.paused) {
         const time = Date.now() / 150;
