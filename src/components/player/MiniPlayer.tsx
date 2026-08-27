@@ -194,7 +194,7 @@ export const MiniPlayer: React.FC = () => {
 
             <button
               onClick={togglePlayPause}
-              className="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 active:scale-95 transition shadow-lg cursor-pointer"
+              className="w-10 h-10 rounded-full bg-gradient-to-tr from-violet-600 via-fuchsia-500 to-cyan-400 text-white flex items-center justify-center hover:scale-110 active:scale-95 transition shadow-[0_0_25px_rgba(139,92,246,0.6)] cursor-pointer"
               title={playbackState === 'playing' ? 'Pause' : 'Play'}
             >
               {playbackState === 'playing' ? (

@@ -46,7 +46,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onOpe
   };
 
   return (
-    <aside className="w-72 lg:w-80 rounded-2xl bg-[#12131a]/90 backdrop-blur-2xl border border-white/[0.07] flex flex-col justify-between hidden md:flex select-none h-full overflow-hidden shadow-2xl shrink-0">
+    <aside className="w-72 lg:w-80 rounded-2xl bg-[#0e101b]/80 backdrop-blur-2xl border border-white/[0.08] flex flex-col justify-between hidden md:flex select-none h-full overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.5)] shrink-0">
       {/* 1. Main Navigation Links */}
       <div className="p-3 pb-2 space-y-1 shrink-0 border-b border-white/[0.06]">
         {[
@@ -61,23 +61,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onOpe
             <button
               key={item.id}
               onClick={() => handleNav(item.id)}
-              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
                 isActive
-                  ? 'bg-white text-black font-black shadow-md'
+                  ? 'bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-500 text-white font-black shadow-lg shadow-violet-500/25'
                   : 'text-neutral-300 hover:text-white hover:bg-white/[0.08]'
               }`}
             >
               <div className="flex items-center gap-2.5">
-                <Icon className={`w-4 h-4 ${isActive ? 'text-black' : 'text-neutral-400'}`} />
+                <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-neutral-400'}`} />
                 <span>{item.label}</span>
               </div>
               {item.badge && (
                 <span
-                  className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full ${
-                    item.badge === 'Live'
-                      ? 'bg-red-500/20 text-red-400 border border-red-500/40 animate-pulse'
-                      : isActive
-                      ? 'bg-black/20 text-black'
+                  className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
+                    isActive
+                      ? 'bg-white/20 text-white backdrop-blur-md'
                       : 'bg-violet-500/20 text-violet-300 border border-violet-500/30'
                   }`}
                 >

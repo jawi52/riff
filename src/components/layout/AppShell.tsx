@@ -44,7 +44,7 @@ export const AppShell: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#000000] text-white select-none">
+    <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#07080f] text-white select-none">
       {/* 1. Full-Width Top Navbar */}
       <Header
         onSearchSubmit={handleGlobalSearch}
@@ -53,7 +53,7 @@ export const AppShell: React.FC = () => {
       />
 
       {/* 2. Floating 3-Panel Workspace (Left Vault Card + Center Main Card + Right NowPlaying Card) */}
-      <div className="flex-1 flex min-h-0 overflow-hidden relative p-2 gap-2 bg-[#000000]">
+      <div className="flex-1 flex min-h-0 overflow-hidden relative p-2 gap-2 bg-[#07080f]">
         {/* Left Floating Panel: Library Vault */}
         <Sidebar
           activeTab={activeMainView}
@@ -62,7 +62,7 @@ export const AppShell: React.FC = () => {
         />
 
         {/* Center Floating Panel: Main Content Viewport */}
-        <main className="flex-1 rounded-2xl bg-[#12131a]/90 backdrop-blur-2xl border border-white/[0.07] flex flex-col overflow-y-auto shadow-2xl relative min-w-0 h-full p-3.5 md:p-6 pb-16 md:pb-20 custom-scrollbar">
+        <main className="flex-1 rounded-2xl bg-[#0e101b]/80 backdrop-blur-2xl border border-white/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.5)] flex flex-col overflow-y-auto relative min-w-0 h-full p-3.5 md:p-6 pb-16 md:pb-20 custom-scrollbar">
           {activeMainView === 'home' && (
             <HomeFeed
               onSelectGenre={(genre) => {
