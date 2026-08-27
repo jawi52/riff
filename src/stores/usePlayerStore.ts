@@ -150,30 +150,29 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
       // If remote stream URL needs resolving via BFF
       if (!streamUrl) {
-        const targetTier =
-          state.networkMode === 'cellular'
-            ? 'standard'
-            : state.qualityTier === 'auto'
-            ? 'high'
-            : state.qualityTier;
-        const res = await fetch('/api/v1/stream/resolve', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            trackId: track.id,
-            title: track.title,
-            artist: track.artist,
-            duration: track.duration,
-            rawUrl: track.rawUrl,
-            qualityTier: targetTier
-          })
-        });
+        try {
+          const res = await fetch('/api/v1/stream/resolve', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              trackId: track.id,
+              title: track.title,
+              artist: track.artist,
+              duration: track.duration,
+              rawUrl: track.rawUrl
+            })
+          });
 
-        if (res.ok) {
-          const data = await res.json();
-          streamUrl = data.streamUrl;
-        } else {
-          streamUrl = track.streamUrl || '';
+          if (res.ok) {
+            const data = await res.json();
+            streamUrl = data.streamUrl;
+          }
+        } catch {
+          // Backend offline fallback
+        }
+
+        if (!streamUrl) {
+          streamUrl = track.streamUrl || 'https://actions.google.com/sounds/v1/music/ambient_piano_melody.ogg';
         }
       }
 
