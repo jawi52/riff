@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Riff Master Audio API - Standalone Test Lab</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background-color: #07080f;
+      color: #ffffff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    .glass {
+      background: rgba(15, 17, 29, 0.8);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+  </style>
+</head>
+<body class="min-h-screen p-4 md:p-8 flex flex-col items-center justify-start">
+  <div class="w-full max-w-2xl space-y-6">
+    <!-- Header -->
+    <div class="text-center space-y-2">
+      <div class="inline-block px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider bg-violet-500/20 text-violet-300 border border-violet-500/40">
+        Standalone Test Lab
+      </div>
+      <h1 class="text-3xl font-black tracking-tight text-white flex items-center justify-center gap-2">
+        <span>🎵 Riff Master Audio API</span>
+      </h1>
+      <p class="text-xs text-neutral-400">
+        Test instant 320kbps audio streaming, Spotify-style verification, and latency in real time.
+      </p>
+    </div>
+
+    <!-- Search Box -->
+    <div class="glass rounded-2xl p-3 shadow-2xl flex items-center gap-3">
+      <input
+        id="queryInput"
+        type="text"
+        placeholder="Type any song (e.g. 12 Saal, Money Lisa, Amplifier, Starboy)..."
+        class="flex-1 bg-transparent text-sm text-white placeholder-neutral-500 focus:outline-none px-3 py-2"
+        autofocus
+      />
+      <button
+        id="searchBtn"
+        class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-cyan-500 text-white text-xs font-black uppercase tracking-wider hover:opacity-90 active:scale-95 transition cursor-pointer"
+      >
+        Search
+      </button>
+    </div>
+
+    <!-- Latency & Status Badge -->
+    <div id="statusBadge" class="hidden flex items-center justify-between px-4 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-xs font-mono">
+      <span id="statusText" class="text-neutral-400">Searching...</span>
+      <span id="latencyText" class="text-cyan-400 font-bold">-- ms</span>
+    </div>
+
+    <!-- Top Result Card -->
+    <div id="resultCard" class="hidden glass rounded-3xl p-5 space-y-4 border border-violet-500/30 shadow-[0_0_40px_rgba(139,92,246,0.15)]">
+      <div class="flex items-start gap-4">
+        <img id="coverImg" src="" alt="Cover" class="w-20 h-20 md:w-24 md:h-24 rounded-2xl object-cover shadow-lg border border-white/15 shrink-0" />
+        <div class="flex-1 min-w-0 space-y-1">
+          <span class="inline-block text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
+            👑 Verified Master
+          </span>
+          <h2 id="songTitle" class="text-lg md:text-xl font-black text-white truncate"></h2>
+          <p id="songArtist" class="text-xs text-neutral-300 font-semibold truncate"></p>
+          <p id="songAlbum" class="text-[11px] text-neutral-500 truncate"></p>
+        </div>
+      </div>
+
+      <!-- Live Audio Player -->
+      <div class="pt-2 space-y-2">
+        <audio id="audioPlayer" controls class="w-full h-10 rounded-xl" style="filter: invert(1) hue-rotate(180deg);"></audio>
+        <div class="flex items-center justify-between text-[11px] text-neutral-400 font-mono">
+          <span id="bitrateBadge">🎧 320 kbps Studio Quality</span>
+          <span id="sourceBadge">Source: JioSaavn / iTunes Master</span>
+        </div>
+      </div>
+
+      <!-- Synced Lyrics Box -->
+      <div id="lyricsContainer" class="pt-3 border-t border-white/10 space-y-2">
+        <h4 class="text-xs font-bold uppercase tracking-wider text-neutral-400">📜 Time-Synced Karaoke Lyrics</h4>
+        <div id="lyricsBox" class="max-h-36 overflow-y-auto space-y-1 text-xs text-neutral-300 p-3 rounded-xl bg-black/40 border border-white/5 font-medium">
+          Loading lyrics...
+        </div>
+      </div>
+    </div>
+
+    <!-- Multi-Artist Matches -->
+    <div id="otherMatchesContainer" class="hidden space-y-3">
+      <h3 class="text-xs font-bold uppercase tracking-wider text-neutral-400">📋 Other Verified Matches</h3>
+      <div id="otherMatchesList" class="space-y-2"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { searchMasterCatalog, resolveMasterStream, fetchSyncedLyrics } from './src/lib/masterAudioEngine.ts';
+
+    const input = document.getElementById('queryInput');
+    const btn = document.getElementById('searchBtn');
+    const statusBadge = document.getElementById('statusBadge');
+    const statusText = document.getElementById('statusText');
+    const latencyText = document.getElementById('latencyText');
+    const resultCard = document.getElementById('resultCard');
+    const coverImg = document.getElementById('coverImg');
+    const songTitle = document.getElementById('songTitle');
+    const songArtist = document.getElementById('songArtist');
+    const songAlbum = document.getElementById('songAlbum');
+    const audioPlayer = document.getElementById('audioPlayer');
+    const lyricsBox = document.getElementById('lyricsBox');
+    const otherMatchesContainer = document.getElementById('otherMatchesContainer');
+    const otherMatchesList = document.getElementById('otherMatchesList');
+
+    async function doSearch() {
+      const q = input.value.trim();
+      if (!q) return;
+
+      statusBadge.classList.remove('hidden');
+      statusText.textContent = `Resolving "${q}"...`;
+      latencyText.textContent = '...';
+
+      const t0 = performance.now();
+      try {
+        const res = await searchMasterCatalog(q);
+        const lat = Math.round(performance.now() - t0);
+        latencyText.textContent = `${lat} ms`;
+        statusText.textContent = `Resolved in ${lat}ms (Replay will be 0ms)`;
+
+        if (!res.topResult && res.tracks.length === 0) {
+          statusText.textContent = 'No verified track found.';
+          return;
+        }
+
+        const top = res.topResult || res.tracks[0];
+        resultCard.classList.remove('hidden');
+        coverImg.src = top.coverUrl;
+        songTitle.textContent = top.title;
+        songArtist.textContent = top.artist;
+        songAlbum.textContent = top.album || 'Studio Master';
+
+        // Stream URL
+        const streamUrl = await resolveMasterStream(top);
+        audioPlayer.src = streamUrl;
+        audioPlayer.play().catch(() => {});
+
+        // Lyrics
+        lyricsBox.innerHTML = 'Fetching lyrics...';
+        const lyrics = await fetchSyncedLyrics(top.artist, top.title);
+        if (lyrics.length > 0) {
+          lyricsBox.innerHTML = lyrics.map(l => `<p>[${(l.timeMs/1000).toFixed(1)}s] ${l.text}</p>`).join('');
+        } else {
+          lyricsBox.innerHTML = '<span class="text-neutral-500">Instrumental / No synced lyrics available.</span>';
+        }
+
+        // Other matches
+        if (res.tracks.length > 1) {
+          otherMatchesContainer.classList.remove('hidden');
+          otherMatchesList.innerHTML = res.tracks.slice(1, 6).map(t => `
+            <div class="glass p-2.5 rounded-xl flex items-center justify-between gap-3 text-xs">
+              <div class="flex items-center gap-3 min-w-0">
+                <img src="${t.coverUrl}" class="w-9 h-9 rounded-lg object-cover" />
+                <div class="min-w-0">
+                  <p class="font-bold text-white truncate">${t.title}</p>
+                  <p class="text-neutral-400 truncate">${t.artist}</p>
+                </div>
+              </div>
+              <button onclick="window.playOther('${t.id}')" class="px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold shrink-0">Play</button>
+            </div>
+          `).join('');
+
+          window.playOther = async (id) => {
+            const trk = res.tracks.find(x => x.id === id);
+            if (!trk) return;
+            coverImg.src = trk.coverUrl;
+            songTitle.textContent = trk.title;
+            songArtist.textContent = trk.artist;
+            songAlbum.textContent = trk.album || 'Single';
+            const u = await resolveMasterStream(trk);
+            audioPlayer.src = u;
+            audioPlayer.play().catch(() => {});
+          };
+        } else {
+          otherMatchesContainer.classList.add('hidden');
+        }
+
+      } catch (err) {
+        statusText.textContent = `Error: ${err.message}`;
+      }
+    }
+
+    btn.addEventListener('click', doSearch);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') doSearch();
+    });
+  </script>
+</body>
+</html>
