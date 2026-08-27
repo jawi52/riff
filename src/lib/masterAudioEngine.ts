@@ -5,6 +5,7 @@
  */
 
 import { Track, SyncedLyricLine } from '../types';
+import { GLOBAL_CATALOG, PAKISTAN_TRENDING_TRACKS } from './algorithm';
 
 // In-Memory Single-Flight LRU Cache for Sub-40ms / 0ms Instant Replay
 const streamCache = new Map<string, { url: string; timestamp: number }>();
@@ -12,7 +13,7 @@ const searchCache = new Map<string, { topResult: Track | null; tracks: Track[] }
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 // Anti-Noise Blacklist: Filters out fake covers, karaoke, tribute bands, and sound edits
-const NOISE_FILTER_REGEX = /\b(tribute|karaoke|cover|slowed|reverb|nightcore|8d|bass boosted|instrumental cover|parody|ringtone|remake|acoustic cover)\b/i;
+const NOISE_FILTER_REGEX = /\b(tribute|karaoke|cover|slowed|reverb|nightcore|8d|bass boosted|instrumental cover|parody|ringtone|remake|acoustic cover|8-bit|arcade|chiptune|karaoke version|tribute band|beats)\b/i;
 
 export interface MasterSearchResult {
   topResult: Track | null;
@@ -51,19 +52,38 @@ export function calculateAuthorityScore(track: { title: string; artist: string; 
   const artistLower = track.artist.toLowerCase();
   const fullText = `${titleLower} ${artistLower} ${(track.album || '').toLowerCase()}`;
 
-  // 1. Exact Title match bonus
-  if (queryTokens.join(' ') === titleLower) score += 35;
-  else if (titleLower.includes(queryTokens.join(' '))) score += 20;
+  // 1. Exact Title or Exact Artist Match
+  const rawQuery = queryTokens.join(' ');
+  if (titleLower === rawQuery) score += 40;
+  if (artistLower === rawQuery || artistLower.split(/,|&|feat\./i)[0].trim() === rawQuery) score += 50;
 
-  // 2. Token overlap bonus
-  const matchedTokens = queryTokens.filter((token) => fullText.includes(token));
-  score += (matchedTokens.length / Math.max(queryTokens.length, 1)) * 25;
+  // 2. Query tokens in Artist vs Title
+  let artistMatchCount = 0;
+  let titleMatchCount = 0;
+  for (const token of queryTokens) {
+    if (artistLower.includes(token)) artistMatchCount++;
+    if (titleLower.includes(token)) titleMatchCount++;
+  }
 
-  // 3. Playcount / Popularity bonus
+  // If artist matches the query token, grant major authority bonus
+  if (artistMatchCount > 0) {
+    score += (artistMatchCount / queryTokens.length) * 50;
+  }
+
+  if (titleMatchCount > 0) {
+    score += (titleMatchCount / queryTokens.length) * 20;
+  }
+
+  // 3. Penalize Artist/Title Inversions (e.g. artist 'Emilia Ex' with song 'Money Lisa')
+  if (artistMatchCount === 0 && queryTokens.length >= 2) {
+    score -= 45;
+  }
+
+  // 4. Playcount / Popularity bonus
   if (track.playCount && track.playCount > 100000) score += 10;
 
-  // 4. Anti-noise penalty
-  if (NOISE_FILTER_REGEX.test(titleLower) || NOISE_FILTER_REGEX.test(artistLower)) score -= 60;
+  // 5. Anti-noise penalty
+  if (NOISE_FILTER_REGEX.test(titleLower) || NOISE_FILTER_REGEX.test(artistLower)) score -= 70;
 
   return Math.max(0, Math.min(100, Math.round(score)));
 }
@@ -99,8 +119,20 @@ export async function searchMasterCatalog(rawQuery: string): Promise<MasterSearc
   const candidateTracks: Track[] = [];
 
   // =========================================================================
-  // 1. Query Saavn 320kbps Global Master CDN API
+  // 0. Instant Local Studio Catalog Matches
   // =========================================================================
+  const allKnownCatalog = [...GLOBAL_CATALOG, ...PAKISTAN_TRENDING_TRACKS];
+  const queryLower = query.toLowerCase();
+  for (const t of allKnownCatalog) {
+    const fullText = `${t.title.toLowerCase()} ${t.artist.toLowerCase()} ${(t.album || '').toLowerCase()}`;
+    if (tokens.every((tok) => fullText.includes(tok)) || fullText.includes(queryLower)) {
+      candidateTracks.push({
+        ...t,
+        bitrateKbps: 320,
+        hasSyncedLyrics: true
+      });
+    }
+  }
   try {
     const saavnUrl = `https://www.jiosaavn.com/api.php?__call=search.getResults&_format=json&_marker=0&api_version=4&ctx=web6dot0&n=20&p=1&q=${encodeURIComponent(
       query
