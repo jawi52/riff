@@ -133,55 +133,74 @@ export async function searchMasterCatalog(rawQuery: string): Promise<MasterSearc
       });
     }
   }
+  // =========================================================================
+  // 1. Query Saavn 320kbps Global Master CDN API (Full-Length 320kbps CD Audio)
+  // =========================================================================
   try {
-    const saavnUrl = `https://www.jiosaavn.com/api.php?__call=search.getResults&_format=json&_marker=0&api_version=4&ctx=web6dot0&n=20&p=1&q=${encodeURIComponent(
-      query
-    )}`;
+    const isBrowser = typeof window !== 'undefined';
+    const saavnEndpoints = isBrowser
+      ? [
+          `/saavn-api/api.php?__call=search.getResults&_format=json&_marker=0&api_version=4&ctx=web6dot0&n=20&p=1&q=${encodeURIComponent(query)}`,
+          `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://www.jiosaavn.com/api.php?__call=search.getResults&_format=json&_marker=0&api_version=4&ctx=web6dot0&n=20&p=1&q=${encodeURIComponent(query)}`)}`
+        ]
+      : [
+          `https://www.jiosaavn.com/api.php?__call=search.getResults&_format=json&_marker=0&api_version=4&ctx=web6dot0&n=20&p=1&q=${encodeURIComponent(query)}`
+        ];
 
-    const res = await fetch(saavnUrl);
-    if (res.ok) {
-      const data = await res.json();
-      const rawResults = data?.results || [];
-
-      for (const item of rawResults) {
-        const title = (item.song || item.title || '').replace(/&quot;/g, '"').replace(/&#039;/g, "'").trim();
-        const artist = (item.primary_artists || item.singers || item.more_info?.artistMap?.primary_artists?.[0]?.name || 'Unknown Artist').trim();
-        const album = item.album || item.more_info?.album || '';
-
-        // Anti-Noise Filter Check
-        if (!isOfficialStudioMaster(title, artist, album)) continue;
-
-        let mediaUrl = item.media_preview_url || item.more_info?.encrypted_media_url || '';
-        if (mediaUrl) {
-          mediaUrl = mediaUrl
-            .replace('preview.saavncdn.com', 'aac.saavncdn.com')
-            .replace('_96_p.mp4', '_320.mp4')
-            .replace('_96.mp4', '_320.mp4')
-            .replace('_160.mp4', '_320.mp4');
-        }
-
-        const coverUrl = (item.image || '')
-          .replace('150x150', '500x500')
-          .replace('50x50', '500x500') || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&q=80';
-
-        candidateTracks.push({
-          id: `saavn_${item.id || item.song_id || Math.random().toString(36).substring(2, 9)}`,
-          title,
-          artist,
-          album,
-          duration: parseInt(item.duration, 10) || 210,
-          coverUrl,
-          sourceType: 'saavn',
-          streamUrl: mediaUrl,
-          bitrateKbps: 320,
-          genre: item.language || 'Global',
-          hasSyncedLyrics: true,
-          credits: {
-            performers: [artist],
-            label: item.more_info?.label || 'Official Master Recording'
-          }
+    let rawResults: any[] = [];
+    for (const endpoint of saavnEndpoints) {
+      try {
+        const res = await fetch(endpoint, {
+          headers: { 'Accept': 'application/json' }
         });
+        if (res.ok) {
+          const data = await res.json();
+          rawResults = data?.results || (typeof data === 'string' ? JSON.parse(data)?.results : []) || [];
+          if (rawResults.length > 0) break;
+        }
+      } catch {}
+    }
+
+    for (const item of rawResults) {
+      const title = (item.song || item.title || '').replace(/&quot;/g, '"').replace(/&#039;/g, "'").trim();
+      const artist = (item.primary_artists || item.singers || item.more_info?.artistMap?.primary_artists?.[0]?.name || 'Unknown Artist').trim();
+      const album = item.album || item.more_info?.album || '';
+
+      // Anti-Noise Filter Check
+      if (!isOfficialStudioMaster(title, artist, album)) continue;
+
+      let mediaUrl = item.media_preview_url || item.more_info?.media_preview_url || '';
+      if (mediaUrl) {
+        // Convert to full unthrottled 320kbps CD master URL
+        mediaUrl = mediaUrl
+          .replace('preview.saavncdn.com', 'aac.saavncdn.com')
+          .replace('_96_p.mp4', '_320.mp4')
+          .replace('_96.mp4', '_320.mp4')
+          .replace('_160.mp4', '_320.mp4')
+          .replace('_96_p.m4a', '_320.mp4');
       }
+
+      const coverUrl = (item.image || '')
+        .replace('150x150', '500x500')
+        .replace('50x50', '500x500') || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&q=80';
+
+      candidateTracks.push({
+        id: `saavn_${item.id || item.song_id || Math.random().toString(36).substring(2, 9)}`,
+        title,
+        artist,
+        album,
+        duration: parseInt(item.duration, 10) || 210,
+        coverUrl,
+        sourceType: 'saavn',
+        streamUrl: mediaUrl,
+        bitrateKbps: 320,
+        genre: item.language || 'Global',
+        hasSyncedLyrics: true,
+        credits: {
+          performers: [artist],
+          label: item.more_info?.label || 'Official Studio Master'
+        }
+      });
     }
   } catch {
     // Network fallback
@@ -269,8 +288,20 @@ export async function searchMasterCatalog(rawQuery: string): Promise<MasterSearc
  * Resolves high-fidelity 320kbps master stream with 0ms in-memory replay
  */
 export async function resolveMasterStream(track: Track): Promise<string> {
-  if (track.streamUrl && track.streamUrl.startsWith('http') && !track.streamUrl.includes('preview')) {
-    return track.streamUrl;
+  // If track already has direct 320kbps CD stream
+  if (track.streamUrl && track.streamUrl.startsWith('http')) {
+    if (track.streamUrl.includes('saavncdn.com')) {
+      const full = track.streamUrl
+        .replace('preview.saavncdn.com', 'aac.saavncdn.com')
+        .replace('_96_p.mp4', '_320.mp4')
+        .replace('_96.mp4', '_320.mp4')
+        .replace('_160.mp4', '_320.mp4')
+        .replace('_96_p.m4a', '_320.mp4');
+      return full;
+    }
+    if (!track.streamUrl.includes('preview')) {
+      return track.streamUrl;
+    }
   }
 
   // Check in-memory cache
@@ -281,13 +312,16 @@ export async function resolveMasterStream(track: Track): Promise<string> {
     }
   }
 
-  // Resolve fresh direct 320kbps stream URL
-  let resolvedUrl = track.streamUrl || '';
+  // Resolve fresh direct 320kbps full song stream URL
+  let resolvedUrl = '';
 
   try {
     const query = `${track.artist} ${track.title}`;
     const searchRes = await searchMasterCatalog(query);
-    if (searchRes.tracks.length > 0 && searchRes.tracks[0].streamUrl) {
+    const match = searchRes.tracks.find((t) => t.sourceType === 'saavn' && t.streamUrl);
+    if (match && match.streamUrl) {
+      resolvedUrl = match.streamUrl;
+    } else if (searchRes.tracks.length > 0 && searchRes.tracks[0].streamUrl) {
       resolvedUrl = searchRes.tracks[0].streamUrl;
     }
   } catch {
@@ -295,7 +329,7 @@ export async function resolveMasterStream(track: Track): Promise<string> {
   }
 
   if (!resolvedUrl) {
-    resolvedUrl = 'https://actions.google.com/sounds/v1/music/ambient_piano_melody.ogg';
+    resolvedUrl = track.streamUrl || 'https://actions.google.com/sounds/v1/music/ambient_piano_melody.ogg';
   }
 
   streamCache.set(track.id, { url: resolvedUrl, timestamp: Date.now() });

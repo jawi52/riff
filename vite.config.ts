@@ -66,10 +66,13 @@ export default defineConfig({
     port: 5174,
     host: true,
     proxy: {
-      '/api': {
-        target: 'http://127.0.0.1:3080',
+      '/saavn-api': {
+        target: 'https://www.jiosaavn.com',
         changeOrigin: true,
-        secure: false
+        rewrite: (path) => path.replace(/^\/saavn-api/, ''),
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
       }
     }
   }

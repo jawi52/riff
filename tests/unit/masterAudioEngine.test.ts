@@ -89,4 +89,20 @@ describe('Custom Riff Master Audio API Suite', () => {
     const streamUrl2 = await resolveMasterStream(mockTrack);
     expect(streamUrl2).toBe(streamUrl1);
   });
+
+  it('should convert Saavn 96p preview URL into full 320kbps CD master URL', async () => {
+    const trackWithPreview: Track = {
+      id: 'saavn_12saal',
+      title: '12 Saal',
+      artist: 'Bilal Saeed',
+      duration: 236,
+      coverUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4',
+      sourceType: 'saavn',
+      streamUrl: 'https://aac.saavncdn.com/123/12saal_96_p.mp4'
+    };
+
+    const fullStreamUrl = await resolveMasterStream(trackWithPreview);
+    expect(fullStreamUrl).toContain('_320.mp4');
+    expect(fullStreamUrl).not.toContain('_96_p.mp4');
+  });
 });
