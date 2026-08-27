@@ -5,6 +5,7 @@ import { getActiveLyricIndex } from '../lib/lyrics';
 import { db } from '../lib/db';
 import { getSmartAutoplayTracks, recordTrackInteraction, GLOBAL_CATALOG } from '../lib/algorithm';
 import { addRecentTrack } from '../lib/recentSearches';
+import { resolveMasterStream, fetchSyncedLyrics } from '../lib/masterAudioEngine';
 
 interface PlayerState {
   currentTrack: Track | null;
@@ -148,32 +149,9 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         }
       }
 
-      // If remote stream URL needs resolving via BFF
+      // Resolve Master Stream (320kbps Studio Master)
       if (!streamUrl) {
-        try {
-          const res = await fetch('/api/v1/stream/resolve', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              trackId: track.id,
-              title: track.title,
-              artist: track.artist,
-              duration: track.duration,
-              rawUrl: track.rawUrl
-            })
-          });
-
-          if (res.ok) {
-            const data = await res.json();
-            streamUrl = data.streamUrl;
-          }
-        } catch {
-          // Backend offline fallback
-        }
-
-        if (!streamUrl) {
-          streamUrl = track.streamUrl || 'https://actions.google.com/sounds/v1/music/ambient_piano_melody.ogg';
-        }
+        streamUrl = await resolveMasterStream(track);
       }
 
       if (!streamUrl) {
@@ -190,16 +168,13 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
       // Fetch lyrics in background
       if (track.hasSyncedLyrics && !track.syncedLyrics) {
-        fetch(
-          `/api/v1/lyrics?title=${encodeURIComponent(track.title)}&artist=${encodeURIComponent(track.artist)}`
-        )
-          .then((r) => r.json())
-          .then((lData) => {
-            if (lData?.syncedLyrics) {
+        fetchSyncedLyrics(track.artist, track.title)
+          .then((syncedLyrics) => {
+            if (syncedLyrics && syncedLyrics.length > 0) {
               set((prev) => ({
                 currentTrack:
                   prev.currentTrack?.id === track.id
-                    ? { ...prev.currentTrack, syncedLyrics: lData.syncedLyrics }
+                    ? { ...prev.currentTrack, syncedLyrics }
                     : prev.currentTrack
               }));
             }

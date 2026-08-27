@@ -24,6 +24,7 @@ import {
   GLOBAL_CATALOG,
   PAKISTAN_TRENDING_TRACKS
 } from '../../lib/algorithm';
+import { searchMasterCatalog } from '../../lib/masterAudioEngine';
 
 interface SearchExplorerProps {
   initialQuery?: string;
@@ -267,11 +268,23 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery = '
     setIsInputFocused(false);
 
     try {
-      const res = await fetch(`/api/v1/search?q=${encodeURIComponent(trimmed)}`);
-      if (res.ok) {
-        const data = await res.json();
-        setResults(data);
-      }
+      const searchRes = await searchMasterCatalog(trimmed);
+      const sameArtist = searchRes.topResult
+        ? searchRes.tracks
+            .filter((t) => t.artist.toLowerCase().includes(searchRes.topResult!.artist.toLowerCase()) && t.id !== searchRes.topResult!.id)
+            .slice(0, 6)
+        : [];
+      const similar = searchRes.tracks.slice(6, 16);
+
+      setResults({
+        query: trimmed,
+        topResult: searchRes.topResult,
+        sameArtistTracks: sameArtist,
+        similarVibeTracks: similar,
+        tracks: searchRes.tracks,
+        artists: [],
+        albums: []
+      });
     } catch (err) {
       console.error('Search error:', err);
     } finally {
