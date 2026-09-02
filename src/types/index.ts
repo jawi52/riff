@@ -2,7 +2,7 @@
 // Riff Domain Types & Interfaces
 // ==========================================
 
-export type AudioSourceType = 'local' | 'audius' | 'saavn' | 'jamendo' | 'radio' | 'archive' | 'ytdlp' | 'piped' | 'itunes' | 'deezer';
+export type AudioSourceType = 'local' | 'audius' | 'saavn' | 'jamendo' | 'radio' | 'archive' | 'ytdlp' | 'piped' | 'itunes' | 'deezer' | 'riff-engine';
 
 export type QualityTier = 'auto' | 'high' | 'standard' | 'saver';
 

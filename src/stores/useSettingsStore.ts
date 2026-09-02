@@ -8,7 +8,6 @@ interface SettingsState extends AppSettings {
   isAiPromptModalOpen: boolean;
   isWaveTagModalOpen: boolean;
   isCreditsModalOpen: boolean;
-  isJamModalOpen: boolean;
   activeCreditsTrack: Track | null;
   activeWaveTagData: { title: string; subtitle: string; coverUrl: string; id: string; type: 'track' | 'playlist' } | null;
 
@@ -18,7 +17,6 @@ interface SettingsState extends AppSettings {
   setAiPromptModalOpen: (open: boolean) => void;
   setWaveTagModalOpen: (open: boolean, data?: SettingsState['activeWaveTagData']) => void;
   setCreditsModalOpen: (open: boolean, track?: Track | null) => void;
-  setJamModalOpen: (open: boolean) => void;
   setStreamingQuality: (quality: QualityTier) => void;
   setDataSaverEnabled: (enabled: boolean) => void;
   setCellularQuality: (quality: 'standard' | 'saver') => void;
@@ -73,7 +71,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   isAiPromptModalOpen: false,
   isWaveTagModalOpen: false,
   isCreditsModalOpen: false,
-  isJamModalOpen: false,
   activeCreditsTrack: null,
   activeWaveTagData: null,
 
@@ -82,7 +79,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setAiPromptModalOpen: (open) => set({ isAiPromptModalOpen: open }),
   setWaveTagModalOpen: (open, data) => set({ isWaveTagModalOpen: open, activeWaveTagData: data || null }),
   setCreditsModalOpen: (open, track) => set({ isCreditsModalOpen: open, activeCreditsTrack: track || null }),
-  setJamModalOpen: (open) => set({ isJamModalOpen: open }),
   setStreamingQuality: (quality) => set({ streamingQuality: quality }),
   setDataSaverEnabled: (enabled) => set({ dataSaverEnabled: enabled }),
   setCellularQuality: (quality) => set({ cellularQuality: quality }),

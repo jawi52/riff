@@ -6,7 +6,7 @@ import { Logo } from '../common/Logo';
 
 export const AuthModal: React.FC = () => {
   const { isAuthModalOpen, setAuthModalOpen } = useSettingsStore();
-  const { login, register, loginWithGoogle, isLoading, authError, clearError } = useAuthStore();
+  const { login, register, isLoading, authError, clearError } = useAuthStore();
 
   const [mode, setMode] = useState<'login' | 'register'>('register');
   const [email, setEmail] = useState('');
@@ -20,7 +20,7 @@ export const AuthModal: React.FC = () => {
     if (!email || !password) return;
 
     if (mode === 'login') {
-      const ok = await login(email, password);
+      const ok = await login(email, password, true);
       if (ok) setAuthModalOpen(false);
     } else {
       const ok = await register(email, password, displayName || email.split('@')[0]);
@@ -97,40 +97,6 @@ export const AuthModal: React.FC = () => {
           >
             CREATE ACCOUNT
           </button>
-        </div>
-
-        {/* Google 1-Click Login */}
-        <button
-          type="button"
-          onClick={loginWithGoogle}
-          disabled={isLoading}
-          className="w-full py-2.5 px-4 rounded-2xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/15 text-white text-xs font-bold flex items-center justify-center gap-2.5 transition active:scale-95 cursor-pointer"
-        >
-          <svg className="w-4 h-4" viewBox="0 0 24 24">
-            <path
-              fill="#EA4335"
-              d="M12 5c1.54 0 2.92.53 4.02 1.4l3.01-3.01C17.21 1.7 14.78 1 12 1 7.42 1 3.54 3.61 1.67 7.41l3.75 2.91C6.31 7.23 8.91 5 12 5z"
-            />
-            <path
-              fill="#4285F4"
-              d="M23.49 12.28c0-.79-.07-1.54-.19-2.28H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58l3.72 2.89c2.18-2.01 3.7-4.97 3.7-8.7z"
-            />
-            <path
-              fill="#FBBC05"
-              d="M5.42 14.68c-.23-.69-.36-1.43-.36-2.18s.13-1.49.36-2.18L1.67 7.41C.61 9.53 0 11.94 0 14.5s.61 4.97 1.67 7.09l3.75-2.91z"
-            />
-            <path
-              fill="#34A853"
-              d="M12 23.5c3.24 0 5.95-1.08 7.93-2.91l-3.72-2.89c-1.04.7-2.38 1.11-4.21 1.11-3.09 0-5.69-2.23-6.58-5.32L1.67 16.4C3.54 20.39 7.42 23.5 12 23.5z"
-            />
-          </svg>
-          <span>Continue with Google</span>
-        </button>
-
-        <div className="flex items-center gap-3">
-          <div className="flex-1 h-px bg-white/10" />
-          <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">or email</span>
-          <div className="flex-1 h-px bg-white/10" />
         </div>
 
         {/* Email & Password Form */}

@@ -7,11 +7,6 @@ import {
   Loader2,
   X,
   Clock,
-  CheckCircle2,
-  ListMusic,
-  Disc,
-  User,
-  Music2,
   ArrowUpRight,
   ChevronLeft
 } from 'lucide-react';
@@ -761,8 +756,8 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery = '
                   }}
                   className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                     isActive
-                      ? 'bg-white text-black shadow-md scale-[1.02]'
-                      : 'bg-white/[0.06] text-neutral-300 hover:bg-white/[0.12] hover:text-white border border-white/[0.06]'
+                      ? 'bg-white text-black shadow-md'
+                      : 'bg-[#242424] text-neutral-200 hover:bg-[#2a2a2a] hover:text-white'
                   }`}
                 >
                   {chip.label}
@@ -771,193 +766,271 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery = '
             })}
           </div>
 
-          {/* A. TOP RESULT HERO (Shown on 'all' or 'songs') */}
-          {(activeFilter === 'all' || activeFilter === 'songs') && results.topResult && (
-            <div className="space-y-2.5">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-400">
-                Top Result
-              </h3>
-
-              <div
-                onClick={() => {
-                  saveRecentItem({
-                    id: results.topResult!.id,
-                    title: results.topResult!.title,
-                    subtitle: `Song • ${results.topResult!.artist}`,
-                    type: 'song',
-                    coverUrl: results.topResult!.coverUrl,
-                    trackData: results.topResult!
-                  });
-                  playTrack(results.topResult!, results.tracks);
-                }}
-                className="group relative p-4 md:p-5 rounded-3xl glass-panel hover:border-white/20 cursor-pointer transition-all duration-300 shadow-xl flex flex-col sm:flex-row items-center gap-4"
-              >
-                <img
-                  src={results.topResult.coverUrl}
-                  alt={results.topResult.title}
-                  className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl object-cover shadow-2xl flex-shrink-0 border border-white/10"
-                />
-
-                <div className="flex-1 text-center sm:text-left min-w-0 space-y-1">
-                  <h2 className="text-lg md:text-xl font-black text-white truncate group-hover:text-neutral-200 transition">
-                    {results.topResult.title}
-                  </h2>
-                  <p className="text-xs md:text-sm font-semibold text-neutral-400 truncate">
-                    {results.topResult.artist}
-                  </p>
-                  <div className="flex items-center justify-center sm:justify-start gap-2 pt-1">
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-white/10 text-neutral-300 border border-white/10">
-                      Song • 320k
-                    </span>
-                    <span className="text-xs font-mono text-neutral-500">
-                      {formatDuration(results.topResult.duration)}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="w-12 h-12 rounded-full bg-white text-black flex items-center justify-center shadow-2xl group-hover:scale-105 active:scale-95 transition flex-shrink-0">
-                  <Play className="w-6 h-6 fill-current ml-0.5" />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* B. ARTISTS SECTION (Shown on 'all' or 'artists') */}
-          {(activeFilter === 'all' || activeFilter === 'artists') && derivedArtists.length > 0 && (
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <User className="w-4 h-4 text-cyan-400" />
-                <h3 className="text-sm md:text-base font-bold text-white tracking-tight">Artists</h3>
-              </div>
-
-              <div className="flex gap-4 overflow-x-auto no-scrollbar pb-1">
-                {derivedArtists.map((artist, idx) => (
-                  <div
-                    key={idx}
-                    onClick={() => {
-                      saveRecentItem({
-                        id: `art_${artist.name}`,
-                        title: artist.name,
-                        subtitle: 'Artist',
-                        type: 'artist',
-                        coverUrl: artist.avatarUrl
-                      });
-                      navigateToArtist(artist.name);
-                    }}
-                    className="flex flex-col items-center space-y-2 flex-shrink-0 cursor-pointer group w-20 md:w-24"
-                  >
-                    <div className="relative w-18 h-18 md:w-22 md:h-22 rounded-full overflow-hidden shadow-xl border border-white/10 group-hover:border-white/30 transition-all p-0.5 bg-white/[0.04]">
-                      <img src={artist.avatarUrl} alt={artist.name} className="w-full h-full object-cover rounded-full group-hover:scale-105 transition-transform duration-500" />
-                    </div>
-                    <div className="text-center w-full space-y-0.5">
-                      <div className="flex items-center justify-center gap-1">
-                        <p className="text-xs font-bold text-white truncate group-hover:text-neutral-200 transition">{artist.name}</p>
-                        <CheckCircle2 className="w-3 h-3 text-white/80 fill-white/20 flex-shrink-0" />
-                      </div>
-                      <span className="text-[10px] text-neutral-500 block truncate">Artist</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* C. MATCHING PLAYLISTS (Shown on 'all' or 'playlists') */}
-          {(activeFilter === 'all' || activeFilter === 'playlists') && matchingPlaylists.length > 0 && (
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <ListMusic className="w-4 h-4 text-violet-400" />
-                <h3 className="text-sm md:text-base font-bold text-white tracking-tight">Playlists & Mixes</h3>
-              </div>
-
-              <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
-                {matchingPlaylists.map((pl) => (
-                  <div
-                    key={pl.id}
-                    onClick={() => {
-                      saveRecentItem({
-                        id: pl.id,
-                        title: pl.title,
-                        subtitle: 'Playlist',
-                        type: 'playlist',
-                        coverUrl: pl.coverUrl
-                      });
-                      if (pl.tracks && pl.tracks.length > 0) {
-                        playTrack(pl.tracks[0], pl.tracks);
-                      }
-                    }}
-                    className="group p-3 rounded-2xl glass-card cursor-pointer w-36 sm:w-44 flex-shrink-0 transition-all hover:scale-[1.02]"
-                  >
-                    <div className="relative aspect-square rounded-xl overflow-hidden mb-2 shadow-md bg-neutral-900">
-                      <img src={pl.coverUrl} alt={pl.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                      <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <div className="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center shadow-xl">
-                          <Play className="w-4 h-4 fill-current ml-0.5" />
+          {/* ========================================================================= */}
+          {/* TAB 1: ALL (SPOTIFY 2-COLUMN HERO + SUBSECTIONS) */}
+          {/* ========================================================================= */}
+          {activeFilter === 'all' && (
+            <div className="space-y-8">
+              {/* Row 1: Top Result (Left 5 cols) + Songs (Right 7 cols) */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                {/* Left: Top Result */}
+                <div className="lg:col-span-5 space-y-3">
+                  <h3 className="text-xl md:text-2xl font-black text-white tracking-tight">Top result</h3>
+                  {results.topResult && (
+                    <div
+                      onClick={() => {
+                        saveRecentItem({
+                          id: results.topResult!.id,
+                          title: results.topResult!.title,
+                          subtitle: `Song • ${results.topResult!.artist}`,
+                          type: 'song',
+                          coverUrl: results.topResult!.coverUrl,
+                          trackData: results.topResult!
+                        });
+                        playTrack(results.topResult!, results.tracks);
+                      }}
+                      className="group relative p-5 rounded-lg bg-[#181818] hover:bg-[#282828] transition-all duration-200 cursor-pointer flex flex-col justify-between min-h-[220px]"
+                    >
+                      <div className="space-y-4">
+                        <img
+                          src={results.topResult.coverUrl}
+                          alt={results.topResult.title}
+                          className="w-24 h-24 rounded-md object-cover shadow-2xl"
+                        />
+                        <div>
+                          <h2 className="text-2xl lg:text-3xl font-black text-white tracking-tight truncate group-hover:underline">
+                            {results.topResult.title}
+                          </h2>
+                          <div className="flex items-center gap-2 text-xs md:text-sm text-neutral-400 mt-1">
+                            <span
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigateToArtist(results.topResult!.artist);
+                              }}
+                              className="font-bold text-white hover:underline cursor-pointer truncate"
+                            >
+                              {results.topResult.artist}
+                            </span>
+                            <span>•</span>
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-black/60 text-white border border-white/10">
+                              Song
+                            </span>
+                            {results.topResult.sourceType === 'riff-engine' && (
+                              <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-[#1db954]/20 text-[#1db954] border border-[#1db954]/30">
+                                ⚡ 320k
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <h4 className="text-xs font-bold text-white truncate">{pl.title}</h4>
-                    <p className="text-[11px] text-neutral-400 truncate">Playlist</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
-          {/* D. MATCHING ALBUMS (Shown on 'all' or 'albums') */}
-          {(activeFilter === 'all' || activeFilter === 'albums') && derivedAlbums.length > 0 && (
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Disc className="w-4 h-4 text-amber-400" />
-                <h3 className="text-sm md:text-base font-bold text-white tracking-tight">Albums</h3>
-              </div>
-
-              <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
-                {derivedAlbums.map((album) => (
-                  <div
-                    key={album.id}
-                    onClick={() => {
-                      saveRecentItem({
-                        id: album.id,
-                        title: album.title,
-                        subtitle: `Album • ${album.artist}`,
-                        type: 'album',
-                        coverUrl: album.coverUrl
-                      });
-                      const albumTracks = results.tracks.filter((t) => t.album === album.title);
-                      if (albumTracks.length > 0) {
-                        playTrack(albumTracks[0], albumTracks);
-                      }
-                    }}
-                    className="group p-3 rounded-2xl glass-card cursor-pointer w-36 sm:w-44 flex-shrink-0 transition-all hover:scale-[1.02]"
-                  >
-                    <div className="relative aspect-square rounded-xl overflow-hidden mb-2 shadow-md bg-neutral-900">
-                      <img src={album.coverUrl} alt={album.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                      <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <div className="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center shadow-xl">
-                          <Play className="w-4 h-4 fill-current ml-0.5" />
-                        </div>
+                      {/* Floating Spotify Green Play Button */}
+                      <div className="absolute bottom-5 right-5 w-12 h-12 rounded-full bg-[#1db954] text-black flex items-center justify-center shadow-2xl opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-200">
+                        {currentTrack?.id === results.topResult.id && playbackState === 'playing' ? (
+                          <Pause className="w-6 h-6 fill-current" />
+                        ) : (
+                          <Play className="w-6 h-6 fill-current ml-0.5" />
+                        )}
                       </div>
                     </div>
-                    <h4 className="text-xs font-bold text-white truncate">{album.title}</h4>
-                    <p className="text-[11px] text-neutral-400 truncate">{album.artist}</p>
+                  )}
+                </div>
+
+                {/* Right: Songs (Top 4 Rows) */}
+                <div className="lg:col-span-7 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xl md:text-2xl font-black text-white tracking-tight">Songs</h3>
+                    <button
+                      onClick={() => setActiveFilter('songs')}
+                      className="text-xs font-bold text-neutral-400 hover:text-white hover:underline cursor-pointer"
+                    >
+                      See all
+                    </button>
                   </div>
-                ))}
+
+                  <div className="space-y-1">
+                    {results.tracks.slice(0, 4).map((track, i) => {
+                      const isPlaying = currentTrack?.id === track.id && playbackState === 'playing';
+                      const isLiked = likedTracks.some((t) => t.id === track.id);
+                      return (
+                        <div
+                          key={`${track.id}_${i}`}
+                          onClick={() => {
+                            saveRecentItem({
+                              id: track.id,
+                              title: track.title,
+                              subtitle: `Song • ${track.artist}`,
+                              type: 'song',
+                              coverUrl: track.coverUrl,
+                              trackData: track
+                            });
+                            playTrack(track, results.tracks);
+                          }}
+                          className="group flex items-center justify-between p-2 rounded-md hover:bg-white/10 active:bg-white/15 transition cursor-pointer"
+                        >
+                          <div className="flex items-center gap-3 min-w-0 flex-1 pr-3">
+                            <div className="relative w-10 h-10 rounded overflow-hidden shrink-0 bg-neutral-900">
+                              <img src={track.coverUrl} alt="" className="w-full h-full object-cover" />
+                              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                {isPlaying ? (
+                                  <Pause className="w-4 h-4 fill-current text-white" />
+                                ) : (
+                                  <Play className="w-4 h-4 fill-current text-white ml-0.5" />
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="min-w-0 flex-1">
+                              <p className={`text-sm font-bold truncate ${isPlaying ? 'text-[#1db954]' : 'text-white'}`}>
+                                {track.title}
+                              </p>
+                              <p className="text-xs text-neutral-400 truncate hover:underline hover:text-white transition">
+                                {track.artist}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleLikeTrack(track);
+                              }}
+                              className={`p-1.5 rounded-full transition cursor-pointer ${
+                                isLiked ? 'text-[#1db954]' : 'text-neutral-500 hover:text-white opacity-0 group-hover:opacity-100'
+                              }`}
+                            >
+                              <Heart className={`w-4 h-4 ${isLiked ? 'fill-[#1db954]' : ''}`} />
+                            </button>
+                            <span className="text-xs font-mono text-neutral-400 w-10 text-right">
+                              {formatDuration(track.duration)}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
+
+              {/* Artists Row */}
+              {derivedArtists.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-xl md:text-2xl font-black text-white tracking-tight">Artists</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    {derivedArtists.slice(0, 6).map((artist, idx) => (
+                      <div
+                        key={idx}
+                        onClick={() => navigateToArtist(artist.name)}
+                        className="p-4 rounded-lg bg-[#181818] hover:bg-[#282828] transition-all cursor-pointer group flex flex-col items-center text-center space-y-3"
+                      >
+                        <div className="relative w-28 h-28 rounded-full overflow-hidden shadow-xl bg-neutral-900">
+                          <img
+                            src={artist.avatarUrl}
+                            alt=""
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                        </div>
+                        <div className="w-full">
+                          <p className="text-sm font-bold text-white truncate">{artist.name}</p>
+                          <p className="text-xs text-neutral-400 mt-0.5">Artist</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Albums Row */}
+              {derivedAlbums.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-xl md:text-2xl font-black text-white tracking-tight">Albums</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    {derivedAlbums.slice(0, 6).map((alb, idx) => (
+                      <div
+                        key={idx}
+                        onClick={() => {
+                          const albTracks = results.tracks.filter((t) => t.album === alb.title);
+                          if (albTracks.length > 0) playTrack(albTracks[0], albTracks);
+                        }}
+                        className="p-4 rounded-lg bg-[#181818] hover:bg-[#282828] transition-all cursor-pointer group space-y-3"
+                      >
+                        <div className="relative aspect-square rounded-md overflow-hidden shadow-xl bg-neutral-900">
+                          <img
+                            src={alb.coverUrl}
+                            alt=""
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                          <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-all translate-y-1 group-hover:translate-y-0">
+                            <div className="w-10 h-10 rounded-full bg-[#1db954] text-black flex items-center justify-center shadow-xl hover:scale-105 transition-transform">
+                              <Play className="w-4 h-4 fill-current ml-0.5" />
+                            </div>
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-white truncate">{alb.title}</p>
+                          <p className="text-xs text-neutral-400 truncate mt-0.5">{alb.artist}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Playlists Row */}
+              {matchingPlaylists.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-xl md:text-2xl font-black text-white tracking-tight">Playlists</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    {matchingPlaylists.slice(0, 6).map((pl) => (
+                      <div
+                        key={pl.id}
+                        onClick={() => {
+                          if (pl.tracks && pl.tracks.length > 0) playTrack(pl.tracks[0], pl.tracks);
+                        }}
+                        className="p-4 rounded-lg bg-[#181818] hover:bg-[#282828] transition-all cursor-pointer group space-y-3"
+                      >
+                        <div className="relative aspect-square rounded-md overflow-hidden shadow-xl bg-neutral-900">
+                          <img
+                            src={pl.coverUrl}
+                            alt=""
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                          <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-all translate-y-1 group-hover:translate-y-0">
+                            <div className="w-10 h-10 rounded-full bg-[#1db954] text-black flex items-center justify-center shadow-xl hover:scale-105 transition-transform">
+                              <Play className="w-4 h-4 fill-current ml-0.5" />
+                            </div>
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-white truncate">{pl.title}</p>
+                          <p className="text-xs text-neutral-400 truncate mt-0.5">By Riff</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
-          {/* E. ALL SONGS LIST (Shown on 'all' or 'songs') */}
-          {(activeFilter === 'all' || activeFilter === 'songs') && results.tracks.length > 0 && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 px-1">
-                <Music2 className="w-4 h-4 text-emerald-400" />
-                <h3 className="text-sm md:text-base font-bold text-white tracking-tight">
-                  Songs ({results.tracks.length})
-                </h3>
+          {/* ========================================================================= */}
+          {/* TAB 2: SONGS ONLY (FULL SPOTIFY TRACKLIST TABLE) */}
+          {/* ========================================================================= */}
+          {activeFilter === 'songs' && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between border-b border-white/10 pb-2 px-3 text-xs font-mono text-neutral-400">
+                <div className="flex items-center gap-4">
+                  <span className="w-6 text-center">#</span>
+                  <span>TITLE</span>
+                </div>
+                <div className="flex items-center gap-8">
+                  <span className="hidden md:inline">ALBUM</span>
+                  <span>TIME</span>
+                </div>
               </div>
 
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 {results.tracks.map((track, i) => {
                   const isPlaying = currentTrack?.id === track.id && playbackState === 'playing';
                   const isLiked = likedTracks.some((t) => t.id === track.id);
@@ -975,40 +1048,52 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery = '
                         });
                         playTrack(track, results.tracks);
                       }}
-                      className="group flex items-center gap-3.5 p-2.5 rounded-2xl hover:bg-white/[0.04] active:bg-white/[0.08] transition cursor-pointer"
+                      className="group flex items-center justify-between p-2.5 rounded-md hover:bg-white/10 active:bg-white/15 transition cursor-pointer"
                     >
-                      <span className="w-4 text-center text-xs font-mono text-neutral-500 group-hover:hidden">
-                        {i + 1}
-                      </span>
-                      <div className="w-4 hidden group-hover:flex items-center justify-center text-white">
-                        {isPlaying ? <Pause className="w-3.5 h-3.5 fill-current" /> : <Play className="w-3.5 h-3.5 fill-current ml-0.5" />}
+                      <div className="flex items-center gap-3 min-w-0 flex-1 pr-4">
+                        <span className="w-6 text-center text-xs font-mono text-neutral-500 group-hover:hidden">
+                          {i + 1}
+                        </span>
+                        <div className="w-6 hidden group-hover:flex items-center justify-center text-white">
+                          {isPlaying ? (
+                            <Pause className="w-3.5 h-3.5 fill-current" />
+                          ) : (
+                            <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
+                          )}
+                        </div>
+
+                        <img
+                          src={track.coverUrl}
+                          alt=""
+                          className="w-10 h-10 rounded object-cover shadow-sm shrink-0"
+                        />
+
+                        <div className="min-w-0 flex-1">
+                          <p className={`text-sm font-bold truncate ${isPlaying ? 'text-[#1db954]' : 'text-white'}`}>
+                            {track.title}
+                          </p>
+                          <p className="text-xs text-neutral-400 truncate hover:underline hover:text-white transition">
+                            {track.artist}
+                          </p>
+                        </div>
                       </div>
 
-                      <img
-                        src={track.coverUrl}
-                        alt={track.title}
-                        className="w-11 h-11 rounded-xl object-cover shadow-sm flex-shrink-0"
-                      />
-
-                      <div className="flex-1 min-w-0">
-                        <p className={`text-xs md:text-sm font-bold truncate ${isPlaying ? 'text-cyan-400 underline' : 'text-white'}`}>
-                          {track.title}
-                        </p>
-                        <p className="text-[11px] md:text-xs text-neutral-400 truncate">{track.artist}</p>
-                      </div>
-
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-6">
+                        <span className="text-xs text-neutral-400 truncate max-w-[140px] hidden md:inline">
+                          {track.album || 'Single'}
+                        </span>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (navigator.vibrate) navigator.vibrate(15);
                             toggleLikeTrack(track);
                           }}
-                          className="p-1.5 rounded-full text-neutral-500 hover:text-white transition cursor-pointer"
+                          className={`p-1.5 transition cursor-pointer ${
+                            isLiked ? 'text-[#1db954]' : 'text-neutral-500 hover:text-white opacity-0 group-hover:opacity-100'
+                          }`}
                         >
-                          <Heart className={`w-4 h-4 ${isLiked ? 'fill-rose-500 text-rose-500' : ''}`} />
+                          <Heart className={`w-4 h-4 ${isLiked ? 'fill-[#1db954]' : ''}`} />
                         </button>
-                        <span className="text-[11px] font-mono text-neutral-500">
+                        <span className="text-xs font-mono text-neutral-400 w-10 text-right">
                           {formatDuration(track.duration)}
                         </span>
                       </div>
@@ -1016,6 +1101,102 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery = '
                   );
                 })}
               </div>
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* TAB 3: ARTISTS ONLY */}
+          {/* ========================================================================= */}
+          {activeFilter === 'artists' && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {derivedArtists.map((artist, idx) => (
+                <div
+                  key={idx}
+                  onClick={() => navigateToArtist(artist.name)}
+                  className="p-4 rounded-lg bg-[#181818] hover:bg-[#282828] transition-all cursor-pointer group flex flex-col items-center text-center space-y-3"
+                >
+                  <div className="relative w-32 h-32 rounded-full overflow-hidden shadow-xl bg-neutral-900">
+                    <img
+                      src={artist.avatarUrl}
+                      alt=""
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                  <div className="w-full">
+                    <p className="text-sm font-bold text-white truncate">{artist.name}</p>
+                    <p className="text-xs text-neutral-400 mt-0.5">Artist</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* TAB 4: ALBUMS ONLY */}
+          {/* ========================================================================= */}
+          {activeFilter === 'albums' && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {derivedAlbums.map((alb, idx) => (
+                <div
+                  key={idx}
+                  onClick={() => {
+                    const albTracks = results.tracks.filter((t) => t.album === alb.title);
+                    if (albTracks.length > 0) playTrack(albTracks[0], albTracks);
+                  }}
+                  className="p-4 rounded-lg bg-[#181818] hover:bg-[#282828] transition-all cursor-pointer group space-y-3"
+                >
+                  <div className="relative aspect-square rounded-md overflow-hidden shadow-xl bg-neutral-900">
+                    <img
+                      src={alb.coverUrl}
+                      alt=""
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-all translate-y-1 group-hover:translate-y-0">
+                      <div className="w-10 h-10 rounded-full bg-[#1db954] text-black flex items-center justify-center shadow-xl hover:scale-105 transition-transform">
+                        <Play className="w-4 h-4 fill-current ml-0.5" />
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-white truncate">{alb.title}</p>
+                    <p className="text-xs text-neutral-400 truncate mt-0.5">{alb.artist}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* TAB 5: PLAYLISTS ONLY */}
+          {/* ========================================================================= */}
+          {activeFilter === 'playlists' && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {matchingPlaylists.map((pl) => (
+                <div
+                  key={pl.id}
+                  onClick={() => {
+                    if (pl.tracks && pl.tracks.length > 0) playTrack(pl.tracks[0], pl.tracks);
+                  }}
+                  className="p-4 rounded-lg bg-[#181818] hover:bg-[#282828] transition-all cursor-pointer group space-y-3"
+                >
+                  <div className="relative aspect-square rounded-md overflow-hidden shadow-xl bg-neutral-900">
+                    <img
+                      src={pl.coverUrl}
+                      alt=""
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-all translate-y-1 group-hover:translate-y-0">
+                      <div className="w-10 h-10 rounded-full bg-[#1db954] text-black flex items-center justify-center shadow-xl hover:scale-105 transition-transform">
+                        <Play className="w-4 h-4 fill-current ml-0.5" />
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-white truncate">{pl.title}</p>
+                    <p className="text-xs text-neutral-400 truncate mt-0.5">By Riff</p>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
 

@@ -12,8 +12,7 @@ export const SettingsDrawer: React.FC = () => {
     streamingQuality,
     setStreamingQuality,
     dataSaverEnabled,
-    setDataSaverEnabled,
-    setAuthModalOpen
+    setDataSaverEnabled
   } = useSettingsStore();
 
   const { user, logout } = useAuthStore();
@@ -60,31 +59,26 @@ export const SettingsDrawer: React.FC = () => {
           {/* Account Card */}
           <div className="p-4 rounded-2xl glass-card-editorial border border-white/[0.08] space-y-3">
             <div className="flex items-center gap-3.5">
-              <img src={user.avatarUrl} alt="" className="w-12 h-12 rounded-full object-cover ring-2 ring-[#1db954]/50" />
+              <img
+                src={user?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&q=80'}
+                alt=""
+                className="w-12 h-12 rounded-full object-cover ring-2 ring-[#1db954]/50"
+              />
               <div className="min-w-0 flex-1">
-                <h4 className="text-sm font-bold font-mono text-white truncate">{user.displayName}</h4>
-                <p className="text-xs font-mono text-neutral-400 truncate">{user.isGuest ? 'GUEST SESSION // LOCAL' : user.email}</p>
+                <h4 className="text-sm font-bold font-mono text-white truncate">{user?.displayName || 'Active User'}</h4>
+                <p className="text-xs font-mono text-neutral-400 truncate">{user?.email || '30-Day Session Active'}</p>
               </div>
             </div>
 
-            {user.isGuest ? (
-              <button
-                onClick={() => {
-                  setSettingsOpen(false);
-                  setAuthModalOpen(true);
-                }}
-                className="w-full py-2.5 px-4 rounded-xl btn-spotify-emerald text-black text-xs font-mono font-black tracking-wider uppercase shadow-md transition-all"
-              >
-                UPGRADE TO RIFF CLOUD
-              </button>
-            ) : (
-              <button
-                onClick={logout}
-                className="w-full py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 text-neutral-300 text-xs font-mono font-bold uppercase transition-all"
-              >
-                SIGN OUT
-              </button>
-            )}
+            <button
+              onClick={() => {
+                setSettingsOpen(false);
+                logout();
+              }}
+              className="w-full py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 text-neutral-300 text-xs font-mono font-bold uppercase transition-all cursor-pointer"
+            >
+              SIGN OUT
+            </button>
           </div>
 
           {/* Audio Quality Tiers */}

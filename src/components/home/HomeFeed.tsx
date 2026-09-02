@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Play,
   Pause,
@@ -9,7 +9,7 @@ import {
   ListMusic,
   Sparkles,
   TrendingUp,
-  Users
+  Disc
 } from 'lucide-react';
 import { usePlayerStore } from '../../stores/usePlayerStore';
 import { useLibraryStore } from '../../stores/useLibraryStore';
@@ -21,7 +21,9 @@ import {
   getRecommendedPlaylists,
   PAKISTAN_TRENDING_TRACKS,
   HeroCardItem,
-  GLOBAL_CATALOG
+  GLOBAL_CATALOG,
+  fetchRealCharts,
+  RealChartsData
 } from '../../lib/algorithm';
 
 const TOP_CURATED_ARTISTS = [
@@ -56,11 +58,43 @@ interface HomeFeedProps {
 export const HomeFeed: React.FC<HomeFeedProps> = () => {
   const { playTrack, currentTrack, playbackState, navigateToArtist } = usePlayerStore();
   const { likedTracks, playlists } = useLibraryStore();
-  const { setAiPromptModalOpen, setJamModalOpen } = useSettingsStore();
+  const { setAiPromptModalOpen } = useSettingsStore();
 
   // 5-Card Everyday Taste Carousel State
   const [heroIndex, setHeroIndex] = useState(0);
   const touchStartX = useRef<number | null>(null);
+
+  const handleHeroTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleHeroTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const diffX = e.changedTouches[0].clientX - touchStartX.current;
+    if (diffX < -40) {
+      if (navigator.vibrate) navigator.vibrate(10);
+      setHeroIndex((prev) => (prev + 1) % 5);
+    } else if (diffX > 40) {
+      if (navigator.vibrate) navigator.vibrate(10);
+      setHeroIndex((prev) => (prev - 1 + 5) % 5);
+    }
+    touchStartX.current = null;
+  };
+
+  // Live Real Charts from Riff-Engine
+  const [realData, setRealData] = useState<RealChartsData | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    fetchRealCharts().then((data) => {
+      if (isMounted && data) {
+        setRealData(data);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const heroItems: HeroCardItem[] = getHeroTasteTracks(likedTracks, []);
   const currentHero = heroItems[heroIndex] || heroItems[0];
@@ -85,35 +119,24 @@ export const HomeFeed: React.FC<HomeFeedProps> = () => {
       ? { title: `${currentDay} Sunset Chillout & Highway`, desc: 'Melodic pop, neo-soul & evening highway cruise', badge: 'daylist • sunset' }
       : { title: `${currentDay} Night Drive & Phonk Energy`, desc: 'Heavy trap, phonk & midnight basslines', badge: 'daylist • night' };
 
-  const daylistTracks = GLOBAL_CATALOG.slice(0, 15);
+  const daylistTracks = realData && realData.topTracks.length > 0 ? realData.topTracks : GLOBAL_CATALOG.slice(0, 15);
 
-  // Hero Touch Gesture Handlers
-  const handleHeroTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-  };
-
-  const handleHeroTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartX.current === null) return;
-    const diffX = e.changedTouches[0].clientX - touchStartX.current;
-    if (diffX < -40) {
-      if (navigator.vibrate) navigator.vibrate(10);
-      setHeroIndex((prev) => (prev + 1) % heroItems.length);
-    } else if (diffX > 40) {
-      if (navigator.vibrate) navigator.vibrate(10);
-      setHeroIndex((prev) => (prev - 1 + heroItems.length) % heroItems.length);
-    }
-    touchStartX.current = null;
-  };
-
-  // 6 Quick-Access Jump Tiles
-  const quickAccessTiles = [
-    { title: 'Downers at Dusk', subtitle: 'Talha Anjum, Umair', cover: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=400&q=80', track: PAKISTAN_TRENDING_TRACKS[0] },
-    { title: 'Pasoori', subtitle: 'Ali Sethi, Shae Gill', cover: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&q=80', track: PAKISTAN_TRENDING_TRACKS[1] },
-    { title: 'After Hours', subtitle: 'The Weeknd', cover: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=400&q=80', track: GLOBAL_CATALOG.find((t) => t.id === 'trk_blinding_lights') || GLOBAL_CATALOG[0] },
-    { title: 'Kahani Suno 2.0', subtitle: 'Kaifi Khalil', cover: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=400&q=80', track: PAKISTAN_TRENDING_TRACKS[2] },
-    { title: 'Bikhra', subtitle: 'Abdul Hannan, Rovalio', cover: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=400&q=80', track: PAKISTAN_TRENDING_TRACKS[3] },
-    { title: 'Lover', subtitle: 'Diljit Dosanjh', cover: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&q=80', track: GLOBAL_CATALOG.find((t) => t.id === 'trk_lover_diljit') || GLOBAL_CATALOG[4] }
-  ];
+  // 6 Quick-Access Jump Tiles (Real data from Riff-Engine charts if available)
+  const quickAccessTiles = realData && realData.topTracks.length >= 6
+    ? realData.topTracks.slice(0, 6).map((t) => ({
+        title: t.title,
+        subtitle: t.artist,
+        cover: t.coverUrl,
+        track: t
+      }))
+    : [
+        { title: 'Downers at Dusk', subtitle: 'Talha Anjum, Umair', cover: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=400&q=80', track: PAKISTAN_TRENDING_TRACKS[0] },
+        { title: 'Pasoori', subtitle: 'Ali Sethi, Shae Gill', cover: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&q=80', track: PAKISTAN_TRENDING_TRACKS[1] },
+        { title: 'After Hours', subtitle: 'The Weeknd', cover: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=400&q=80', track: GLOBAL_CATALOG.find((t) => t.id === 'trk_blinding_lights') || GLOBAL_CATALOG[0] },
+        { title: 'Kahani Suno 2.0', subtitle: 'Kaifi Khalil', cover: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=400&q=80', track: PAKISTAN_TRENDING_TRACKS[2] },
+        { title: 'Bikhra', subtitle: 'Abdul Hannan, Rovalio', cover: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=400&q=80', track: PAKISTAN_TRENDING_TRACKS[3] },
+        { title: 'Lover', subtitle: 'Diljit Dosanjh', cover: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&q=80', track: GLOBAL_CATALOG.find((t) => t.id === 'trk_lover_diljit') || GLOBAL_CATALOG[4] }
+      ];
 
   return (
     <div className="space-y-6 pb-6 select-none animate-in fade-in duration-300">
@@ -136,14 +159,6 @@ export const HomeFeed: React.FC<HomeFeedProps> = () => {
           >
             <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
             <span>AI Prompt DJ</span>
-          </button>
-
-          <button
-            onClick={() => setJamModalOpen(true)}
-            className="px-3.5 py-1.5 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-white text-xs font-bold flex items-center gap-1.5 transition cursor-pointer active:scale-95"
-          >
-            <Users className="w-3.5 h-3.5 text-violet-400" />
-            <span>Riff Jam</span>
           </button>
         </div>
       </div>
@@ -282,23 +297,23 @@ export const HomeFeed: React.FC<HomeFeedProps> = () => {
               <div
                 key={i}
                 onClick={() => playTrack(tile.track)}
-                className="group relative flex items-center gap-3 glass-card active:scale-[0.98] rounded-xl overflow-hidden cursor-pointer p-0"
+                className="group relative flex items-center gap-3 bg-white/[0.06] hover:bg-white/[0.12] active:scale-[0.99] rounded-md overflow-hidden cursor-pointer transition"
               >
                 <img
                   src={tile.cover}
                   alt={tile.title}
-                  className="w-12 h-12 md:w-14 md:h-14 object-cover flex-shrink-0"
+                  className="w-12 h-12 md:w-14 md:h-14 object-cover flex-shrink-0 shadow-md"
                 />
                 <div className="min-w-0 flex-1 pr-2">
-                  <p className="text-xs md:text-sm font-bold text-white truncate group-hover:text-neutral-200 transition">
+                  <p className="text-xs md:text-sm font-bold text-white truncate transition">
                     {tile.title}
                   </p>
                   <p className="text-[10px] md:text-xs text-neutral-400 truncate">{tile.subtitle}</p>
                 </div>
 
                 <div className="mr-3 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:flex">
-                  <div className="w-7 h-7 rounded-full bg-white text-black flex items-center justify-center shadow-lg">
-                    {isPlaying ? <Pause className="w-3.5 h-3.5 fill-current" /> : <Play className="w-3.5 h-3.5 fill-current ml-0.5" />}
+                  <div className="w-8 h-8 rounded-full bg-[#1db954] text-black flex items-center justify-center shadow-xl hover:scale-105 transition-transform">
+                    {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}
                   </div>
                 </div>
               </div>
@@ -393,36 +408,116 @@ export const HomeFeed: React.FC<HomeFeedProps> = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* 6. MOST LISTENED ARTISTS (22+ Artists) */}
+      {/* 6. LIVE GLOBAL TOP CHARTS (RIFF-ENGINE 320K DIRECT) */}
+      {/* ========================================================================= */}
+      {realData && realData.topTracks.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Flame className="w-5 h-5 text-[#1db954]" />
+              <h2 className="text-lg md:text-xl font-bold text-white tracking-tight">Global Top Charts</h2>
+            </div>
+            <span className="text-[10px] font-black uppercase text-[#1db954] bg-[#1db954]/10 border border-[#1db954]/25 px-2.5 py-0.5 rounded-full">
+              ⚡ 320k Direct Stream
+            </span>
+          </div>
+
+          <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
+            {realData.topTracks.slice(0, 10).map((t, idx) => (
+              <div
+                key={t.id}
+                onClick={() => playTrack(t, realData.topTracks)}
+                className="group p-3 rounded-xl bg-[#181818] hover:bg-[#282828] border border-white/5 cursor-pointer w-36 sm:w-44 flex-shrink-0 transition-all"
+              >
+                <div className="relative aspect-square rounded-lg overflow-hidden mb-2.5 shadow-md bg-neutral-900">
+                  <img
+                    src={t.coverUrl}
+                    alt={t.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <div className="absolute top-2 left-2 w-5 h-5 rounded-full bg-black/80 backdrop-blur-md flex items-center justify-center text-[10px] font-mono font-bold text-white">
+                    {idx + 1}
+                  </div>
+                  <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-all translate-y-1 group-hover:translate-y-0">
+                    <div className="w-9 h-9 rounded-full bg-[#1db954] text-black flex items-center justify-center shadow-xl hover:scale-105 transition-transform">
+                      <Play className="w-4 h-4 fill-current ml-0.5" />
+                    </div>
+                  </div>
+                </div>
+                <h3 className="text-xs font-bold text-white truncate group-hover:text-[#1db954] transition-colors">{t.title}</h3>
+                <p className="text-[11px] text-neutral-400 truncate mt-0.5">{t.artist}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 7. MOST LISTENED & TRENDING ARTISTS (Real data from Riff-Engine) */}
       {/* ========================================================================= */}
       <div className="space-y-3">
         <h2 className="text-lg md:text-xl font-bold text-white tracking-tight">Most Listened Artists</h2>
 
         <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
-          {TOP_CURATED_ARTISTS.map((artist, idx) => (
+          {(realData && realData.trendingArtists.length > 0
+            ? realData.trendingArtists
+            : TOP_CURATED_ARTISTS.map((a) => ({ id: a.name, name: a.name, avatarUrl: a.avatar, genre: a.genre }))
+          ).map((artist, idx) => (
             <div
               key={idx}
               onClick={() => navigateToArtist(artist.name)}
-              className="flex flex-col items-center space-y-2 flex-shrink-0 cursor-pointer group w-20 md:w-24"
+              className="flex flex-col items-center space-y-2 flex-shrink-0 cursor-pointer group w-24 md:w-28 p-2 rounded-xl hover:bg-white/[0.04] transition"
             >
-              <div className="relative w-18 h-18 md:w-22 md:h-22 rounded-full overflow-hidden shadow-xl border border-white/10 group-hover:border-white/30 transition-all p-0.5 bg-white/[0.04]">
+              <div className="relative w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden shadow-xl border border-white/10 group-hover:border-[#1db954]/50 transition-all p-0.5 bg-[#181818]">
                 <img
-                  src={artist.avatar}
+                  src={artist.avatarUrl}
                   alt={artist.name}
                   className="w-full h-full object-cover rounded-full group-hover:scale-105 transition-transform duration-500"
                 />
               </div>
               <div className="text-center w-full space-y-0.5">
                 <div className="flex items-center justify-center gap-1">
-                  <p className="text-xs font-bold text-white truncate group-hover:text-neutral-200 transition">{artist.name}</p>
-                  <CheckCircle2 className="w-3 h-3 text-white/80 fill-white/20 flex-shrink-0" />
+                  <p className="text-xs font-bold text-white truncate group-hover:text-[#1db954] transition-colors">{artist.name}</p>
+                  <CheckCircle2 className="w-3 h-3 text-[#1db954] fill-current flex-shrink-0" />
                 </div>
-                <span className="text-[10px] text-neutral-500 block truncate">{artist.genre}</span>
+                <span className="text-[10px] text-neutral-500 block truncate">Artist</span>
               </div>
             </div>
           ))}
         </div>
       </div>
+
+      {/* ========================================================================= */}
+      {/* 8. TOP ALBUMS (Real data from Riff-Engine) */}
+      {/* ========================================================================= */}
+      {realData && realData.topAlbums.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Disc className="w-5 h-5 text-amber-400" />
+            <h2 className="text-lg md:text-xl font-bold text-white tracking-tight">Popular Albums</h2>
+          </div>
+
+          <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
+            {realData.topAlbums.map((alb) => (
+              <div
+                key={alb.id}
+                onClick={() => navigateToArtist(alb.artistName)}
+                className="group p-3 rounded-xl bg-[#181818] hover:bg-[#282828] border border-white/5 cursor-pointer w-36 sm:w-44 flex-shrink-0 transition-all"
+              >
+                <div className="relative aspect-square rounded-lg overflow-hidden mb-2.5 shadow-md bg-neutral-900">
+                  <img
+                    src={alb.coverUrl}
+                    alt={alb.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                </div>
+                <h3 className="text-xs font-bold text-white truncate group-hover:text-[#1db954] transition-colors">{alb.title}</h3>
+                <p className="text-[11px] text-neutral-400 truncate mt-0.5">{alb.artistName}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ========================================================================= */}
       {/* 7. YOUR TOP MIXES */}

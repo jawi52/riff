@@ -23,6 +23,7 @@ interface PlayerState {
   isQueueOpen: boolean;
   isEqualizerOpen: boolean;
   isRightSidebarOpen: boolean;
+  rightSidebarTab: 'nowplaying' | 'lyrics' | 'queue';
   activeLyricIndex: number;
   qualityTier: QualityTier;
   networkMode: 'wifi' | 'cellular';
@@ -59,6 +60,7 @@ interface PlayerState {
   setQueueOpen: (open: boolean) => void;
   setEqualizerOpen: (open: boolean) => void;
   setRightSidebarOpen: (open: boolean) => void;
+  setRightSidebarTab: (tab: 'nowplaying' | 'lyrics' | 'queue') => void;
   toggleRightSidebar: () => void;
   setQualityTier: (tier: QualityTier) => void;
   setNetworkMode: (mode: 'wifi' | 'cellular') => void;
@@ -92,6 +94,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   isQueueOpen: false,
   isEqualizerOpen: false,
   isRightSidebarOpen: true,
+  rightSidebarTab: 'nowplaying',
   activeLyricIndex: 0,
   qualityTier: 'auto',
   networkMode: 'wifi',
@@ -363,6 +366,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   setQueueOpen: (open) => set({ isQueueOpen: open }),
   setEqualizerOpen: (open) => set({ isEqualizerOpen: open }),
   setRightSidebarOpen: (open) => set({ isRightSidebarOpen: open }),
+  setRightSidebarTab: (tab) => set({ rightSidebarTab: tab, isRightSidebarOpen: true }),
   toggleRightSidebar: () => set((s) => ({ isRightSidebarOpen: !s.isRightSidebarOpen })),
   setQualityTier: (tier) => set({ qualityTier: tier }),
   setNetworkMode: (mode) => set({ networkMode: mode }),

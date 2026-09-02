@@ -908,3 +908,68 @@ export function getArtistProfile(artistName: string): Artist & {
     ]
   };
 }
+
+export interface RealChartsData {
+  topTracks: Track[];
+  trendingArtists: Array<{
+    id: string;
+    name: string;
+    avatarUrl: string;
+    genre: string;
+  }>;
+  topAlbums: Array<{
+    id: string;
+    title: string;
+    coverUrl: string;
+    artistName: string;
+  }>;
+}
+
+export async function fetchRealCharts(): Promise<RealChartsData | null> {
+  try {
+    const res = await fetch('/api/v1/charts');
+    if (!res.ok) return null;
+    const data = await res.json();
+
+    const topTracks: Track[] = (data.topTracks || []).map((t: any) => {
+      const trackId = String(t.id);
+      const artistName = typeof t.artist === 'object' ? t.artist?.name || 'Unknown Artist' : String(t.artist || 'Unknown Artist');
+      const cover = t.album?.coverXl || t.album?.coverBig || t.album?.coverMedium || t.album?.cover || t.coverUrl || 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=800&q=80';
+      
+      return {
+        id: trackId,
+        title: t.title || 'Untitled Track',
+        artist: artistName,
+        album: t.album?.title || 'Single',
+        duration: Number(t.duration) || 180,
+        coverUrl: cover,
+        streamUrl: `/api/v1/stream/${trackId}`,
+        sourceType: 'riff-engine',
+        bitrateKbps: 320,
+        hasSyncedLyrics: true,
+        genre: 'Global Top Charts',
+        playCount: 15400000
+      };
+    });
+
+    const trendingArtists = (data.trendingArtists || []).map((a: any) => ({
+      id: String(a.id),
+      name: a.name || 'Artist',
+      avatarUrl: a.pictureXl || a.pictureBig || a.pictureMedium || a.picture || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&q=80',
+      genre: 'Verified Artist'
+    }));
+
+    const topAlbums = (data.topAlbums || []).map((alb: any) => ({
+      id: String(alb.id),
+      title: alb.title || 'Album',
+      coverUrl: alb.cover || 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=400&q=80',
+      artistName: typeof alb.artist === 'object' ? alb.artist?.name || 'Various Artists' : String(alb.artist || 'Various Artists')
+    }));
+
+    return { topTracks, trendingArtists, topAlbums };
+  } catch (err) {
+    console.warn('Unable to load real charts from Riff-Engine:', err);
+    return null;
+  }
+}
+

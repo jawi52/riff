@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { searchMasterCatalog, resolveMasterStream } from '../../src/lib/masterAudioEngine';
+import { searchMasterCatalog } from '../../src/lib/masterAudioEngine';
 
 describe('Live Riff Master Audio Engine Speed & Precision Benchmark', () => {
   const testSongs = [

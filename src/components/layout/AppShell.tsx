@@ -10,7 +10,6 @@ import { PlaylistDetailView } from '../playlist/PlaylistDetailView';
 import { StatsView } from '../stats/StatsView';
 import { QueueDrawer } from '../queue/QueueDrawer';
 import { NowPlayingSidebar } from './NowPlayingSidebar';
-import { FriendActivitySidebar } from '../social/FriendActivitySidebar';
 import { MiniPlayer } from '../player/MiniPlayer';
 import { FullscreenPlayerModal } from '../player/FullscreenPlayerModal';
 import { SettingsDrawer } from '../settings/SettingsDrawer';
@@ -18,10 +17,8 @@ import { AuthModal } from '../settings/AuthModal';
 import { AiPromptModal } from '../ai/AiPromptModal';
 import { SongCreditsModal } from '../common/SongCreditsModal';
 import { WaveTagModal } from '../common/WaveTagModal';
-import { RiffJamModal } from '../social/RiffJamModal';
 import { usePlayerStore } from '../../stores/usePlayerStore';
 import { useLibraryStore } from '../../stores/useLibraryStore';
-import { useAuthStore } from '../../stores/useAuthStore';
 import { requestPersistentStorage } from '../../lib/db';
 
 export const AppShell: React.FC = () => {
@@ -29,12 +26,10 @@ export const AppShell: React.FC = () => {
 
   const { activeMainView, setActiveMainView, initAudioListeners } = usePlayerStore();
   const { loadLibrary } = useLibraryStore();
-  const { initGuestSession } = useAuthStore();
 
   useEffect(() => {
     initAudioListeners();
     loadLibrary();
-    initGuestSession();
     requestPersistentStorage();
   }, []);
 
@@ -44,25 +39,25 @@ export const AppShell: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#07080f] text-white select-none">
-      {/* 1. Full-Width Top Navbar */}
+    <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#000000] text-white select-none font-sans">
+      {/* 1. Spotify Top Navbar */}
       <Header
         onSearchSubmit={handleGlobalSearch}
         activeTab={activeMainView}
         setActiveTab={(tab) => setActiveMainView(tab as any)}
       />
 
-      {/* 2. Floating 3-Panel Workspace (Left Vault Card + Center Main Card + Right NowPlaying Card) */}
-      <div className="flex-1 flex min-h-0 overflow-hidden relative p-2 gap-2 bg-[#07080f]">
-        {/* Left Floating Panel: Library Vault */}
+      {/* 2. Spotify 3-Column / Fluid Workspace */}
+      <div className="flex-1 flex min-h-0 overflow-hidden relative p-2 gap-2 bg-[#000000]">
+        {/* Left Panel: Spotify Dual-Block Sidebar */}
         <Sidebar
           activeTab={activeMainView}
           setActiveTab={(tab) => setActiveMainView(tab as any)}
           onOpenUpload={() => setActiveMainView('library')}
         />
 
-        {/* Center Floating Panel: Main Content Viewport */}
-        <main className="flex-1 rounded-2xl bg-[#0e101b]/80 backdrop-blur-2xl border border-white/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.5)] flex flex-col overflow-y-auto relative min-w-0 h-full p-3.5 md:p-6 pb-16 md:pb-20 custom-scrollbar">
+        {/* Center Panel: Main Viewport */}
+        <main className="flex-1 rounded-lg bg-[#121212] border border-white/[0.04] shadow-2xl flex flex-col overflow-y-auto relative min-w-0 h-full p-4 md:p-6 pb-24 md:pb-28 custom-scrollbar">
           {activeMainView === 'home' && (
             <HomeFeed
               onSelectGenre={(genre) => {
@@ -83,14 +78,11 @@ export const AppShell: React.FC = () => {
           {activeMainView === 'stats' && <StatsView />}
         </main>
 
-        {/* Right Floating Panel: Now Playing & Audio Studio Hub */}
+        {/* Right Panel: Spotify Now Playing, Lyrics & Queue Hub */}
         <NowPlayingSidebar />
-
-        {/* Right Floating Panel: Live Friend Activity Presence */}
-        <FriendActivitySidebar />
       </div>
 
-      {/* 3. Persistent Bottom Mini Player */}
+      {/* 3. Persistent Spotify Bottom Mini Player */}
       <MiniPlayer />
 
       {/* 4. Mobile Bottom Navigation Bar */}
@@ -120,9 +112,6 @@ export const AppShell: React.FC = () => {
 
       {/* Riff WaveTag Soundwave Barcode Modal */}
       <WaveTagModal />
-
-      {/* Riff Jam Group Session Modal */}
-      <RiffJamModal />
     </div>
   );
 };

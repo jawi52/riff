@@ -2,32 +2,27 @@
 
 @layer base {
   :root {
-    --bg-primary: #07080f;
-    --bg-surface-glass: rgba(15, 17, 29, 0.75);
-    --glass-border: rgba(255, 255, 255, 0.08);
+    --bg-primary: #000000;
+    --bg-surface: #121212;
+    --bg-card: #181818;
+    --bg-card-hover: #282828;
     
-    --accent-violet: #8b5cf6;
-    --accent-cyan: #06b6d4;
-    --accent-fuchsia: #d946ef;
-    --accent-rose: #f43f5e;
+    --accent-spotify: #1db954;
+    --accent-spotify-hover: #1ed760;
     
     --text-pure: #ffffff;
-    --text-secondary: #94a3b8;
-    --text-muted: #64748b;
+    --text-secondary: #b3b3b3;
+    --text-muted: #6a6a6a;
   }
 
   body {
-    background-color: #07080f;
+    background-color: #000000;
     color: #ffffff;
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', system-ui, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'CircularStd', 'Inter', system-ui, sans-serif;
     -webkit-tap-highlight-color: transparent;
     user-select: none;
     overflow-x: hidden;
-    background-image: 
-      radial-gradient(circle at 50% 0%, rgba(139, 92, 246, 0.15) 0%, #07080f 65%),
-      radial-gradient(circle at 10% 40%, rgba(6, 182, 212, 0.12) 0%, transparent 45%),
-      radial-gradient(circle at 90% 70%, rgba(217, 70, 239, 0.1) 0%, transparent 50%),
-      radial-gradient(circle at 50% 100%, rgba(15, 23, 42, 0.8) 0%, #07080f 80%);
+    background-image: radial-gradient(circle at 50% 0%, rgba(29, 185, 84, 0.08) 0%, #000000 65%);
     background-attachment: fixed;
   }
 

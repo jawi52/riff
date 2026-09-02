@@ -46,11 +46,11 @@ export function isOfficialStudioMaster(title: string, artist: string, album?: st
 /**
  * Computes Spotify-style Authority & Relevance Score (0 to 100)
  */
-export function calculateAuthorityScore(track: { title: string; artist: string; album?: string; playCount?: number }, queryTokens: string[]): number {
+export function calculateAuthorityScore(track: { title: string; artist: string; album?: string; playCount?: number; sourceType?: string }, queryTokens: string[]): number {
   let score = 50;
+  if (track.sourceType === 'riff-engine') score += 35;
   const titleLower = track.title.toLowerCase();
   const artistLower = track.artist.toLowerCase();
-  const fullText = `${titleLower} ${artistLower} ${(track.album || '').toLowerCase()}`;
 
   // 1. Exact Title or Exact Artist Match
   const rawQuery = queryTokens.join(' ');
@@ -118,136 +118,179 @@ export async function searchMasterCatalog(rawQuery: string): Promise<MasterSearc
   const { tokens } = cleanQuery(query);
   const candidateTracks: Track[] = [];
 
+  const ENGINE_BASE = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_RIFF_ENGINE_URL) || 'http://localhost:3000';
+
   // =========================================================================
-  // 0. Instant Local Studio Catalog Matches
-  // =========================================================================
-  const allKnownCatalog = [...GLOBAL_CATALOG, ...PAKISTAN_TRENDING_TRACKS];
-  const queryLower = query.toLowerCase();
-  for (const t of allKnownCatalog) {
-    const fullText = `${t.title.toLowerCase()} ${t.artist.toLowerCase()} ${(t.album || '').toLowerCase()}`;
-    if (tokens.every((tok) => fullText.includes(tok)) || fullText.includes(queryLower)) {
-      candidateTracks.push({
-        ...t,
-        bitrateKbps: 320,
-        hasSyncedLyrics: true
-      });
-    }
-  }
-  // =========================================================================
-  // 1. Query Saavn 320kbps Global Master CDN API (Full-Length 320kbps CD Audio)
+  // 0. Primary: Query Riff-Engine 100M+ Universal Catalog & Direct Streaming
   // =========================================================================
   try {
-    const isBrowser = typeof window !== 'undefined';
-    const saavnEndpoints = isBrowser
-      ? [
-          `/saavn-api/api.php?__call=search.getResults&_format=json&_marker=0&api_version=4&ctx=web6dot0&n=20&p=1&q=${encodeURIComponent(query)}`,
-          `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://www.jiosaavn.com/api.php?__call=search.getResults&_format=json&_marker=0&api_version=4&ctx=web6dot0&n=20&p=1&q=${encodeURIComponent(query)}`)}`
-        ]
-      : [
-          `https://www.jiosaavn.com/api.php?__call=search.getResults&_format=json&_marker=0&api_version=4&ctx=web6dot0&n=20&p=1&q=${encodeURIComponent(query)}`
-        ];
-
-    let rawResults: any[] = [];
-    for (const endpoint of saavnEndpoints) {
-      try {
-        const res = await fetch(endpoint, {
-          headers: { 'Accept': 'application/json' }
+    const engineRes = await fetch(`${ENGINE_BASE}/api/v1/search?q=${encodeURIComponent(query)}`, {
+      headers: { Accept: 'application/json' },
+    });
+    if (engineRes.ok) {
+      const data = await engineRes.json();
+      const engineTracks = data.tracks || [];
+      for (const t of engineTracks) {
+        candidateTracks.push({
+          id: t.id,
+          title: t.title,
+          artist: t.artist?.name || 'Unknown Artist',
+          album: t.album?.title || '',
+          duration: t.duration || 210,
+          coverUrl: t.album?.coverMedium || t.album?.cover || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&q=80',
+          sourceType: 'riff-engine',
+          streamUrl: `${ENGINE_BASE}/api/v1/stream/${t.id}`,
+          bitrateKbps: 320,
+          genre: 'Global',
+          hasSyncedLyrics: true,
+          credits: {
+            performers: [t.artist?.name || 'Unknown Artist'],
+            label: t.album?.title || 'Verified Release',
+          },
         });
-        if (res.ok) {
-          const data = await res.json();
-          rawResults = data?.results || (typeof data === 'string' ? JSON.parse(data)?.results : []) || [];
-          if (rawResults.length > 0) break;
-        }
-      } catch {}
+      }
     }
+  } catch (err) {
+    console.warn('Riff-Engine search query failed, checking fallback catalog:', err);
+  }
 
-    for (const item of rawResults) {
-      const title = (item.song || item.title || '').replace(/&quot;/g, '"').replace(/&#039;/g, "'").trim();
-      const artist = (item.primary_artists || item.singers || item.more_info?.artistMap?.primary_artists?.[0]?.name || 'Unknown Artist').trim();
-      const album = item.album || item.more_info?.album || '';
+  // =========================================================================
+  // 1. Fallback: Instant Local Studio Catalog Matches (if Riff-Engine had no results)
+  // =========================================================================
+  if (candidateTracks.length === 0) {
+    const allKnownCatalog = [...GLOBAL_CATALOG, ...PAKISTAN_TRENDING_TRACKS];
+    const queryLower = query.toLowerCase();
+    for (const t of allKnownCatalog) {
+      const fullText = `${t.title.toLowerCase()} ${t.artist.toLowerCase()} ${(t.album || '').toLowerCase()}`;
+      if (tokens.every((tok) => fullText.includes(tok)) || fullText.includes(queryLower)) {
+        candidateTracks.push({
+          ...t,
+          bitrateKbps: 320,
+          hasSyncedLyrics: true,
+        });
+      }
+    }
+  }
 
-      // Anti-Noise Filter Check
-      if (!isOfficialStudioMaster(title, artist, album)) continue;
+  // =========================================================================
+  // 2. Fallback: Query Saavn 320kbps Global Master CDN API (Only if still empty)
+  // =========================================================================
+  if (candidateTracks.length === 0) {
+    try {
+      const isBrowser = typeof window !== 'undefined';
+      const saavnEndpoints = isBrowser
+        ? [
+            `/saavn-api/api.php?__call=search.getResults&_format=json&_marker=0&api_version=4&ctx=web6dot0&n=20&p=1&q=${encodeURIComponent(query)}`,
+            `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://www.jiosaavn.com/api.php?__call=search.getResults&_format=json&_marker=0&api_version=4&ctx=web6dot0&n=20&p=1&q=${encodeURIComponent(query)}`)}`
+          ]
+        : [
+            `https://www.jiosaavn.com/api.php?__call=search.getResults&_format=json&_marker=0&api_version=4&ctx=web6dot0&n=20&p=1&q=${encodeURIComponent(query)}`
+          ];
 
-      let mediaUrl = item.media_preview_url || item.more_info?.media_preview_url || '';
-      if (mediaUrl) {
-        // Convert to full unthrottled 320kbps CD master URL
-        mediaUrl = mediaUrl
-          .replace('preview.saavncdn.com', 'aac.saavncdn.com')
-          .replace('_96_p.mp4', '_320.mp4')
-          .replace('_96.mp4', '_320.mp4')
-          .replace('_160.mp4', '_320.mp4')
-          .replace('_96_p.m4a', '_320.mp4');
+      let rawResults: any[] = [];
+      for (const endpoint of saavnEndpoints) {
+        try {
+          const res = await fetch(endpoint, {
+            headers: { 'Accept': 'application/json' }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            rawResults = data?.results || (typeof data === 'string' ? JSON.parse(data)?.results : []) || [];
+            if (rawResults.length > 0) break;
+          }
+        } catch {}
       }
 
-      const coverUrl = (item.image || '')
-        .replace('150x150', '500x500')
-        .replace('50x50', '500x500') || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&q=80';
+      for (const item of rawResults) {
+        const title = (item.song || item.title || '').replace(/&quot;/g, '"').replace(/&#039;/g, "'").trim();
+        const artist = (item.primary_artists || item.singers || item.more_info?.artistMap?.primary_artists?.[0]?.name || 'Unknown Artist').trim();
+        const album = item.album || item.more_info?.album || '';
 
-      candidateTracks.push({
-        id: `saavn_${item.id || item.song_id || Math.random().toString(36).substring(2, 9)}`,
-        title,
-        artist,
-        album,
-        duration: parseInt(item.duration, 10) || 210,
-        coverUrl,
-        sourceType: 'saavn',
-        streamUrl: mediaUrl,
-        bitrateKbps: 320,
-        genre: item.language || 'Global',
-        hasSyncedLyrics: true,
-        credits: {
-          performers: [artist],
-          label: item.more_info?.label || 'Official Studio Master'
-        }
-      });
-    }
-  } catch {
-    // Network fallback
-  }
-
-  // =========================================================================
-  // 2. Query Apple Music / iTunes Public Metadata API (HD 3000px Artwork)
-  // =========================================================================
-  try {
-    const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&entity=song&limit=15`;
-    const res = await fetch(itunesUrl);
-    if (res.ok) {
-      const data = await res.json();
-      const results = data?.results || [];
-
-      for (const item of results) {
-        const title = item.trackName || '';
-        const artist = item.artistName || '';
-        const album = item.collectionName || '';
-
+        // Anti-Noise Filter Check
         if (!isOfficialStudioMaster(title, artist, album)) continue;
 
-        const coverUrl = (item.artworkUrl100 || '').replace('100x100bb', '600x600bb');
-        const durationSec = Math.round((item.trackTimeMillis || 200000) / 1000);
+        let mediaUrl = item.media_preview_url || item.more_info?.media_preview_url || '';
+        if (mediaUrl) {
+          // Convert to full unthrottled 320kbps CD master URL
+          mediaUrl = mediaUrl
+            .replace('preview.saavncdn.com', 'aac.saavncdn.com')
+            .replace('_96_p.mp4', '_320.mp4')
+            .replace('_96.mp4', '_320.mp4')
+            .replace('_160.mp4', '_320.mp4')
+            .replace('_96_p.m4a', '_320.mp4');
+        }
+
+        const coverUrl = (item.image || '')
+          .replace('150x150', '500x500')
+          .replace('50x50', '500x500') || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&q=80';
 
         candidateTracks.push({
-          id: `itunes_${item.trackId}`,
+          id: `saavn_${item.id || item.song_id || Math.random().toString(36).substring(2, 9)}`,
           title,
           artist,
           album,
-          duration: durationSec,
-          coverUrl: coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&q=80',
-          sourceType: 'itunes',
-          streamUrl: item.previewUrl,
-          bitrateKbps: 256,
-          genre: item.primaryGenreName || 'Pop',
-          releaseYear: item.releaseDate ? new Date(item.releaseDate).getFullYear() : undefined,
+          duration: parseInt(item.duration, 10) || 210,
+          coverUrl,
+          sourceType: 'saavn',
+          streamUrl: mediaUrl,
+          bitrateKbps: 320,
+          genre: item.language || 'Global',
           hasSyncedLyrics: true,
           credits: {
             performers: [artist],
-            label: item.collectionName || 'Master Release'
+            label: item.more_info?.label || 'Official Studio Master'
           }
         });
       }
+    } catch {
+      // Network fallback
     }
-  } catch {
-    // Network fallback
+  }
+
+  // =========================================================================
+  // 3. Fallback: Query Apple Music / iTunes Public Metadata API (Only if still empty)
+  // =========================================================================
+  if (candidateTracks.length === 0) {
+    try {
+      const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&entity=song&limit=15`;
+      const res = await fetch(itunesUrl);
+      if (res.ok) {
+        const data = await res.json();
+        const results = data?.results || [];
+
+        for (const item of results) {
+          const title = item.trackName || '';
+          const artist = item.artistName || '';
+          const album = item.collectionName || '';
+
+          if (!isOfficialStudioMaster(title, artist, album)) continue;
+
+          const coverUrl = (item.artworkUrl100 || '').replace('100x100bb', '600x600bb');
+          const durationSec = Math.round((item.trackTimeMillis || 200000) / 1000);
+
+          candidateTracks.push({
+            id: `itunes_${item.trackId}`,
+            title,
+            artist,
+            album,
+            duration: durationSec,
+            coverUrl: coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&q=80',
+            sourceType: 'itunes',
+            streamUrl: item.previewUrl,
+            bitrateKbps: 256,
+            genre: item.primaryGenreName || 'Pop',
+            releaseYear: item.releaseDate ? new Date(item.releaseDate).getFullYear() : undefined,
+            hasSyncedLyrics: true,
+            credits: {
+              performers: [artist],
+              label: item.collectionName || 'Master Release'
+            }
+          });
+        }
+      }
+    } catch {
+      // Network fallback
+    }
   }
 
   // =========================================================================
@@ -288,20 +331,11 @@ export async function searchMasterCatalog(rawQuery: string): Promise<MasterSearc
  * Resolves high-fidelity 320kbps master stream with 0ms in-memory replay
  */
 export async function resolveMasterStream(track: Track): Promise<string> {
-  // If track already has direct 320kbps CD stream
-  if (track.streamUrl && track.streamUrl.startsWith('http')) {
-    if (track.streamUrl.includes('saavncdn.com')) {
-      const full = track.streamUrl
-        .replace('preview.saavncdn.com', 'aac.saavncdn.com')
-        .replace('_96_p.mp4', '_320.mp4')
-        .replace('_96.mp4', '_320.mp4')
-        .replace('_160.mp4', '_320.mp4')
-        .replace('_96_p.m4a', '_320.mp4');
-      return full;
-    }
-    if (!track.streamUrl.includes('preview')) {
-      return track.streamUrl;
-    }
+  const ENGINE_BASE = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_RIFF_ENGINE_URL) || 'http://localhost:3000';
+
+  // If track already has direct stream URL from Riff-Engine
+  if (track.streamUrl && track.streamUrl.startsWith('http') && !track.streamUrl.includes('preview')) {
+    return track.streamUrl;
   }
 
   // Check in-memory cache
@@ -312,26 +346,8 @@ export async function resolveMasterStream(track: Track): Promise<string> {
     }
   }
 
-  // Resolve fresh direct 320kbps full song stream URL
-  let resolvedUrl = '';
-
-  try {
-    const query = `${track.artist} ${track.title}`;
-    const searchRes = await searchMasterCatalog(query);
-    const match = searchRes.tracks.find((t) => t.sourceType === 'saavn' && t.streamUrl);
-    if (match && match.streamUrl) {
-      resolvedUrl = match.streamUrl;
-    } else if (searchRes.tracks.length > 0 && searchRes.tracks[0].streamUrl) {
-      resolvedUrl = searchRes.tracks[0].streamUrl;
-    }
-  } catch {
-    // Fallback preview
-  }
-
-  if (!resolvedUrl) {
-    resolvedUrl = track.streamUrl || 'https://actions.google.com/sounds/v1/music/ambient_piano_melody.ogg';
-  }
-
+  const cleanId = track.id.replace(/^saavn_|^itunes_/, '');
+  const resolvedUrl = `${ENGINE_BASE}/api/v1/stream/${cleanId}`;
   streamCache.set(track.id, { url: resolvedUrl, timestamp: Date.now() });
   return resolvedUrl;
 }
