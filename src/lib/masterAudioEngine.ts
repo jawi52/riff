@@ -383,9 +383,9 @@ export async function resolveMasterStream(track: Track): Promise<string> {
     }
   }
 
-  // 3. Try Riff-Engine backend for full-length stream (stream-direct = HTTP 302 redirect to CDN)
+  // 3. Try Riff-Engine backend for full-length stream (320kbps CD Studio Master)
   const cleanId = track.id.replace(/^saavn_|^itunes_/, '');
-  if (/^\d+$/.test(cleanId)) {
+  if (/^\d+$/.test(cleanId) || cleanId.startsWith('trk_')) {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 4000);
