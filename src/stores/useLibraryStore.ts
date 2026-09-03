@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { Track, Playlist } from '../types';
 import { db, DBTrack, DBPlaylist } from '../lib/db';
+import { RIFF_ENGINE_URL } from '../lib/engineUrl';
 
 interface LibraryState {
   likedTracks: Track[];
@@ -184,7 +185,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       // Fetch stream chunks and convert to blob
       let streamUrl = track.streamUrl;
       if (!streamUrl) {
-        const res = await fetch('/api/v1/stream/resolve', {
+        const res = await fetch(`${RIFF_ENGINE_URL}/api/v1/stream/resolve`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ trackId: track.id, title: track.title, artist: track.artist, qualityTier: 'standard' })

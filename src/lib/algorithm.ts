@@ -1,4 +1,5 @@
 import { Track, Artist, Album } from '../types';
+import { RIFF_ENGINE_URL } from './engineUrl';
 
 export interface DailyMix {
   id: string;
@@ -927,7 +928,7 @@ export interface RealChartsData {
 
 export async function fetchRealCharts(): Promise<RealChartsData | null> {
   try {
-    const res = await fetch('/api/v1/charts');
+    const res = await fetch(`${RIFF_ENGINE_URL}/api/v1/charts`);
     if (!res.ok) return null;
     const data = await res.json();
 
@@ -943,7 +944,7 @@ export async function fetchRealCharts(): Promise<RealChartsData | null> {
         album: t.album?.title || 'Single',
         duration: Number(t.duration) || 180,
         coverUrl: cover,
-        streamUrl: `/api/v1/stream/${trackId}`,
+        streamUrl: `${RIFF_ENGINE_URL}/api/v1/stream/${trackId}`,
         sourceType: 'riff-engine',
         bitrateKbps: 320,
         hasSyncedLyrics: true,

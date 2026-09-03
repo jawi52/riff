@@ -6,6 +6,7 @@ import { db } from '../lib/db';
 import { getSmartAutoplayTracks, recordTrackInteraction, GLOBAL_CATALOG } from '../lib/algorithm';
 import { addRecentTrack } from '../lib/recentSearches';
 import { resolveMasterStream, fetchSyncedLyrics } from '../lib/masterAudioEngine';
+import { RIFF_ENGINE_URL } from '../lib/engineUrl';
 
 interface PlayerState {
   currentTrack: Track | null;
@@ -443,7 +444,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         prewarmedTrackId = currentTrack.id;
         const nextSong = queue[queueIndex + 1];
         if (nextSong) {
-          fetch(`/api/v1/stream?title=${encodeURIComponent(nextSong.title)}&artist=${encodeURIComponent(nextSong.artist)}`).catch(() => {});
+          fetch(`${RIFF_ENGINE_URL}/api/v1/stream?title=${encodeURIComponent(nextSong.title)}&artist=${encodeURIComponent(nextSong.artist)}`).catch(() => {});
         }
       }
 

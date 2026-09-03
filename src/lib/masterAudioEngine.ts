@@ -6,6 +6,7 @@
 
 import { Track, SyncedLyricLine } from '../types';
 import { GLOBAL_CATALOG, PAKISTAN_TRENDING_TRACKS } from './algorithm';
+import { RIFF_ENGINE_URL } from './engineUrl';
 
 // In-Memory Single-Flight LRU Cache for Sub-40ms / 0ms Instant Replay
 const streamCache = new Map<string, { url: string; timestamp: number }>();
@@ -118,7 +119,7 @@ export async function searchMasterCatalog(rawQuery: string): Promise<MasterSearc
   const { tokens } = cleanQuery(query);
   const candidateTracks: Track[] = [];
 
-  const ENGINE_BASE = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_RIFF_ENGINE_URL) || 'http://localhost:3000';
+  const ENGINE_BASE = RIFF_ENGINE_URL;
 
   // =========================================================================
   // 0. Primary: Query Riff-Engine 100M+ Universal Catalog & Direct Streaming
@@ -331,7 +332,7 @@ export async function searchMasterCatalog(rawQuery: string): Promise<MasterSearc
  * Resolves high-fidelity 320kbps master stream with 0ms in-memory replay
  */
 export async function resolveMasterStream(track: Track): Promise<string> {
-  const ENGINE_BASE = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_RIFF_ENGINE_URL) || 'http://localhost:3000';
+  const ENGINE_BASE = RIFF_ENGINE_URL;
 
   // If track already has direct stream URL from Riff-Engine
   if (track.streamUrl && track.streamUrl.startsWith('http') && !track.streamUrl.includes('preview')) {
