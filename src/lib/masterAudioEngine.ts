@@ -356,11 +356,14 @@ export async function resolveDirectCdnStream(track: Track): Promise<string> {
 }
 
 /**
- * Resolves high-fidelity master stream with multi-tier failover:
+ * Resolves full-length audio stream with multi-tier failover:
  * 1. Pre-existing valid direct stream (e.g. applecdn / saavncdn)
- * 2. Instant client-side direct CDN stream (universal 100ms playback)
+ * 2. Riff-Engine backend (full-length via YouTube Music)
+ * 3. iTunes preview fallback (30s clip, last resort)
  */
 export async function resolveMasterStream(track: Track): Promise<string> {
+  const ENGINE_BASE = RIFF_ENGINE_URL;
+
   // 1. If track already has direct working stream that is NOT an internal/backend proxy URL
   if (
     track.streamUrl &&
@@ -380,7 +383,58 @@ export async function resolveMasterStream(track: Track): Promise<string> {
     }
   }
 
-  // 3. Resolve direct CDN stream (iTunes 256kbps master AAC)
+  // 3. Try Riff-Engine backend for full-length stream (stream-direct = HTTP 302 redirect to CDN)
+  const cleanId = track.id.replace(/^saavn_|^itunes_/, '');
+  if (/^\d+$/.test(cleanId)) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
+      const res = await fetch(`${ENGINE_BASE}/api/v1/stream-url/${cleanId}`, {
+        signal: controller.signal,
+        headers: { Accept: 'application/json' }
+      });
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.audioUrl) {
+          streamCache.set(track.id, { url: data.audioUrl, timestamp: Date.now() });
+          return data.audioUrl;
+        }
+      }
+    } catch {
+      // Backend unavailable, fall through to client-side
+    }
+  }
+
+  // 4. Try backend search-based stream (for non-numeric IDs like trk_ or saavn_)
+  try {
+    const searchRes = await fetch(
+      `${ENGINE_BASE}/api/v1/search?q=${encodeURIComponent(`${track.title} ${track.artist}`)}&limit=1`,
+      { headers: { Accept: 'application/json' } }
+    );
+    if (searchRes.ok) {
+      const searchData = await searchRes.json();
+      const firstTrack = searchData.tracks?.[0];
+      if (firstTrack?.id) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4000);
+        const streamRes = await fetch(`${ENGINE_BASE}/api/v1/stream-url/${firstTrack.id}`, {
+          signal: controller.signal,
+          headers: { Accept: 'application/json' }
+        });
+        clearTimeout(timeoutId);
+        if (streamRes.ok) {
+          const streamData = await streamRes.json();
+          if (streamData.audioUrl) {
+            streamCache.set(track.id, { url: streamData.audioUrl, timestamp: Date.now() });
+            return streamData.audioUrl;
+          }
+        }
+      }
+    }
+  } catch {}
+
+  // 5. iTunes preview fallback (30s clip — last resort)
   const directUrl = await resolveDirectCdnStream(track);
   streamCache.set(track.id, { url: directUrl, timestamp: Date.now() });
   return directUrl;
