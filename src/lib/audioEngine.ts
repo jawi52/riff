@@ -116,6 +116,16 @@ export class RiffAudioEngine {
     try {
       await this.audio.play();
     } catch (err: any) {
+      // If CORS or audio context blocked it, retry without crossOrigin
+      if (this.audio.crossOrigin) {
+        try {
+          this.audio.crossOrigin = null;
+          this.audio.src = streamUrl;
+          this.audio.load();
+          await this.audio.play();
+          return;
+        } catch {}
+      }
       console.warn('Playback play() call:', err.message);
       throw err;
     }
