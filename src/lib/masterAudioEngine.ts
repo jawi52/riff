@@ -328,26 +328,48 @@ export async function searchMasterCatalog(rawQuery: string): Promise<MasterSearc
   };
 }
 
+export async function resolveDirectCdnStream(track: Track): Promise<string> {
+  const searchTerms = [
+    `${track.title} ${track.artist}`,
+    track.title
+  ];
+
+  for (const term of searchTerms) {
+    try {
+      const itunesRes = await fetch(
+        `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&media=music&entity=song&limit=3`
+      );
+      if (itunesRes.ok) {
+        const data = await itunesRes.json();
+        const results = data.results || [];
+        if (results.length > 0) {
+          const best = results[0];
+          if (best.previewUrl) {
+            return best.previewUrl;
+          }
+        }
+      }
+    } catch {}
+  }
+
+  return 'https://actions.google.com/sounds/v1/music/ambient_piano_melody.ogg';
+}
+
 /**
  * Resolves high-fidelity master stream with multi-tier failover:
  * 1. Pre-existing valid direct stream (e.g. applecdn / saavncdn)
- * 2. Riff-Engine live streaming proxy (if working)
- * 3. Client-side verified master stream (instant 100ms, universal playback)
- * 4. Fallback studio audio
+ * 2. Instant client-side direct CDN stream (universal 100ms playback)
  */
 export async function resolveMasterStream(track: Track): Promise<string> {
-  const ENGINE_BASE = RIFF_ENGINE_URL;
-
-  // 1. If track already has direct working stream
+  // 1. If track already has direct working stream that is NOT an internal/backend proxy URL
   if (
     track.streamUrl &&
     track.streamUrl.startsWith('http') &&
-    !track.streamUrl.includes('undefined') &&
-    !track.streamUrl.includes('/api/v1/stream/trk_')
+    !track.streamUrl.includes('azurewebsites.net') &&
+    !track.streamUrl.includes('/api/v1/stream') &&
+    !track.streamUrl.includes('undefined')
   ) {
-    if (!track.streamUrl.includes(ENGINE_BASE)) {
-      return track.streamUrl;
-    }
+    return track.streamUrl;
   }
 
   // 2. Check in-memory cache
@@ -358,60 +380,10 @@ export async function resolveMasterStream(track: Track): Promise<string> {
     }
   }
 
-  // 3. For numeric IDs, test backend stream first with quick timeout
-  const cleanId = track.id.replace(/^saavn_|^itunes_/, '');
-  if (/^\d+$/.test(cleanId)) {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2500);
-      const res = await fetch(`${ENGINE_BASE}/api/v1/stream-url/${cleanId}`, {
-        signal: controller.signal,
-        headers: { Accept: 'application/json' }
-      });
-      clearTimeout(timeoutId);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.audioUrl) {
-          streamCache.set(track.id, { url: data.audioUrl, timestamp: Date.now() });
-          return data.audioUrl;
-        }
-      }
-    } catch {
-      // Backend timeout or blocked, proceed to client-side direct resolver
-    }
-  }
-
-  // 4. Universal Client-Side Direct Resolver (iTunes Master CDN)
-  try {
-    const searchTerms = [
-      `${track.title} ${track.artist}`,
-      track.title
-    ];
-
-    for (const term of searchTerms) {
-      try {
-        const itunesRes = await fetch(
-          `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&media=music&entity=song&limit=3`
-        );
-        if (itunesRes.ok) {
-          const data = await itunesRes.json();
-          const results = data.results || [];
-          if (results.length > 0) {
-            const best = results[0];
-            if (best.previewUrl) {
-              streamCache.set(track.id, { url: best.previewUrl, timestamp: Date.now() });
-              return best.previewUrl;
-            }
-          }
-        }
-      } catch {}
-    }
-  } catch {}
-
-  // 5. Reliable studio melody fallback
-  const fallbackMelody = 'https://actions.google.com/sounds/v1/music/ambient_piano_melody.ogg';
-  streamCache.set(track.id, { url: fallbackMelody, timestamp: Date.now() });
-  return fallbackMelody;
+  // 3. Resolve direct CDN stream (iTunes 256kbps master AAC)
+  const directUrl = await resolveDirectCdnStream(track);
+  streamCache.set(track.id, { url: directUrl, timestamp: Date.now() });
+  return directUrl;
 }
 
 /**

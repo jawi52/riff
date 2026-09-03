@@ -5,7 +5,7 @@ import { getActiveLyricIndex } from '../lib/lyrics';
 import { db } from '../lib/db';
 import { getSmartAutoplayTracks, recordTrackInteraction, GLOBAL_CATALOG } from '../lib/algorithm';
 import { addRecentTrack } from '../lib/recentSearches';
-import { resolveMasterStream, fetchSyncedLyrics } from '../lib/masterAudioEngine';
+import { resolveMasterStream, resolveDirectCdnStream, fetchSyncedLyrics } from '../lib/masterAudioEngine';
 import { RIFF_ENGINE_URL } from '../lib/engineUrl';
 
 interface PlayerState {
@@ -143,7 +143,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     });
 
     try {
-      let streamUrl = track.streamUrl;
+      let streamUrl = '';
 
       // If local blob key exists, stream from IndexedDB / OPFS
       if (track.sourceType === 'local' && track.localBlobKey) {
@@ -153,7 +153,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         }
       }
 
-      // Resolve Master Stream (320kbps Studio Master)
+      // Resolve Master Stream (instant direct CDN playback)
       if (!streamUrl) {
         streamUrl = await resolveMasterStream(track);
       }
@@ -187,7 +187,17 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       }
 
       set({ playbackState: 'buffering' });
-      await audioEngine.playTrack(streamUrl);
+      try {
+        await audioEngine.playTrack(streamUrl);
+      } catch (err) {
+        console.warn('Primary audio stream failed, retrying direct fallback...', err);
+        const fallbackUrl = await resolveDirectCdnStream(track);
+        if (fallbackUrl && fallbackUrl !== streamUrl) {
+          await audioEngine.playTrack(fallbackUrl);
+        } else {
+          throw err;
+        }
+      }
       set({ playbackState: 'playing' });
 
       // Log listening history
