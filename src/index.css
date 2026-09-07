@@ -165,3 +165,47 @@
 .btn-spotify-play:active {
   transform: scale(0.96);
 }
+
+/* OpenDesign Spotify Track Row */
+.track-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: background-color 150ms ease;
+  cursor: pointer;
+}
+
+.track-row:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.track-row.active {
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+/* OpenDesign Spotify Navigation Pill */
+.nav-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 18px;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+  background-color: var(--surface-warm);
+  border: none;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.nav-pill:hover {
+  background-color: #282828;
+  color: var(--fg);
+}
+
+.nav-pill.active {
+  background-color: #ffffff;
+  color: #000000;
+}
