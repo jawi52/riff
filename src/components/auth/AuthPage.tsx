@@ -35,7 +35,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   const [remember30Days, setRemember30Days] = useState(true);
   const [localError, setLocalError] = useState<string | null>(null);
 
-  const { login, register, loginWithGoogle, isLoading, authError, clearError } = useAuthStore();
+  const { login, register, loginWithGoogle, isLoading, authError, authSuccessMessage, clearError, isConfigured } = useAuthStore();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,7 +59,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
       const success = await register(email, password, name);
       if (success && onAuthSuccess) {
-        onAuthSuccess();
+        // If session was returned immediately (no email confirm needed)
+        const currentUser = useAuthStore.getState().user;
+        if (currentUser) {
+          onAuthSuccess();
+        }
       }
     } else {
       const success = await login(email, password);
@@ -72,10 +76,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   const handleGoogleSignIn = async () => {
     setLocalError(null);
     clearError();
-    const success = await loginWithGoogle();
-    if (success && onAuthSuccess) {
-      onAuthSuccess();
-    }
+    await loginWithGoogle();
   };
 
   const activeError = localError || authError;
@@ -119,6 +120,19 @@ export const AuthPage: React.FC<AuthPageProps> = ({
             </p>
           </div>
 
+          {/* Setup notice if Supabase not yet configured */}
+          {!isConfigured && (
+            <div className="mb-5 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-xs text-amber-200">
+              <p className="font-bold flex items-center gap-1.5 mb-1 text-amber-400">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>Supabase Setup Required</span>
+              </p>
+              <p className="text-[#b3b3b3] text-[11px] leading-relaxed">
+                Connect your free Supabase project by adding <code className="text-white bg-black/40 px-1 py-0.5 rounded">VITE_SUPABASE_URL</code> and <code className="text-white bg-black/40 px-1 py-0.5 rounded">VITE_SUPABASE_ANON_KEY</code> to your environment.
+              </p>
+            </div>
+          )}
+
           {/* 1. Continue with Google Button */}
           <button
             type="button"
@@ -155,6 +169,14 @@ export const AuthPage: React.FC<AuthPageProps> = ({
               or
             </span>
           </div>
+
+          {/* Success Notification */}
+          {authSuccessMessage && (
+            <div className="mb-5 p-3 rounded-xl bg-[#1ed760]/10 border border-[#1ed760]/30 flex items-start gap-2.5 text-xs text-[#1ed760] animate-in fade-in">
+              <ShieldCheck className="w-4 h-4 text-[#1ed760] shrink-0 mt-0.5" />
+              <span>{authSuccessMessage}</span>
+            </div>
+          )}
 
           {/* Error Notification */}
           {activeError && (

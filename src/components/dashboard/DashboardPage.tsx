@@ -12,7 +12,6 @@ import {
   Pause, 
   CheckCircle2, 
   ExternalLink,
-  Info,
   Calendar,
   Layers
 } from 'lucide-react';
@@ -26,20 +25,17 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   onLogout,
   isStandaloneApp = false,
 }) => {
-  const { user, lastActiveAt, getAccountsList, logout } = useAuthStore();
-  const [showUsersModal, setShowUsersModal] = useState(false);
+  const { user, lastActiveAt, logout } = useAuthStore();
   const [isPlayingPreview, setIsPlayingPreview] = useState(false);
 
-  const accounts = getAccountsList();
-
-  const handleLogoutClick = () => {
-    logout();
+  const handleLogoutClick = async () => {
+    await logout();
     onLogout();
   };
 
   // Format date helper
   const formatDate = (ms?: number | null) => {
-    if (!ms) return 'Just now';
+    if (!ms) return 'Active now';
     return new Date(ms).toLocaleString(undefined, {
       month: 'short',
       day: 'numeric',
@@ -67,19 +63,19 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           </div>
 
           {/* User Profile & Actions */}
-          <div className="flex items-center gap-2 sm:gap-4">
-            {/* View Users Directory Button */}
-            <button
-              onClick={() => setShowUsersModal(true)}
+          <div className="flex items-center gap-3 sm:gap-4">
+            {/* Supabase Real Users Link */}
+            <a
+              href="https://supabase.com/dashboard"
+              target="_blank"
+              rel="noreferrer"
+              title="Open Supabase Cloud Authentication Users Directory"
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-white transition hover:scale-105 active:scale-95 cursor-pointer whitespace-nowrap"
             >
               <Users className="w-3.5 h-3.5 text-[#1ed760]" />
-              <span className="hidden xs:inline">Registered Users</span>
-              <span className="xs:hidden">Users</span>
-              <span className="ml-0.5 px-1.5 py-0.2 rounded-full bg-[#1ed760]/20 text-[#1ed760] text-[10px]">
-                {accounts.length}
-              </span>
-            </button>
+              <span className="hidden xs:inline">Cloud Users</span>
+              <ExternalLink className="w-3 h-3 text-[#7c7c7c]" />
+            </a>
 
             {/* User Profile Pill */}
             <div className="flex items-center gap-2 pl-2 border-l border-white/10">
@@ -117,14 +113,14 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           <div className="relative z-10">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#1ed760]/10 border border-[#1ed760]/30 text-xs text-[#1ed760] font-bold mb-3">
               <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>Session Authenticated ({isStandaloneApp ? 'Standalone App' : 'Web Player'})</span>
+              <span>Session Active ({isStandaloneApp ? 'Standalone App' : 'Web Browser'})</span>
             </div>
 
             <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white mb-2">
               Welcome back, {user?.displayName || 'Listener'} 👋
             </h1>
             <p className="text-[#b3b3b3] text-sm sm:text-base max-w-xl leading-relaxed">
-              You are signed in to Riff with CD-quality lossless streaming, 0 commercial ads, and 30-day persistent session caching.
+              You are signed in to Riff with real studio-quality lossless streaming and sliding 30-day inactivity session protection.
             </p>
           </div>
         </div>
@@ -139,7 +135,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               </div>
               <h2 className="text-lg font-bold text-white mb-1">30-Day Inactivity Rule</h2>
               <p className="text-xs text-[#b3b3b3] leading-relaxed mb-4">
-                Your session remains active as long as you open Riff at least once every 30 days. Visiting renews your 30-day window automatically.
+                Your session remains active as long as you open Riff at least once every 30 days. Visiting renews your 30-day inactivity window automatically.
               </p>
             </div>
 
@@ -154,34 +150,36 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               <div className="flex items-center justify-between text-[#b3b3b3]">
                 <span className="flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5" />
-                  Last Seen
+                  Last Active
                 </span>
                 <span className="text-white">{formatDate(lastActiveAt)}</span>
               </div>
             </div>
           </div>
 
-          {/* Card 2: User Account & Cloud Status */}
+          {/* Card 2: Real Supabase Cloud Users Directory */}
           <div className="bg-[#181818] border border-white/10 rounded-2xl p-6 flex flex-col justify-between">
             <div>
               <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 mb-4">
                 <Users className="w-5 h-5" />
               </div>
-              <h2 className="text-lg font-bold text-white mb-1">User Management</h2>
+              <h2 className="text-lg font-bold text-white mb-1">Users Database</h2>
               <p className="text-xs text-[#b3b3b3] leading-relaxed mb-4">
                 {isSupabaseConfigured
-                  ? 'Connected to Supabase Cloud Authentication. All registered users sync in real time.'
-                  : 'Operating with built-in instant local authentication. Add Supabase keys in .env to sync with Supabase Cloud.'}
+                  ? 'Connected to Supabase. All registered email & Google users appear in your live Supabase cloud dashboard.'
+                  : 'Supabase cloud credentials not yet detected in environment. Add your keys to start syncing users to Supabase.'}
               </p>
             </div>
 
-            <button
-              onClick={() => setShowUsersModal(true)}
+            <a
+              href="https://supabase.com/dashboard"
+              target="_blank"
+              rel="noreferrer"
               className="w-full py-2.5 px-4 rounded-full bg-white/5 hover:bg-white/10 border border-white/20 text-white font-bold text-xs flex items-center justify-center gap-2 transition hover:scale-[1.02] cursor-pointer"
             >
-              <Users className="w-3.5 h-3.5 text-[#1ed760]" />
-              <span>View All Registered Users ({accounts.length})</span>
-            </button>
+              <span>View All Users in Supabase</span>
+              <ExternalLink className="w-3.5 h-3.5 text-[#1ed760]" />
+            </a>
           </div>
 
           {/* Card 3: Audio Stream Fidelity Engine */}
@@ -192,7 +190,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               </div>
               <h2 className="text-lg font-bold text-white mb-1">Studio Edge Engine</h2>
               <p className="text-xs text-[#b3b3b3] leading-relaxed mb-4">
-                Unthrottled audio pipeline delivering authentic 320kbps CD master sound directly to your browser or installed standalone app.
+                Authentic 320kbps CD master sound streaming directly from edge CDNs to your device.
               </p>
             </div>
 
@@ -211,96 +209,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           </div>
         </div>
       </main>
-
-      {/* 3. Registered Users Directory Modal */}
-      {showUsersModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
-          <div className="bg-[#181818] border border-white/10 rounded-2xl w-full max-w-2xl p-6 shadow-2xl">
-            <div className="flex items-center justify-between pb-4 border-b border-white/10 mb-4">
-              <div className="flex items-center gap-2">
-                <Users className="w-5 h-5 text-[#1ed760]" />
-                <h3 className="text-lg font-bold text-white">Registered Users Directory</h3>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-[#1ed760]/10 text-[#1ed760] font-bold">
-                  {accounts.length} total
-                </span>
-              </div>
-              <button
-                onClick={() => setShowUsersModal(false)}
-                className="text-[#7c7c7c] hover:text-white transition cursor-pointer text-sm font-bold"
-              >
-                ✕ Close
-              </button>
-            </div>
-
-            <p className="text-xs text-[#b3b3b3] mb-4 leading-relaxed">
-              Below are all accounts registered on this instance. If Supabase is connected, users are also viewable in real-time in your{' '}
-              <a
-                href="https://supabase.com/dashboard"
-                target="_blank"
-                rel="noreferrer"
-                className="text-[#1ed760] hover:underline inline-flex items-center gap-1"
-              >
-                Supabase Dashboard &gt; Authentication &gt; Users <ExternalLink className="w-3 h-3" />
-              </a>.
-            </p>
-
-            {/* Users Table */}
-            <div className="max-h-[320px] overflow-y-auto border border-white/10 rounded-xl">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-[#242424] text-[#b3b3b3] uppercase tracking-wider font-bold">
-                  <tr>
-                    <th className="p-3">User</th>
-                    <th className="p-3">Provider</th>
-                    <th className="p-3">Created</th>
-                    <th className="p-3">Last Active</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {accounts.map((acc) => (
-                    <tr key={acc.id} className="hover:bg-white/5 transition">
-                      <td className="p-3 flex items-center gap-2.5">
-                        <img
-                          src={acc.avatarUrl}
-                          alt=""
-                          className="w-7 h-7 rounded-full bg-[#333] object-cover"
-                        />
-                        <div>
-                          <p className="font-bold text-white">{acc.displayName}</p>
-                          <p className="text-[10px] text-[#7c7c7c]">{acc.email}</p>
-                        </div>
-                      </td>
-                      <td className="p-3">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                          acc.provider === 'google' 
-                            ? 'bg-blue-500/20 text-blue-300' 
-                            : 'bg-white/10 text-[#b3b3b3]'
-                        }`}>
-                          {acc.provider || 'email'}
-                        </span>
-                      </td>
-                      <td className="p-3 text-[#b3b3b3]">{formatDate(acc.createdAt)}</td>
-                      <td className="p-3 text-[#1ed760] font-medium">{formatDate(acc.lastLoginAt)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between text-xs text-[#7c7c7c]">
-              <span className="flex items-center gap-1">
-                <Info className="w-3.5 h-3.5 text-[#1ed760]" />
-                Password hashes are securely stored.
-              </span>
-              <button
-                onClick={() => setShowUsersModal(false)}
-                className="px-4 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white font-bold transition cursor-pointer"
-              >
-                Done
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

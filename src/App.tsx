@@ -26,27 +26,31 @@ export function App() {
     initSupabaseAuthListener();
 
     // 3. Evaluate 30-day inactivity session
-    const isAuth = checkSession();
+    const initApp = async () => {
+      const isAuth = await checkSession();
 
-    if (isRunningStandalone) {
-      // Installed app flow:
-      // If active session within 30 days -> main dashboard
-      // If no session or expired (>30 days) -> sign up / login page
-      if (isAuth) {
-        setView('dashboard');
+      if (isRunningStandalone) {
+        // Installed app flow:
+        // If active session within 30 days -> main dashboard
+        // If no session or expired (>30 days) -> sign up / login page
+        if (isAuth) {
+          setView('dashboard');
+        } else {
+          setView('auth');
+        }
       } else {
-        setView('auth');
+        // Web browser flow:
+        // If active session within 30 days -> main dashboard
+        // If no session or expired (>30 days) -> landing page
+        if (isAuth) {
+          setView('dashboard');
+        } else {
+          setView('landing');
+        }
       }
-    } else {
-      // Web browser flow:
-      // If active session within 30 days -> main dashboard
-      // If no session or expired (>30 days) -> landing page
-      if (isAuth) {
-        setView('dashboard');
-      } else {
-        setView('landing');
-      }
-    }
+    };
+
+    initApp();
 
     // 4. Capture PWA installation prompt
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -58,10 +62,10 @@ export function App() {
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, [checkSession, initSupabaseAuthListener]);
 
-  const handleContinueOnline = () => {
+  const handleContinueOnline = async () => {
     // If user is already authenticated within 30 days, proceed directly to dashboard
     // Otherwise, transition to Sign Up / Log In
-    const isAuth = checkSession();
+    const isAuth = await checkSession();
     if (isAuth) {
       setView('dashboard');
     } else {
