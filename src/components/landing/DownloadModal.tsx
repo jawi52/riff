@@ -152,7 +152,7 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({
             <button
               onClick={handleDirectInstall}
               disabled={installing}
-              className="w-full py-4 px-6 rounded-full bg-[#1ed760] hover:bg-[#1db954] active:scale-98 text-black font-extrabold text-sm uppercase tracking-[1.4px] flex items-center justify-center gap-2.5 transition shadow-lg shadow-black/60 cursor-pointer disabled:opacity-50"
+              className="w-full h-12 rounded-full bg-[#1ed760] hover:bg-[#1fdf64] active:scale-98 text-black font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition shadow-lg shadow-[#1ed760]/20 hover:shadow-[#1ed760]/35 cursor-pointer disabled:opacity-50 whitespace-nowrap"
             >
               <Download className="w-4 h-4" />
               <span>{installing ? "Installing Riff..." : "Yes, Install Now"}</span>
@@ -160,9 +160,9 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({
 
             <button
               onClick={onClose}
-              className="w-full py-3 px-4 rounded-full bg-transparent hover:bg-white/5 border border-white/10 text-[#b3b3b3] hover:text-white font-bold text-xs uppercase tracking-[1.2px] transition cursor-pointer"
+              className="w-full h-11 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/30 text-[#b3b3b3] hover:text-white font-bold text-xs sm:text-sm flex items-center justify-center transition cursor-pointer whitespace-nowrap"
             >
-              Not Now, Keep Browsing
+              Not now, keep browsing
             </button>
           </div>
         )}

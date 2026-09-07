@@ -94,53 +94,64 @@
 /* Primary Pill Button */
 .btn-spotify-primary {
   background-color: var(--accent);
-  color: var(--accent-on);
+  color: #000000;
   font-weight: 700;
-  font-size: 14px;
-  letter-spacing: 1.4px;
-  text-transform: uppercase;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
   border-radius: 9999px;
-  padding: 14px 32px;
+  padding: 12px 28px;
+  height: 48px;
+  box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.2s ease, transform 0.15s ease;
+  gap: 8px;
+  box-shadow: 0 4px 14px rgba(30, 215, 96, 0.25);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .btn-spotify-primary:hover {
-  background-color: var(--accent-hover);
+  background-color: #1fdf64;
   transform: scale(1.04);
+  box-shadow: 0 6px 20px rgba(30, 215, 96, 0.4);
 }
 
 .btn-spotify-primary:active {
-  background-color: var(--accent-active);
+  background-color: #1aa34a;
   transform: scale(0.98);
 }
 
 /* Outlined / Secondary Pill Button */
 .btn-spotify-secondary {
-  background-color: transparent;
-  color: var(--fg);
-  border: 1px solid #7c7c7c;
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
   font-weight: 700;
-  font-size: 14px;
-  letter-spacing: 1.4px;
-  text-transform: uppercase;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
   border-radius: 9999px;
-  padding: 13px 28px;
+  padding: 12px 28px;
+  height: 48px;
+  box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: border-color 0.2s ease, transform 0.15s ease, color 0.2s ease;
+  gap: 8px;
+  backdrop-filter: blur(8px);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .btn-spotify-secondary:hover {
-  border-color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.6);
   color: #ffffff;
   transform: scale(1.04);
 }
 
 .btn-spotify-secondary:active {
+  background-color: rgba(255, 255, 255, 0.05);
   transform: scale(0.98);
 }
 

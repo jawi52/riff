@@ -293,7 +293,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <button
               onClick={() => setIsDownloadOpen(true)}
-              className="px-3 sm:px-4 py-2 rounded-full border border-[#7c7c7c] hover:border-white text-white font-bold text-[11px] sm:text-xs uppercase tracking-[1px] sm:tracking-[1.4px] transition hover:scale-105 active:scale-95 flex items-center gap-1.5 cursor-pointer bg-transparent"
+              className="px-3.5 sm:px-4 py-2 rounded-full border border-white/20 hover:border-white/60 bg-white/5 hover:bg-white/10 text-white font-bold text-xs transition hover:scale-105 active:scale-95 flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
             >
               <Download className="w-3.5 h-3.5 text-[#1ed760]" />
               <span>Install App</span>
@@ -301,10 +301,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
             <button
               onClick={onContinueOnline}
-              className="btn-spotify-primary !py-2 sm:!py-2.5 !px-3.5 sm:!px-5 !text-[11px] sm:!text-xs !tracking-[1px] sm:!tracking-[1.2px]"
+              className="h-9 px-4 rounded-full bg-[#1ed760] hover:bg-[#1fdf64] text-black font-bold text-xs flex items-center gap-1.5 transition hover:scale-105 active:scale-95 cursor-pointer whitespace-nowrap shadow-sm shadow-[#1ed760]/30"
             >
               <span>Listen Online</span>
-              <ArrowRight className="w-3.5 h-3.5 ml-1 hidden xs:inline" />
+              <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
@@ -341,20 +341,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </p>
 
             {/* Primary Action Buttons */}
-            <div className="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-3 sm:gap-4 max-w-md mx-auto lg:mx-0">
+            <div className="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-3 sm:gap-4">
               <button
                 onClick={onContinueOnline}
-                className="btn-spotify-primary shadow-lg shadow-black/50 cursor-pointer w-full sm:w-auto"
+                className="btn-spotify-primary w-full sm:w-auto min-w-[170px] cursor-pointer"
               >
                 <span>Continue Online</span>
-                <ArrowRight className="w-4 h-4 ml-2" />
+                <ArrowRight className="w-4 h-4" />
               </button>
 
               <button
                 onClick={() => setIsDownloadOpen(true)}
-                className="btn-spotify-secondary cursor-pointer w-full sm:w-auto"
+                className="btn-spotify-secondary w-full sm:w-auto min-w-[170px] cursor-pointer"
               >
-                <Download className="w-4 h-4 mr-2" />
+                <Download className="w-4 h-4 text-[#1ed760]" />
                 <span>Download App</span>
               </button>
             </div>
@@ -706,21 +706,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             Start streaming immediately in your browser or install Riff on your desktop and phone for the ultimate listening setup.
           </p>
 
-          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3.5 max-w-md mx-auto">
+          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3.5">
             <button
               onClick={onContinueOnline}
-              className="w-full sm:w-auto btn-spotify-primary cursor-pointer"
+              className="w-full sm:w-auto min-w-[170px] btn-spotify-primary cursor-pointer"
             >
               <span>Continue Online</span>
-              <ArrowRight className="w-4 h-4 ml-2" />
+              <ArrowRight className="w-4 h-4" />
             </button>
 
             <button
               onClick={() => setIsDownloadOpen(true)}
-              className="w-full sm:w-auto btn-spotify-secondary cursor-pointer"
+              className="w-full sm:w-auto min-w-[170px] btn-spotify-secondary cursor-pointer"
             >
-              <Download className="w-4 h-4 mr-2" />
-              <span>Download Standalone App</span>
+              <Download className="w-4 h-4 text-[#1ed760]" />
+              <span>Download App</span>
             </button>
           </div>
         </div>
