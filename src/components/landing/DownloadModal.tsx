@@ -1,4 +1,4 @@
-﻿import React, { useState } from "react";
+import React, { useState } from "react";
 import { 
   X, 
   Download, 
@@ -70,11 +70,11 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({
 
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
-          <RiffLogo size="md" showText={false} />
+          <RiffLogo size="sm" />
           <div>
             <h3 className="text-xl font-bold text-white flex items-center gap-2">
-              Install Riff Standalone
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+              Install Standalone
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-violet-500/20 text-violet-400 border border-violet-500/30">
                 PWA
               </span>
             </h3>
@@ -86,10 +86,10 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({
 
         {/* Native Install Prompt Button (if browser supports it) */}
         {deferredPrompt && !installed && (
-          <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-emerald-950/40 to-teal-950/40 border border-emerald-500/30 flex items-center justify-between gap-4">
+          <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-violet-950/40 to-indigo-950/40 border border-violet-500/30 flex items-center justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold text-emerald-300 flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4 text-emerald-400" />
+              <p className="text-sm font-semibold text-violet-300 flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-violet-400" />
                 One-Click Installation Ready
               </p>
               <p className="text-xs text-neutral-300 mt-0.5">
@@ -99,7 +99,7 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({
             <button
               onClick={handleNativeInstall}
               disabled={installing}
-              className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-black font-bold text-xs flex items-center gap-2 shadow-lg shadow-emerald-500/25 transition disabled:opacity-50 shrink-0 cursor-pointer"
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-500 hover:from-violet-500 hover:to-indigo-400 active:scale-95 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-violet-500/25 transition disabled:opacity-50 shrink-0 cursor-pointer"
             >
               <Download className="w-4 h-4" />
               {installing ? "Installing..." : "Install Now"}
@@ -108,7 +108,7 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({
         )}
 
         {installed && (
-          <div className="mb-6 p-4 rounded-xl bg-emerald-950/30 border border-emerald-500/30 flex items-center gap-3 text-emerald-400">
+          <div className="mb-6 p-4 rounded-xl bg-violet-950/30 border border-violet-500/30 flex items-center gap-3 text-violet-400">
             <CheckCircle2 className="w-5 h-5 shrink-0" />
             <span className="text-sm font-medium">
               Riff was installed successfully! Check your apps or desktop shortcut.
@@ -122,7 +122,7 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({
             onClick={() => setActiveTab("desktop")}
             className={`flex items-center gap-2 pb-2.5 px-3 border-b-2 transition cursor-pointer ${
               activeTab === "desktop"
-                ? "border-emerald-400 text-white font-bold"
+                ? "border-violet-400 text-white font-bold"
                 : "border-transparent text-neutral-400 hover:text-neutral-200"
             }`}
           >
@@ -133,7 +133,7 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({
             onClick={() => setActiveTab("ios")}
             className={`flex items-center gap-2 pb-2.5 px-3 border-b-2 transition cursor-pointer ${
               activeTab === "ios"
-                ? "border-emerald-400 text-white font-bold"
+                ? "border-violet-400 text-white font-bold"
                 : "border-transparent text-neutral-400 hover:text-neutral-200"
             }`}
           >
@@ -144,7 +144,7 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({
             onClick={() => setActiveTab("android")}
             className={`flex items-center gap-2 pb-2.5 px-3 border-b-2 transition cursor-pointer ${
               activeTab === "android"
-                ? "border-emerald-400 text-white font-bold"
+                ? "border-violet-400 text-white font-bold"
                 : "border-transparent text-neutral-400 hover:text-neutral-200"
             }`}
           >
@@ -174,7 +174,7 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({
                 </p>
               </div>
               <div className="flex items-start gap-3 p-3 rounded-lg bg-white/5">
-                <span className="w-5 h-5 rounded-full bg-emerald-500 text-black text-xs flex items-center justify-center font-bold shrink-0 mt-0.5">
+                <span className="w-5 h-5 rounded-full bg-violet-500 text-white text-xs flex items-center justify-center font-bold shrink-0 mt-0.5">
                   ✓
                 </span>
                 <p className="text-xs leading-relaxed text-neutral-200">
@@ -207,7 +207,7 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({
                   3
                 </span>
                 <p className="text-xs leading-relaxed">
-                  Scroll down and tap <strong className="text-emerald-400">Add to Home Screen</strong>, then tap <strong className="text-white">Add</strong>.
+                  Scroll down and tap <strong className="text-violet-400">Add to Home Screen</strong>, then tap <strong className="text-white">Add</strong>.
                 </p>
               </div>
             </div>
@@ -236,7 +236,7 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({
                   3
                 </span>
                 <p className="text-xs leading-relaxed">
-                  Select <strong className="text-emerald-400">Install App</strong> or <strong className="text-white">Add to Home screen</strong>.
+                  Select <strong className="text-violet-400">Install App</strong> or <strong className="text-white">Add to Home screen</strong>.
                 </p>
               </div>
             </div>
@@ -246,7 +246,7 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({
         {/* Feature Highlights Grid */}
         <div className="mt-6 pt-5 border-t border-white/10 grid grid-cols-2 gap-3 text-xs">
           <div className="flex items-center gap-2 text-neutral-300">
-            <WifiOff className="w-4 h-4 text-emerald-400 shrink-0" />
+            <WifiOff className="w-4 h-4 text-violet-400 shrink-0" />
             <span>Full Offline Listening</span>
           </div>
           <div className="flex items-center gap-2 text-neutral-300">

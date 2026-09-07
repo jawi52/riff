@@ -32,12 +32,12 @@ export function App() {
   return (
     <div className="min-h-screen bg-[#07080c] text-white flex flex-col items-center justify-center p-6 text-center select-none relative overflow-hidden">
       {/* Background Glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-violet-600/15 rounded-full blur-3xl pointer-events-none" />
 
       <RiffLogo size="lg" className="mb-6" />
 
-      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-400 mb-4">
-        <Sparkles className="w-3.5 h-3.5" />
+      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 text-xs text-violet-300 mb-4">
+        <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
         <span>Riff Web Player Online</span>
       </div>
 
