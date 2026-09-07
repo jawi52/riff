@@ -1,15 +1,54 @@
 import { useState, useEffect } from 'react';
 import { LandingPage } from './components/landing/LandingPage';
-import { RiffLogo } from './components/common/RiffLogo';
+import { AuthPage } from './components/auth/AuthPage';
+import { DashboardPage } from './components/dashboard/DashboardPage';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
-import { ArrowLeft, Sparkles } from 'lucide-react';
+import { useAuthStore } from './stores/useAuthStore';
 
 export function App() {
-  const [view, setView] = useState<'landing' | 'app'>('landing');
+  const [view, setView] = useState<'landing' | 'auth' | 'dashboard'>('landing');
+  const [isStandalone, setIsStandalone] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
-  // Capture PWA installation prompt
+  const { checkSession, initSupabaseAuthListener } = useAuthStore();
+
   useEffect(() => {
+    // 1. Detect if running as standalone installed PWA (Desktop/Mobile)
+    const isRunningStandalone = 
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as any).standalone === true ||
+      document.referrer.includes('android-app://') ||
+      new URLSearchParams(window.location.search).get('source') === 'pwa';
+
+    setIsStandalone(isRunningStandalone);
+
+    // 2. Initialize Supabase Auth listener if configured
+    initSupabaseAuthListener();
+
+    // 3. Evaluate 30-day inactivity session
+    const isAuth = checkSession();
+
+    if (isRunningStandalone) {
+      // Installed app flow:
+      // If active session within 30 days -> main dashboard
+      // If no session or expired (>30 days) -> sign up / login page
+      if (isAuth) {
+        setView('dashboard');
+      } else {
+        setView('auth');
+      }
+    } else {
+      // Web browser flow:
+      // If active session within 30 days -> main dashboard
+      // If no session or expired (>30 days) -> landing page
+      if (isAuth) {
+        setView('dashboard');
+      } else {
+        setView('landing');
+      }
+    }
+
+    // 4. Capture PWA installation prompt
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
@@ -17,44 +56,48 @@ export function App() {
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-  }, []);
+  }, [checkSession, initSupabaseAuthListener]);
+
+  const handleContinueOnline = () => {
+    // If user is already authenticated within 30 days, proceed directly to dashboard
+    // Otherwise, transition to Sign Up / Log In
+    const isAuth = checkSession();
+    if (isAuth) {
+      setView('dashboard');
+    } else {
+      setView('auth');
+    }
+  };
 
   return (
     <ErrorBoundary>
-      {view === 'landing' ? (
+      {view === 'landing' && (
         <LandingPage
-          onContinueOnline={() => setView('app')}
+          onContinueOnline={handleContinueOnline}
           deferredPrompt={deferredPrompt}
         />
-      ) : (
-        <div className="min-h-screen bg-[#121212] text-white flex flex-col items-center justify-center p-6 text-center select-none relative overflow-hidden">
-          {/* Subtle Spotify Green Glow */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-[#1ed760]/10 rounded-full blur-3xl pointer-events-none" />
+      )}
 
-          <RiffLogo size="lg" className="mb-6" />
+      {view === 'auth' && (
+        <AuthPage
+          initialMode="register"
+          isStandaloneApp={isStandalone}
+          onBackToLanding={() => setView('landing')}
+          onAuthSuccess={() => setView('dashboard')}
+        />
+      )}
 
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#181818] border border-white/10 text-xs text-[#1ed760] mb-4">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span className="font-bold">Riff Web Player Online</span>
-          </div>
-
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight mb-2">
-            Online Mode Active
-          </h1>
-          <p className="text-[#b3b3b3] text-sm max-w-md mb-8">
-            Landing page is complete. Ready to build the next page (e.g. Home Feed, Official Search Explorer, or Player Shell).
-          </p>
-
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setView('landing')}
-              className="px-6 py-2.5 rounded-full bg-[#181818] hover:bg-[#222222] border border-white/10 text-xs font-semibold text-white transition flex items-center gap-2 cursor-pointer"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to Landing Page
-            </button>
-          </div>
-        </div>
+      {view === 'dashboard' && (
+        <DashboardPage
+          isStandaloneApp={isStandalone}
+          onLogout={() => {
+            if (isStandalone) {
+              setView('auth');
+            } else {
+              setView('landing');
+            }
+          }}
+        />
       )}
     </ErrorBoundary>
   );
