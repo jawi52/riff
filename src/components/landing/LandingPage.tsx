@@ -93,7 +93,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   const [isPlayingDemo, setIsPlayingDemo] = useState(false);
   const [demoProgress, setDemoProgress] = useState(0);
   const [demoLoading, setDemoLoading] = useState(false);
-  const [currentBitrate, setCurrentBitrate] = useState<string>("320 kbps");
+  const [currentBitrate, setCurrentBitrate] = useState<string>("320 KBPS");
   const [streamSource, setStreamSource] = useState<string>("Direct Edge CDN");
   const [audioDuration, setAudioDuration] = useState(140);
   const [currentTime, setCurrentTime] = useState(0);
@@ -127,9 +127,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       const data = await searchRes.json();
       const tracks: ApiTrack[] = data.tracks || [];
 
-      // Find "Dior" by Shubh
+      // Select verified "Dior" by Shubh
       const targetTrack = tracks.find(
-        (t) => t.id === "thS3-dmUvlg" || (t.title.toLowerCase() === "dior" && t.artist?.name.toLowerCase().includes("shubh"))
+        (t) => t.id === "thS3-dmUvlg" || (t.title?.toLowerCase() === "dior" && t.artist?.name?.toLowerCase().includes("shubh"))
       ) || tracks[0];
 
       if (targetTrack) {
@@ -181,24 +181,33 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         throw new Error(`Failed to resolve stream: status ${res.status}`);
       }
       const data = await res.json();
-      const directUrl = data.url || `${RIFF_ENGINE_URL}${spotlightTrack.streamEndpoint}`;
+      const directUrl = data.audioUrl || data.url || `${RIFF_ENGINE_URL}${spotlightTrack.streamEndpoint}`;
 
-      setCurrentBitrate(data.bitrate || "320 kbps");
+      // Format bitrate safely (handles numbers or strings)
+      if (typeof data.bitrate === "number") {
+        setCurrentBitrate(`${Math.round(data.bitrate / 1000)} KBPS`);
+      } else if (data.bitrate) {
+        setCurrentBitrate(String(data.bitrate).toUpperCase());
+      } else {
+        setCurrentBitrate("320 KBPS");
+      }
+
       setStreamSource(data.engine || "Direct Edge CDN");
 
       const audio = new Audio(directUrl);
       audioRef.current = audio;
 
       audio.onloadedmetadata = () => {
-        if (audio.duration && !isNaN(audio.duration)) {
+        if (audio.duration && !isNaN(audio.duration) && isFinite(audio.duration)) {
           setAudioDuration(Math.round(audio.duration));
         }
       };
 
       audio.ontimeupdate = () => {
-        if (audio.duration) {
+        if (audio.duration && !isNaN(audio.duration) && isFinite(audio.duration) && audio.duration > 0) {
           setCurrentTime(Math.round(audio.currentTime));
-          setDemoProgress((audio.currentTime / audio.duration) * 100);
+          const progressPct = Math.max(0, Math.min(100, (audio.currentTime / audio.duration) * 100));
+          setDemoProgress(progressPct);
         }
       };
 
@@ -233,7 +242,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   };
 
   const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!audioRef.current || !audioDuration) return;
+    if (!audioRef.current || !audioDuration || isNaN(audioDuration) || audioDuration <= 0) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
     const percentage = Math.max(0, Math.min(1, clickX / rect.width));
@@ -250,7 +259,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
     };
   }, []);
 
-  const formatTime = (seconds: number) => {
+  const formatTime = (seconds?: number | null) => {
+    if (!seconds || isNaN(seconds) || !isFinite(seconds) || seconds < 0) return "0:00";
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
@@ -327,23 +337,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               Experience studio-grade <strong className="text-white font-semibold">320kbps CD Master Audio</strong> streaming directly from unthrottled edge CDNs. Real verified artist recordings, uncompressed acoustics, and true offline playback.
             </p>
 
-            {/* CTA Buttons Cluster */}
+            {/* CTA Buttons (Clean: Removed redundant green circle play button per request) */}
             <div className="mt-8 flex flex-wrap items-center gap-4">
-              <button
-                onClick={togglePlayTrack}
-                className="btn-spotify-play w-14 h-14 shrink-0 cursor-pointer"
-                aria-label="Play Dior by Shubh"
-                title="Play Dior by Shubh"
-              >
-                {demoLoading ? (
-                  <span className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                ) : isPlayingDemo ? (
-                  <Pause className="w-6 h-6 fill-black text-black" />
-                ) : (
-                  <Play className="w-6 h-6 fill-black text-black ml-0.5" />
-                )}
-              </button>
-
               <button
                 onClick={onContinueOnline}
                 className="btn-spotify-primary shadow-lg shadow-black/50 cursor-pointer"
@@ -394,7 +389,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   </span>
                 </div>
                 <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-[#1ed760]/15 text-[#1ed760] border border-[#1ed760]/30 font-mono">
-                  {currentBitrate.toUpperCase()}
+                  {currentBitrate}
                 </span>
               </div>
 
@@ -427,7 +422,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-md overflow-hidden shadow-xl shadow-black/80 shrink-0 bg-[#282828] group">
                       <img
                         src={spotlightTrack.album?.coverMedium || spotlightTrack.album?.cover || spotlightTrack.artist?.picture || ""}
-                        alt={spotlightTrack.title}
+                        alt={spotlightTrack.title || "Dior"}
                         className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                       />
                       <button
@@ -449,14 +444,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <h3 className="text-lg sm:text-xl font-bold text-white truncate">
-                          {spotlightTrack.title}
+                          {spotlightTrack.title || "Dior"}
                         </h3>
                         <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/10 text-white font-semibold shrink-0">
                           VERIFIED
                         </span>
                       </div>
                       <p className="text-sm text-[#b3b3b3] truncate mt-1">
-                        {spotlightTrack.artist?.name}
+                        {spotlightTrack.artist?.name || "Shubh"}
                       </p>
                       <p className="text-xs text-[#7c7c7c] truncate mt-0.5">
                         {spotlightTrack.album?.title || "Still Rollin"}
@@ -476,7 +471,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     >
                       <div 
                         className="h-full bg-[#1ed760] group-hover:bg-[#1db954] transition-all duration-150 rounded-full"
-                        style={{ width: `${demoProgress}%` }}
+                        style={{ width: `${Math.max(0, Math.min(100, demoProgress))}%` }}
                       />
                     </div>
                     <div className="flex items-center justify-between text-[11px] text-[#b3b3b3] mt-2 font-mono">
