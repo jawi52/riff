@@ -13,9 +13,9 @@ export const RiffLogo: React.FC<RiffLogoProps> = ({
   glow = true,
 }) => {
   const sizeMap = {
-    sm: { text: "text-2xl tracking-tight", dot: "w-2 h-2" },
-    md: { text: "text-3xl tracking-tight", dot: "w-2.5 h-2.5" },
-    lg: { text: "text-5xl tracking-tighter", dot: "w-3 h-3" },
+    sm: { text: "text-xl tracking-tight", dot: "w-2 h-2" },
+    md: { text: "text-2xl sm:text-3xl tracking-tight", dot: "w-2.5 h-2.5" },
+    lg: { text: "text-4xl sm:text-5xl tracking-tighter", dot: "w-3 h-3" },
     xl: { text: "text-6xl sm:text-7xl tracking-tighter", dot: "w-3.5 h-3.5" },
   };
 
@@ -23,21 +23,20 @@ export const RiffLogo: React.FC<RiffLogoProps> = ({
 
   return (
     <div className={`inline-flex items-center select-none relative group ${className}`}>
-      {/* Subtle Glow Behind Text Logo */}
+      {/* Subtle Spotify Green Glow */}
       {glow && (
         <div 
-          className="absolute -inset-3 bg-gradient-to-r from-violet-600/25 via-indigo-500/20 to-cyan-500/25 blur-xl opacity-60 group-hover:opacity-100 transition duration-500 pointer-events-none rounded-full" 
+          className="absolute -inset-2 bg-[#1ed760]/15 blur-xl opacity-40 group-hover:opacity-80 transition duration-500 pointer-events-none rounded-full" 
         />
       )}
 
       {/* Pure Typography Wordmark */}
       <div className="relative flex items-center gap-1.5">
-        <span className={`font-black font-sans uppercase ${current.text} bg-gradient-to-r from-white via-slate-100 to-slate-300 bg-clip-text text-transparent drop-shadow-sm`}>
+        <span className={`font-black font-sans uppercase ${current.text} text-white tracking-[-0.03em]`}>
           RIFF
         </span>
-        <span className={`${current.dot} rounded-full bg-gradient-to-tr from-violet-400 to-cyan-400 shadow-sm shadow-violet-500/80 animate-pulse`} />
+        <span className={`${current.dot} rounded-full bg-[#1ed760] shadow-sm shadow-[#1ed760]/60 animate-pulse`} />
       </div>
     </div>
   );
 };
-
