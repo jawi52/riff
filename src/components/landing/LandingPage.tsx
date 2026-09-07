@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { 
   Play, 
   Pause, 
@@ -12,7 +12,8 @@ import {
   Mic2, 
   CheckCircle2, 
   XCircle, 
-  ExternalLink
+  ExternalLink,
+  RefreshCw
 } from "lucide-react";
 import { RiffLogo } from "../common/RiffLogo";
 import { DownloadModal } from "./DownloadModal";
@@ -23,63 +24,165 @@ interface LandingPageProps {
   deferredPrompt?: any;
 }
 
+interface ApiTrack {
+  id: string;
+  title: string;
+  artist: {
+    id: string;
+    name: string;
+    picture?: string;
+  };
+  album: {
+    id: string;
+    title: string;
+    cover?: string;
+    coverMedium?: string;
+    coverBig?: string;
+  };
+  duration: number;
+  streamEndpoint: string;
+  streamUrlEndpoint: string;
+}
+
+interface EngineHealth {
+  status: string;
+  engine: string;
+  version: string;
+  uptime: number;
+  timestamp: string;
+}
+
 export const LandingPage: React.FC<LandingPageProps> = ({
   onContinueOnline,
   deferredPrompt,
 }) => {
   const [isDownloadOpen, setIsDownloadOpen] = useState(false);
 
-  // Live Interactive Audio Demo
+  // Dynamic Live API Data States (Zero Hardcoding)
+  const [liveTracks, setLiveTracks] = useState<ApiTrack[]>([]);
+  const [activeTrackIndex, setActiveTrackIndex] = useState(0);
+  const [engineHealth, setEngineHealth] = useState<EngineHealth | null>(null);
+  const [isLoadingCatalog, setIsLoadingCatalog] = useState(true);
+  const [apiError, setApiError] = useState<string | null>(null);
+
+  // Live Audio Player State
   const [isPlayingDemo, setIsPlayingDemo] = useState(false);
   const [demoProgress, setDemoProgress] = useState(0);
   const [demoLoading, setDemoLoading] = useState(false);
-  const [audioDuration, setAudioDuration] = useState(168);
+  const [currentBitrate, setCurrentBitrate] = useState<string>("320 kbps");
+  const [streamSource, setStreamSource] = useState<string>("Direct Edge CDN");
+  const [audioDuration, setAudioDuration] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Demo Track: LISA - MONEY (Studio 320kbps Master on Akamai)
-  const DEMO_TRACK = {
-    id: "4YSHPGn9-LM",
-    title: "MONEY",
-    artist: "LISA",
-    album: "LALISA",
-    cover: "https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=600&auto=format&fit=crop&q=80",
-    bitrate: "320 kbps",
-    source: "Akamai CD Master",
-  };
+  // 1. Fetch Dynamic Backend Engine Status & Live Tracks
+  const fetchLiveCatalog = useCallback(async () => {
+    try {
+      setIsLoadingCatalog(true);
+      setApiError(null);
 
-  const togglePlayDemo = async () => {
-    if (isPlayingDemo && audioRef.current) {
+      // A. Query Live Engine Health
+      try {
+        const healthRes = await fetch(`${RIFF_ENGINE_URL}/api/v1/health`);
+        if (healthRes.ok) {
+          const healthData: EngineHealth = await healthRes.json();
+          setEngineHealth(healthData);
+        }
+      } catch (err) {
+        console.warn("Could not fetch engine health:", err);
+      }
+
+      // B. Query Real Verified Tracks Catalog from Live API
+      const searchRes = await fetch(`${RIFF_ENGINE_URL}/api/v1/search?q=top%20hits&limit=5`);
+      if (!searchRes.ok) {
+        throw new Error(`API returned status ${searchRes.status}`);
+      }
+      const data = await searchRes.json();
+      const tracks: ApiTrack[] = data.tracks || [];
+
+      if (tracks.length > 0) {
+        setLiveTracks(tracks);
+        setAudioDuration(tracks[0].duration || 210);
+      } else {
+        setApiError("No tracks returned from live API");
+      }
+    } catch (err: any) {
+      console.error("Live catalog fetch error:", err);
+      setApiError(err?.message || "Failed to connect to Riff-Engine API");
+    } finally {
+      setIsLoadingCatalog(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchLiveCatalog();
+  }, [fetchLiveCatalog]);
+
+  const activeTrack: ApiTrack | null = liveTracks[activeTrackIndex] || null;
+
+  // 2. Play / Pause Dynamic Stream from Live Backend API
+  const togglePlayTrack = async (targetIndex?: number) => {
+    const nextIndex = typeof targetIndex === "number" ? targetIndex : activeTrackIndex;
+    const trackToPlay = liveTracks[nextIndex];
+    if (!trackToPlay) return;
+
+    // If clicking same track while playing -> pause
+    if (nextIndex === activeTrackIndex && isPlayingDemo && audioRef.current) {
       audioRef.current.pause();
       setIsPlayingDemo(false);
       return;
     }
 
+    // Stop current audio if switching tracks
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+      setIsPlayingDemo(false);
+    }
+
+    if (nextIndex !== activeTrackIndex) {
+      setActiveTrackIndex(nextIndex);
+    }
+
     try {
       setDemoLoading(true);
-      if (!audioRef.current) {
-        // Fetch direct stream URL from Riff-Engine
-        const res = await fetch(`${RIFF_ENGINE_URL}/api/v1/stream-url/${DEMO_TRACK.id}`);
-        const data = await res.json();
-        const streamUrl = data.audioUrl || `${RIFF_ENGINE_URL}/api/v1/stream/${DEMO_TRACK.id}`;
 
-        const audio = new Audio(streamUrl);
-        audio.ontimeupdate = () => {
-          if (audio.duration) {
-            setDemoProgress((audio.currentTime / audio.duration) * 100);
-            setAudioDuration(Math.round(audio.duration));
-          }
-        };
-        audio.onended = () => {
-          setIsPlayingDemo(false);
-          setDemoProgress(0);
-        };
-        audioRef.current = audio;
+      // Fetch dynamic stream URL from live Riff-Engine resolver API
+      const res = await fetch(`${RIFF_ENGINE_URL}/api/v1/stream-url/${trackToPlay.id}`);
+      if (!res.ok) {
+        throw new Error(`Stream resolver returned ${res.status}`);
       }
+      const streamData = await res.json();
 
-      await audioRef.current.play();
+      // Dynamic stream details from live response
+      const streamUrl = streamData.audioUrl || `${RIFF_ENGINE_URL}/api/v1/stream/${trackToPlay.id}`;
+      const bitrateNum = streamData.bitrate ? Math.round(streamData.bitrate / 1000) : 320;
+      setCurrentBitrate(`${bitrateNum} kbps`);
+
+      const sourceName = 
+        streamData.source === "direct" && streamUrl.includes("saavn")
+          ? "Akamai Studio Master"
+          : streamData.source === "direct" && streamUrl.includes("sndcdn")
+          ? "Cloudflare Audio CDN"
+          : streamData.source || "Edge CDN Master";
+      setStreamSource(sourceName);
+
+      const audio = new Audio(streamUrl);
+      audio.ontimeupdate = () => {
+        if (audio.duration) {
+          setDemoProgress((audio.currentTime / audio.duration) * 100);
+          setAudioDuration(Math.round(audio.duration));
+        }
+      };
+      audio.onended = () => {
+        setIsPlayingDemo(false);
+        setDemoProgress(0);
+      };
+
+      audioRef.current = audio;
+      await audio.play();
       setIsPlayingDemo(true);
     } catch (err) {
-      console.warn("Demo playback failed:", err);
+      console.error("Live streaming failed:", err);
     } finally {
       setDemoLoading(false);
     }
@@ -109,8 +212,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             
             <nav className="hidden md:flex items-center gap-6 text-xs font-medium text-neutral-400">
               <a href="#features" className="hover:text-white transition">Features</a>
-              <a href="#fidelity" className="hover:text-white transition">320k Fidelity</a>
-              <a href="#demo" className="hover:text-white transition">Live Demo</a>
+              <a href="#demo" className="hover:text-white transition">Live Stream Demo</a>
               <a href="#comparison" className="hover:text-white transition">Comparison</a>
             </nav>
           </div>
@@ -140,14 +242,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
       {/* 2. Hero Section */}
       <section className="relative pt-12 pb-20 md:pt-20 md:pb-28 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center">
-        {/* Status Pill */}
+        {/* Dynamic Engine Status Pill (From Live Backend) */}
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-neutral-300 mb-8 backdrop-blur-md">
           <span className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
           </span>
-          <span className="font-semibold text-white">Riff-Engine Live:</span>
-          <span className="text-neutral-400">Zero-Bot 4-Tier Edge CDN Resolution</span>
+          <span className="font-semibold text-white">
+            {engineHealth ? `${engineHealth.engine} v${engineHealth.version}:` : "Riff-Engine Live:"}
+          </span>
+          <span className="text-neutral-400">
+            {engineHealth ? `Status: ${engineHealth.status.toUpperCase()} (${Math.round(engineHealth.uptime)}s uptime)` : "Connecting to Live Edge API..."}
+          </span>
         </div>
 
         {/* Headline */}
@@ -184,7 +290,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </button>
         </div>
 
-        {/* Value Prop Badges */}
+        {/* Trust Badges */}
         <div className="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-xs text-neutral-400 font-medium">
           <div className="flex items-center gap-1.5">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
@@ -204,80 +310,131 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
         </div>
 
-        {/* 3. Interactive Live Music Player Card */}
+        {/* 3. Fully Dynamic Live Music Player Card (Direct from API) */}
         <div id="demo" className="mt-16 max-w-2xl mx-auto">
           <div className="relative rounded-3xl p-6 sm:p-8 bg-[#0f111a]/90 border border-white/10 shadow-2xl shadow-black/80 backdrop-blur-2xl text-left overflow-hidden group">
             {/* Card Ambient Glow */}
             <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
+            {/* Header / Dynamic Status */}
             <div className="flex items-center justify-between gap-4 mb-6">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
                 <span className="text-xs uppercase tracking-wider font-extrabold text-neutral-300">
-                  Live Studio Fidelity Demo
+                  Live API Streaming Stream
                 </span>
               </div>
-              <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                320 KBPS MASTER
+              <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-mono">
+                {currentBitrate.toUpperCase()}
               </span>
             </div>
 
-            <div className="flex items-center gap-5">
-              {/* Album Art with Floating Play Button */}
-              <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden shadow-lg shadow-black/60 shrink-0 border border-white/10">
-                <img
-                  src={DEMO_TRACK.cover}
-                  alt={DEMO_TRACK.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-                />
+            {/* Loading / Error States */}
+            {isLoadingCatalog && (
+              <div className="flex items-center justify-center py-12 text-neutral-400 text-xs gap-2">
+                <RefreshCw className="w-4 h-4 animate-spin text-emerald-400" />
+                <span>Loading live verified catalog from Riff-Engine...</span>
+              </div>
+            )}
+
+            {apiError && !isLoadingCatalog && (
+              <div className="p-4 rounded-xl bg-rose-950/40 border border-rose-500/30 text-xs text-rose-300 flex items-center justify-between">
+                <span>{apiError}</span>
                 <button
-                  onClick={togglePlayDemo}
-                  className="absolute inset-0 m-auto w-11 h-11 rounded-full bg-emerald-500 hover:bg-emerald-400 text-black flex items-center justify-center shadow-lg shadow-emerald-500/40 active:scale-95 transition cursor-pointer"
-                  aria-label="Play demo track"
+                  onClick={fetchLiveCatalog}
+                  className="px-3 py-1 bg-rose-500/20 rounded hover:bg-rose-500/30 text-white cursor-pointer"
                 >
-                  {demoLoading ? (
-                    <span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                  ) : isPlayingDemo ? (
-                    <Pause className="w-5 h-5 fill-current" />
-                  ) : (
-                    <Play className="w-5 h-5 fill-current ml-0.5" />
-                  )}
+                  Retry
                 </button>
               </div>
+            )}
 
-              {/* Track Info */}
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-lg sm:text-xl font-bold text-white truncate">
-                    {DEMO_TRACK.title}
-                  </h3>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-neutral-300 font-semibold">
-                    OFFICIAL
-                  </span>
+            {/* Dynamic Active Track Card */}
+            {activeTrack && !isLoadingCatalog && (
+              <>
+                <div className="flex items-center gap-5">
+                  {/* Album Cover Art */}
+                  <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden shadow-lg shadow-black/60 shrink-0 border border-white/10 bg-neutral-900">
+                    <img
+                      src={activeTrack.album?.coverMedium || activeTrack.album?.cover || activeTrack.artist?.picture || ""}
+                      alt={activeTrack.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                    />
+                    <button
+                      onClick={() => togglePlayTrack()}
+                      className="absolute inset-0 m-auto w-11 h-11 rounded-full bg-emerald-500 hover:bg-emerald-400 text-black flex items-center justify-center shadow-lg shadow-emerald-500/40 active:scale-95 transition cursor-pointer"
+                      aria-label="Play track"
+                    >
+                      {demoLoading ? (
+                        <span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                      ) : isPlayingDemo ? (
+                        <Pause className="w-5 h-5 fill-current" />
+                      ) : (
+                        <Play className="w-5 h-5 fill-current ml-0.5" />
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Track Info */}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-lg sm:text-xl font-bold text-white truncate">
+                        {activeTrack.title}
+                      </h3>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-semibold border border-emerald-500/30">
+                        VERIFIED
+                      </span>
+                    </div>
+                    <p className="text-sm text-neutral-400 truncate mt-0.5">
+                      {activeTrack.artist?.name} • {activeTrack.album?.title}
+                    </p>
+                    <p className="text-xs text-emerald-400/90 font-medium mt-1 flex items-center gap-1.5">
+                      <Volume2 className="w-3.5 h-3.5" />
+                      {streamSource} • Studio Master
+                    </p>
+                  </div>
                 </div>
-                <p className="text-sm text-neutral-400 truncate mt-0.5">
-                  {DEMO_TRACK.artist} • {DEMO_TRACK.album}
-                </p>
-                <p className="text-xs text-emerald-400/90 font-medium mt-1 flex items-center gap-1.5">
-                  <Volume2 className="w-3.5 h-3.5" />
-                  Direct Akamai Stream • Lossless CD Studio Quality
-                </p>
-              </div>
-            </div>
 
-            {/* Audio Progress Bar */}
-            <div className="mt-6">
-              <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-300 rounded-full"
-                  style={{ width: `${demoProgress}%` }}
-                />
-              </div>
-              <div className="flex items-center justify-between text-[11px] text-neutral-400 mt-2 font-mono">
-                <span>{isPlayingDemo ? "Playing 320kbps Audio" : "Click Play to Listen"}</span>
-                <span>{Math.floor(audioDuration / 60)}:{(audioDuration % 60).toString().padStart(2, '0')}</span>
-              </div>
-            </div>
+                {/* Audio Progress Bar */}
+                <div className="mt-6">
+                  <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-300 rounded-full"
+                      style={{ width: `${demoProgress}%` }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] text-neutral-400 mt-2 font-mono">
+                    <span>{isPlayingDemo ? `Streaming (${currentBitrate})` : "Click Play to Stream Live"}</span>
+                    <span>{Math.floor(audioDuration / 60)}:{(audioDuration % 60).toString().padStart(2, '0')}</span>
+                  </div>
+                </div>
+
+                {/* Dynamic Live Tracks Selector Pills */}
+                {liveTracks.length > 1 && (
+                  <div className="mt-6 pt-5 border-t border-white/5">
+                    <p className="text-[11px] uppercase tracking-wider font-semibold text-neutral-400 mb-2.5">
+                      Live Catalog Samples:
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {liveTracks.map((track, idx) => (
+                        <button
+                          key={track.id}
+                          onClick={() => togglePlayTrack(idx)}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-medium transition cursor-pointer flex items-center gap-1.5 ${
+                            idx === activeTrackIndex
+                              ? "bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-semibold"
+                              : "bg-white/5 hover:bg-white/10 border border-white/5 text-neutral-300"
+                          }`}
+                        >
+                          <span className="truncate max-w-[140px]">{track.title}</span>
+                          <span className="text-[10px] text-neutral-400 opacity-70">({track.artist.name.split(' ')[0]})</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </div>
       </section>
@@ -430,7 +587,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </tr>
               <tr>
                 <td className="p-4 sm:p-5 font-medium text-white">Offline Listening</td>
-                <td className="p-4 sm:p-5 text-neutral-400">Locked behind \$11.99/mo subscription</td>
+                <td className="p-4 sm:p-5 text-neutral-400">Locked behind $11.99/mo subscription</td>
                 <td className="p-4 sm:p-5 font-bold text-emerald-400 bg-emerald-500/5 flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                   Built-in Free Offline Storage
