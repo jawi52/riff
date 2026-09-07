@@ -383,9 +383,13 @@ export async function resolveMasterStream(track: Track): Promise<string> {
     }
   }
 
-  // 3. Try Riff-Engine backend for full-length stream (320kbps CD Studio Master)
+  // 3. Try Riff-Engine backend for full-length stream (320kbps CD Studio Master or direct proxy)
   const cleanId = track.id.replace(/^saavn_|^itunes_/, '');
-  if (/^\d+$/.test(cleanId) || cleanId.startsWith('trk_')) {
+  const isNumeric = /^\d+$/.test(cleanId);
+  const isYouTubeId = cleanId.length === 11 && !isNumeric;
+  const isTrk = cleanId.startsWith('trk_');
+
+  if (isNumeric || isYouTubeId || isTrk) {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 4000);
