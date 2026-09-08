@@ -24,7 +24,13 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   isStandaloneApp = false,
 }) => {
   const [activeTab, setActiveTab] = useState<DashboardTab>('home');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const { user, logout } = useAuthStore();
+
+  const handleSelectQuery = (q: string) => {
+    setSearchQuery(q);
+    setActiveTab('search');
+  };
 
   const handleLogoutClick = async () => {
     await logout();
@@ -117,8 +123,17 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
       {/* 2. Main Tab Viewport */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-5 sm:pt-6">
-        {activeTab === 'home' && <HomeFeed userName={user?.displayName} />}
-        {activeTab === 'search' && <SearchExplorer />}
+        {activeTab === 'home' && (
+          <HomeFeed 
+            userName={user?.displayName} 
+            onSelectQuery={handleSelectQuery} 
+          />
+        )}
+        {activeTab === 'search' && (
+          <SearchExplorer 
+            initialQuery={searchQuery} 
+          />
+        )}
         {(activeTab === 'library' || activeTab === 'profile') && (
           <LibraryView onLogout={onLogout} isStandaloneApp={isStandaloneApp} />
         )}

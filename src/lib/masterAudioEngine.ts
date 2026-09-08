@@ -438,6 +438,12 @@ export async function resolveMasterStream(track: Track): Promise<string> {
     }
   } catch {}
 
+  // 4b. Use track's provided streamUrl (e.g. backend /api/v1/stream/:id) before external fallback
+  if (track.streamUrl && track.streamUrl.startsWith('http') && !track.streamUrl.includes('undefined')) {
+    streamCache.set(track.id, { url: track.streamUrl, timestamp: Date.now() });
+    return track.streamUrl;
+  }
+
   // 5. iTunes preview fallback (30s clip — last resort)
   const directUrl = await resolveDirectCdnStream(track);
   streamCache.set(track.id, { url: directUrl, timestamp: Date.now() });

@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import { usePlayerStore } from '../../stores/usePlayerStore';
+import { useLibraryStore } from '../../stores/useLibraryStore';
 import { 
   Play, 
   Pause, 
@@ -8,7 +9,8 @@ import {
   Volume2, 
   VolumeX, 
   Sparkles, 
-  Radio
+  Radio,
+  Heart
 } from 'lucide-react';
 
 export const MiniPlayer: React.FC = () => {
@@ -27,10 +29,20 @@ export const MiniPlayer: React.FC = () => {
     toggleMute,
   } = usePlayerStore();
 
+  const { likedTracks, toggleLikeTrack } = useLibraryStore();
   const progressRef = useRef<HTMLDivElement | null>(null);
 
   const isPlaying = playbackState === 'playing';
   const isBuffering = playbackState === 'buffering';
+  const isCurrentTrackLiked = currentTrack 
+    ? likedTracks.some((t) => t.id === currentTrack.id) 
+    : false;
+
+  const handleToggleLike = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!currentTrack) return;
+    await toggleLikeTrack(currentTrack);
+  };
 
   const formatTime = (seconds: number) => {
     if (!seconds || isNaN(seconds) || seconds < 0) return '0:00';
@@ -105,6 +117,20 @@ export const MiniPlayer: React.FC = () => {
                     {currentTrack.artist}
                   </p>
                 </div>
+
+                {/* Heart / Favorite Button */}
+                <button
+                  onClick={handleToggleLike}
+                  className="p-1.5 text-[#b3b3b3] hover:text-white transition cursor-pointer shrink-0"
+                  aria-label={isCurrentTrackLiked ? 'Unlike track' : 'Like track'}
+                  title={isCurrentTrackLiked ? 'Remove from Liked Songs' : 'Save to Liked Songs'}
+                >
+                  <Heart
+                    className={`w-4 h-4 transition ${
+                      isCurrentTrackLiked ? 'fill-[#1ed760] text-[#1ed760]' : ''
+                    }`}
+                  />
+                </button>
               </>
             ) : (
               <div className="flex items-center gap-2.5 py-1 text-xs text-[#b3b3b3]">

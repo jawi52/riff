@@ -15,9 +15,10 @@ import {
 
 interface HomeFeedProps {
   userName?: string;
+  onSelectQuery?: (query: string) => void;
 }
 
-export const HomeFeed: React.FC<HomeFeedProps> = () => {
+export const HomeFeed: React.FC<HomeFeedProps> = ({ onSelectQuery }) => {
   const [charts, setCharts] = useState<ChartsResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -239,9 +240,12 @@ export const HomeFeed: React.FC<HomeFeedProps> = () => {
               Top Charts & Trending Now
             </h2>
           </div>
-          <span className="text-xs font-bold text-[#b3b3b3] hover:text-white transition cursor-pointer">
+          <button 
+            onClick={() => onSelectQuery?.('Top Trending Hits')}
+            className="text-xs font-bold text-[#b3b3b3] hover:text-[#1ed760] transition cursor-pointer"
+          >
             Live Global API
-          </span>
+          </button>
         </div>
 
         {/* Scrollable Track Cards Carousel */}
@@ -320,9 +324,10 @@ export const HomeFeed: React.FC<HomeFeedProps> = () => {
             {artists.map((artist) => (
               <div
                 key={artist.id}
+                onClick={() => onSelectQuery?.(artist.name)}
                 className="w-32 sm:w-40 shrink-0 bg-[#181818] hover:bg-[#222222] p-3 rounded-lg group transition-all duration-200 cursor-pointer snap-start text-center"
               >
-                <div className="relative aspect-square w-full rounded-full overflow-hidden bg-[#282828] mb-3 shadow-lg border border-white/10 mx-auto">
+                <div className="relative aspect-square w-full rounded-full overflow-hidden bg-[#282828] mb-3 shadow-lg border border-white/10 mx-auto group-hover:border-[#1ed760]/50 transition">
                   <img
                     src={artist.pictureBig || artist.pictureMedium || artist.picture}
                     alt={artist.name}
@@ -330,7 +335,7 @@ export const HomeFeed: React.FC<HomeFeedProps> = () => {
                     loading="lazy"
                   />
                 </div>
-                <p className="font-bold text-xs sm:text-sm text-white truncate">
+                <p className="font-bold text-xs sm:text-sm text-white truncate group-hover:text-[#1ed760] transition">
                   {artist.name}
                 </p>
                 <p className="text-[11px] text-[#b3b3b3] mt-0.5">
@@ -356,9 +361,10 @@ export const HomeFeed: React.FC<HomeFeedProps> = () => {
             {albums.map((album) => (
               <div
                 key={album.id}
+                onClick={() => onSelectQuery?.(`${album.title} ${album.artist?.name || ''}`.trim())}
                 className="w-36 sm:w-44 shrink-0 bg-[#181818] hover:bg-[#222222] p-3 rounded-lg group transition-all duration-200 cursor-pointer snap-start"
               >
-                <div className="relative aspect-square w-full rounded-md overflow-hidden bg-[#282828] mb-3 shadow-md">
+                <div className="relative aspect-square w-full rounded-md overflow-hidden bg-[#282828] mb-3 shadow-md group-hover:border-[#1ed760]/30 transition">
                   <img
                     src={album.coverBig || album.coverMedium || album.cover}
                     alt={album.title}
@@ -366,7 +372,7 @@ export const HomeFeed: React.FC<HomeFeedProps> = () => {
                     loading="lazy"
                   />
                 </div>
-                <p className="font-bold text-xs sm:text-sm text-white truncate">
+                <p className="font-bold text-xs sm:text-sm text-white truncate group-hover:text-[#1ed760] transition">
                   {album.title}
                 </p>
                 <p className="text-[11px] text-[#b3b3b3] truncate mt-1">
