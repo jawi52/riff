@@ -17,7 +17,6 @@ export class RiffAudioEngine {
   private constructor() {
     if (typeof Audio !== 'undefined') {
       this.audio = new Audio();
-      this.audio.crossOrigin = 'anonymous';
       this.audio.preload = 'auto';
       this.audio.autoplay = false;
     } else {
@@ -100,12 +99,8 @@ export class RiffAudioEngine {
   }
 
   public async playTrack(streamUrl: string): Promise<void> {
-    this.initWebAudio();
-
-    if (this.audioContext && this.audioContext.state === 'suspended') {
-      try {
-        await this.audioContext.resume();
-      } catch {}
+    if (!streamUrl) {
+      throw new Error('No stream URL provided');
     }
 
     if (this.audio.src !== streamUrl) {
@@ -116,17 +111,7 @@ export class RiffAudioEngine {
     try {
       await this.audio.play();
     } catch (err: any) {
-      // If CORS or audio context blocked it, retry without crossOrigin
-      if (this.audio.crossOrigin) {
-        try {
-          this.audio.crossOrigin = null;
-          this.audio.src = streamUrl;
-          this.audio.load();
-          await this.audio.play();
-          return;
-        } catch {}
-      }
-      console.warn('Playback play() call:', err.message);
+      console.warn('Playback play() call failed:', err.message);
       throw err;
     }
   }
@@ -136,11 +121,6 @@ export class RiffAudioEngine {
   }
 
   public async resume(): Promise<void> {
-    if (this.audioContext && this.audioContext.state === 'suspended') {
-      try {
-        await this.audioContext.resume();
-      } catch {}
-    }
     return this.audio.play();
   }
 

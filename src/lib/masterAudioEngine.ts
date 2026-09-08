@@ -364,12 +364,10 @@ export async function resolveDirectCdnStream(track: Track): Promise<string> {
 export async function resolveMasterStream(track: Track): Promise<string> {
   const ENGINE_BASE = RIFF_ENGINE_URL;
 
-  // 1. If track already has direct working stream that is NOT an internal/backend proxy URL
+  // 1. If track already has a valid streamUrl (including our live Azure proxy stream), use it immediately!
   if (
     track.streamUrl &&
     track.streamUrl.startsWith('http') &&
-    !track.streamUrl.includes('azurewebsites.net') &&
-    !track.streamUrl.includes('/api/v1/stream') &&
     !track.streamUrl.includes('undefined')
   ) {
     return track.streamUrl;
@@ -400,9 +398,12 @@ export async function resolveMasterStream(track: Track): Promise<string> {
       clearTimeout(timeoutId);
       if (res.ok) {
         const data = await res.json();
-        if (data.audioUrl) {
-          streamCache.set(track.id, { url: data.audioUrl, timestamp: Date.now() });
-          return data.audioUrl;
+        const safeUrl = (data.audioUrl && !data.audioUrl.includes('saavn'))
+          ? data.audioUrl
+          : (data.streamProxyUrl || `${ENGINE_BASE}/api/v1/stream/${cleanId}`);
+        if (safeUrl) {
+          streamCache.set(track.id, { url: safeUrl, timestamp: Date.now() });
+          return safeUrl;
         }
       }
     } catch {
@@ -429,9 +430,12 @@ export async function resolveMasterStream(track: Track): Promise<string> {
         clearTimeout(timeoutId);
         if (streamRes.ok) {
           const streamData = await streamRes.json();
-          if (streamData.audioUrl) {
-            streamCache.set(track.id, { url: streamData.audioUrl, timestamp: Date.now() });
-            return streamData.audioUrl;
+          const safeUrl = (streamData.audioUrl && !streamData.audioUrl.includes('saavn'))
+            ? streamData.audioUrl
+            : (streamData.streamProxyUrl || `${ENGINE_BASE}/api/v1/stream/${firstTrack.id}`);
+          if (safeUrl) {
+            streamCache.set(track.id, { url: safeUrl, timestamp: Date.now() });
+            return safeUrl;
           }
         }
       }

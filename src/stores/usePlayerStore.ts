@@ -492,3 +492,9 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     audio.onerror = () => set({ playbackState: 'error' });
   }
 }));
+
+// Automatically hook audio listeners immediately on client startup
+if (typeof window !== 'undefined') {
+  usePlayerStore.getState().initAudioListeners();
+}
+
