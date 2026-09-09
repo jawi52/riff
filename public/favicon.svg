@@ -1,83 +1,28 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <!-- Deep Obsidian Chassis Gradient -->
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#141722" />
-      <stop offset="50%" stop-color="#0b0d13" />
-      <stop offset="100%" stop-color="#050608" />
+    <!-- Vibrant Emerald to Electric Cyan Gradient -->
+    <linearGradient id="neonPulse" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#00f2fe" />
+      <stop offset="32%" stop-color="#1ed760" />
+      <stop offset="100%" stop-color="#2af575" />
     </linearGradient>
 
-    <!-- Spotify Emerald & Electric Cyan Energy Gradient -->
-    <linearGradient id="neonRiff" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#1ed760" />
-      <stop offset="55%" stop-color="#1db954" />
-      <stop offset="100%" stop-color="#00f2fe" />
-    </linearGradient>
-
-    <!-- Secondary Wave Glow -->
-    <linearGradient id="waveGlow" x1="0%" y1="100%" x2="0%" y2="0%">
-      <stop offset="0%" stop-color="#1ed760" stop-opacity="0.2" />
-      <stop offset="100%" stop-color="#1ed760" stop-opacity="0.9" />
-    </linearGradient>
-
-    <!-- Border Ring Gradient -->
-    <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#1ed760" stop-opacity="0.8" />
-      <stop offset="50%" stop-color="#ffffff" stop-opacity="0.15" />
-      <stop offset="100%" stop-color="#00f2fe" stop-opacity="0.6" />
-    </linearGradient>
-
-    <!-- Neon Filter -->
-    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="12" result="blur" />
-      <feMerge>
-        <feMergeNode in="blur" />
-        <feMergeNode in="SourceGraphic" />
-      </feMerge>
-    </filter>
+    <!-- Ambient Center Emerald Glow -->
+    <radialGradient id="ambientGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#1ed760" stop-opacity="0.35" />
+      <stop offset="100%" stop-color="#1ed760" stop-opacity="0" />
+    </radialGradient>
   </defs>
 
-  <!-- 1. Squircle Chassis -->
-  <rect x="16" y="16" width="480" height="480" rx="120" fill="url(#bgGrad)" stroke="url(#borderGrad)" stroke-width="8" />
+  <!-- Deep Obsidian Black Squircle Chassis -->
+  <rect width="512" height="512" rx="128" fill="#090a0f" />
+  <circle cx="256" cy="256" r="220" fill="url(#ambientGlow)" />
+  <rect x="2" y="2" width="508" height="508" rx="126" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4" />
 
-  <!-- 2. Ambient Internal Glow -->
-  <circle cx="256" cy="256" r="180" fill="#1ed760" opacity="0.08" filter="blur(40px)" />
-
-  <!-- 3. The Riff Monogram & Soundwave R Geometry -->
-  <g filter="url(#glow)">
-    <!-- Primary Vertical Stem (Soundwave Spine) -->
-    <rect x="130" y="116" width="52" height="280" rx="26" fill="url(#neonRiff)" />
-
-    <!-- Top Loop / Arch of the "R" formed by acoustic waves -->
-    <path 
-      d="M 182 116 
-         C 285 116, 360 145, 360 226 
-         C 360 300, 290 326, 182 326 
-         L 182 274 
-         C 255 274, 308 258, 308 226 
-         C 308 184, 255 168, 182 168 
-         Z" 
-      fill="url(#neonRiff)" 
-    />
-
-    <!-- Dynamic Slanted Kick-Leg of the "R" with rounded capsule -->
-    <path
-      d="M 235 295
-         L 330 380
-         C 342 391, 362 391, 374 379
-         C 385 367, 385 348, 372 336
-         L 282 258
-         Z"
-      fill="url(#neonRiff)"
-    />
-
-    <!-- Equalizer Sound Wave Bars inside / to the right -->
-    <!-- Sound bar 1 -->
-    <rect x="390" y="180" width="24" height="92" rx="12" fill="#00f2fe" opacity="0.9" />
-    <!-- Sound bar 2 -->
-    <rect x="424" y="200" width="20" height="52" rx="10" fill="#1ed760" opacity="0.8" />
-  </g>
-
-  <!-- Pulsing Center Energy Pip -->
-  <circle cx="230" cy="226" r="16" fill="#ffffff" filter="drop-shadow(0 0 8px #1ed760)" />
+  <!-- 5-Bar Harmonic Equalizer Riff (The Signature Soundwave) -->
+  <rect x="103" y="202" width="46" height="108" rx="23" fill="url(#neonPulse)" />
+  <rect x="168" y="146" width="46" height="220" rx="23" fill="url(#neonPulse)" />
+  <rect x="233" y="96"  width="46" height="320" rx="23" fill="url(#neonPulse)" />
+  <rect x="298" y="146" width="46" height="220" rx="23" fill="url(#neonPulse)" />
+  <rect x="363" y="202" width="46" height="108" rx="23" fill="url(#neonPulse)" />
 </svg>
