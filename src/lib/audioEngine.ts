@@ -202,25 +202,100 @@ export class RiffAudioEngine {
     return dataArray;
   }
 
-  public syncMediaSession(track: Track, onNext?: () => void, onPrev?: () => void): void {
+  public syncMediaSession(
+    track: Track, 
+    onNext?: () => void, 
+    onPrev?: () => void,
+    onPlay?: () => void,
+    onPause?: () => void
+  ): void {
     if (typeof navigator === 'undefined' || !('mediaSession' in navigator)) return;
+
+    const cover = track.coverUrl || '/favicon.svg';
 
     navigator.mediaSession.metadata = new MediaMetadata({
       title: track.title,
       artist: track.artist,
-      album: track.album || 'Riff Music',
+      album: track.album || 'Riff - High Fidelity Master',
       artwork: [
-        { src: track.coverUrl || '/favicon.svg', sizes: '512x512', type: 'image/png' }
+        { src: cover, sizes: '96x96', type: 'image/png' },
+        { src: cover, sizes: '128x128', type: 'image/png' },
+        { src: cover, sizes: '192x192', type: 'image/png' },
+        { src: cover, sizes: '256x256', type: 'image/png' },
+        { src: cover, sizes: '384x384', type: 'image/png' },
+        { src: cover, sizes: '512x512', type: 'image/png' }
       ]
     });
 
-    navigator.mediaSession.setActionHandler('play', () => this.resume());
-    navigator.mediaSession.setActionHandler('pause', () => this.pause());
-    navigator.mediaSession.setActionHandler('seekto', (details) => {
-      if (details.seekTime !== undefined) this.seek(details.seekTime);
+    navigator.mediaSession.playbackState = 'playing';
+
+    // Play/Pause
+    navigator.mediaSession.setActionHandler('play', () => {
+      this.resume();
+      if (onPlay) onPlay();
+      navigator.mediaSession.playbackState = 'playing';
     });
-    if (onNext) navigator.mediaSession.setActionHandler('nexttrack', onNext);
-    if (onPrev) navigator.mediaSession.setActionHandler('previoustrack', onPrev);
+
+    navigator.mediaSession.setActionHandler('pause', () => {
+      this.pause();
+      if (onPause) onPause();
+      navigator.mediaSession.playbackState = 'paused';
+    });
+
+    // Seek scrub bar on lockscreen
+    navigator.mediaSession.setActionHandler('seekto', (details) => {
+      if (details.seekTime !== undefined && Number.isFinite(details.seekTime)) {
+        this.seek(details.seekTime);
+        this.updatePositionState();
+      }
+    });
+
+    // Skip backward 10s
+    navigator.mediaSession.setActionHandler('seekbackward', (details) => {
+      const skipTime = details.seekOffset || 10;
+      this.seek(Math.max(0, this.audio.currentTime - skipTime));
+      this.updatePositionState();
+    });
+
+    // Skip forward 10s
+    navigator.mediaSession.setActionHandler('seekforward', (details) => {
+      const skipTime = details.seekOffset || 10;
+      this.seek(Math.min(this.audio.duration || 0, this.audio.currentTime + skipTime));
+      this.updatePositionState();
+    });
+
+    // Next / Prev track
+    if (onNext) {
+      navigator.mediaSession.setActionHandler('nexttrack', onNext);
+    }
+    if (onPrev) {
+      navigator.mediaSession.setActionHandler('previoustrack', onPrev);
+    }
+
+    this.updatePositionState();
+  }
+
+  public setMediaPlaybackState(state: 'playing' | 'paused' | 'none'): void {
+    if (typeof navigator !== 'undefined' && 'mediaSession' in navigator) {
+      navigator.mediaSession.playbackState = state;
+    }
+  }
+
+  public updatePositionState(): void {
+    if (typeof navigator === 'undefined' || !('mediaSession' in navigator)) return;
+    if (!('setPositionState' in navigator.mediaSession)) return;
+
+    try {
+      const duration = this.audio.duration;
+      const position = this.audio.currentTime;
+      if (Number.isFinite(duration) && duration > 0 && Number.isFinite(position) && position >= 0) {
+        navigator.mediaSession.setPositionState({
+          duration: Math.max(duration, position),
+          playbackRate: this.audio.playbackRate || 1.0,
+          position: Math.min(position, duration)
+        });
+      }
+    } catch {}
   }
 
   public getAudioElement(): HTMLAudioElement {

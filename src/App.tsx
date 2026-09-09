@@ -3,6 +3,7 @@ import { LandingPage } from './components/landing/LandingPage';
 import { AuthPage } from './components/auth/AuthPage';
 import { DashboardPage } from './components/dashboard/DashboardPage';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
+import { SplashScreen } from './components/common/SplashScreen';
 import { useAuthStore } from './stores/useAuthStore';
 
 export function App() {
@@ -75,6 +76,7 @@ export function App() {
 
   return (
     <ErrorBoundary>
+      <SplashScreen />
       {view === 'landing' && (
         <LandingPage
           onContinueOnline={handleContinueOnline}

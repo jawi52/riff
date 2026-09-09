@@ -4,7 +4,6 @@ import { audioEngine } from '../lib/audioEngine';
 import { getActiveLyricIndex } from '../lib/lyrics';
 import { db } from '../lib/db';
 import { getSmartAutoplayTracks, recordTrackInteraction, GLOBAL_CATALOG } from '../lib/algorithm';
-import { addRecentTrack } from '../lib/recentSearches';
 import { resolveMasterStream, resolveDirectCdnStream, fetchSyncedLyrics } from '../lib/masterAudioEngine';
 import { RIFF_ENGINE_URL } from '../lib/engineUrl';
 
@@ -143,8 +142,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       newIndex = state.queue.findIndex((t) => t.id === track.id);
     }
 
-    // Automatically record to recent searches and last played
-    addRecentTrack(track);
+    // Record last played track for instant resumption
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem('riff_last_played_track', JSON.stringify(track));
@@ -182,11 +180,13 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         return;
       }
 
-      // Sync OS MediaSession
+      // Sync OS MediaSession (Lockscreen, Android Notification Shade, Bluetooth)
       audioEngine.syncMediaSession(
         track,
         () => get().nextTrack(),
-        () => get().previousTrack()
+        () => get().previousTrack(),
+        () => set({ playbackState: 'playing' }),
+        () => set({ playbackState: 'paused' })
       );
 
       // Fetch lyrics in background
@@ -486,6 +486,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         }
       }
 
+      audioEngine.updatePositionState();
+
       set({
         currentTime: curr,
         duration: totalDur,
@@ -502,6 +504,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       // Check if End-of-Track Sleep Timer is active
       if (sleepTimerMode === 'end_of_track') {
         audioEngine.pause();
+        audioEngine.setMediaPlaybackState('paused');
         set({ playbackState: 'paused', sleepTimerMode: null, sleepTimerMinutes: null, sleepTimerEndTimestamp: null });
         return;
       }
@@ -509,15 +512,25 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       if (repeatMode === 'one') {
         get().seek(0);
         audioEngine.resume();
+        audioEngine.setMediaPlaybackState('playing');
       } else {
         get().nextTrack();
       }
     };
 
     audio.onwaiting = () => set({ playbackState: 'buffering' });
-    audio.onplaying = () => set({ playbackState: 'playing' });
-    audio.onpause = () => set({ playbackState: 'paused' });
-    audio.onerror = () => set({ playbackState: 'error' });
+    audio.onplaying = () => {
+      set({ playbackState: 'playing' });
+      audioEngine.setMediaPlaybackState('playing');
+    };
+    audio.onpause = () => {
+      set({ playbackState: 'paused' });
+      audioEngine.setMediaPlaybackState('paused');
+    };
+    audio.onerror = () => {
+      set({ playbackState: 'error' });
+      audioEngine.setMediaPlaybackState('none');
+    };
   }
 }));
 

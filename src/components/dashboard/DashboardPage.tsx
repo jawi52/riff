@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { RiffLogo } from '../common/RiffLogo';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { HomeFeed } from './HomeFeed';
@@ -15,6 +15,8 @@ import {
   Library
 } from 'lucide-react';
 
+import { usePlayerStore } from '../../stores/usePlayerStore';
+
 interface DashboardPageProps {
   onLogout: () => void;
   isStandaloneApp?: boolean;
@@ -26,12 +28,68 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<DashboardTab>('home');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [exitToastVisible, setExitToastVisible] = useState(false);
+  const lastBackPressRef = useRef<number>(0);
+
   const { user, logout } = useAuthStore();
+  const { setFullscreenOpen } = usePlayerStore();
+
+  const navigateToTab = (tab: DashboardTab) => {
+    if (tab !== activeTab) {
+      window.history.pushState({ riffTab: tab }, '');
+      setActiveTab(tab);
+    }
+  };
 
   const handleSelectQuery = (q: string) => {
     setSearchQuery(q);
-    setActiveTab('search');
+    navigateToTab('search');
   };
+
+  // Android Back Button Navigation & Double-Tap Exit
+  useEffect(() => {
+    // Seed initial state
+    try {
+      window.history.replaceState({ riffTab: 'home' }, '');
+    } catch {}
+
+    const handlePopState = () => {
+      // 1. If Fullscreen Now Playing is open, close it!
+      if (usePlayerStore.getState().isFullscreenOpen) {
+        setFullscreenOpen(false);
+        try {
+          window.history.pushState({ riffTab: activeTab }, '');
+        } catch {}
+        return;
+      }
+
+      // 2. If on Search or Library, navigate back to Home!
+      if (activeTab !== 'home') {
+        setActiveTab('home');
+        try {
+          window.history.pushState({ riffTab: 'home' }, '');
+        } catch {}
+        return;
+      }
+
+      // 3. If already on Home, require double-tap to exit!
+      const now = Date.now();
+      if (now - lastBackPressRef.current < 2000) {
+        // Exiting app
+        return;
+      } else {
+        lastBackPressRef.current = now;
+        try {
+          window.history.pushState({ riffTab: 'home' }, '');
+        } catch {}
+        setExitToastVisible(true);
+        setTimeout(() => setExitToastVisible(false), 2000);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [activeTab, setFullscreenOpen]);
 
   const handleLogoutClick = async () => {
     await logout();
@@ -50,7 +108,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             {/* Desktop Navigation Links (Hidden on Mobile) */}
             <nav className="hidden md:flex items-center gap-2">
               <button
-                onClick={() => setActiveTab('home')}
+                onClick={() => navigateToTab('home')}
                 className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold transition cursor-pointer ${
                   activeTab === 'home'
                     ? 'bg-white text-black'
@@ -62,7 +120,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               </button>
 
               <button
-                onClick={() => setActiveTab('search')}
+                onClick={() => navigateToTab('search')}
                 className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold transition cursor-pointer ${
                   activeTab === 'search'
                     ? 'bg-white text-black'
@@ -74,7 +132,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               </button>
 
               <button
-                onClick={() => setActiveTab('library')}
+                onClick={() => navigateToTab('library')}
                 className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold transition cursor-pointer ${
                   activeTab === 'library'
                     ? 'bg-white text-black'
@@ -97,7 +155,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
             {/* User Profile Avatar */}
             <div 
-              onClick={() => setActiveTab('library')}
+              onClick={() => navigateToTab('library')}
               className="flex items-center gap-2 pl-2 border-l border-white/10 cursor-pointer group select-none"
             >
               <img
@@ -149,8 +207,15 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       {/* 5. Mobile Fixed Bottom Navigation Bar (< md) */}
       <MobileBottomNav 
         activeTab={activeTab} 
-        onTabChange={setActiveTab} 
+        onTabChange={navigateToTab} 
       />
+
+      {/* 6. Android Double-Tap Exit Toast */}
+      {exitToastVisible && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[9999] px-4 py-2 rounded-full bg-[#242424] border border-white/20 text-white text-xs font-bold shadow-2xl animate-in fade-in zoom-in-95 pointer-events-none">
+          Press back again to exit
+        </div>
+      )}
     </div>
   );
 };

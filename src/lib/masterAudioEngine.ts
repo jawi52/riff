@@ -355,20 +355,26 @@ export async function resolveDirectCdnStream(track: Track): Promise<string> {
   return 'https://actions.google.com/sounds/v1/music/ambient_piano_melody.ogg';
 }
 
+function isPreviewUrl(url?: string): boolean {
+  if (!url) return false;
+  return url.includes('AudioPreview') || url.includes('.p.m4a') || url.includes('preview.saavncdn.com');
+}
+
 /**
  * Resolves full-length audio stream with multi-tier failover:
- * 1. Pre-existing valid direct stream (e.g. applecdn / saavncdn)
- * 2. Riff-Engine backend (full-length via YouTube Music)
- * 3. iTunes preview fallback (30s clip, last resort)
+ * 1. Pre-existing valid full-length stream (e.g. Azure stream proxy / aac.saavncdn.com)
+ * 2. Riff-Engine backend stream-url decryption (full-length 320kbps)
+ * 3. Backend search resolution for full-length match (never settle for 30s clip)
  */
 export async function resolveMasterStream(track: Track): Promise<string> {
   const ENGINE_BASE = RIFF_ENGINE_URL;
 
-  // 1. If track already has a valid streamUrl (including our live Azure proxy stream), use it immediately!
+  // 1. If track already has a valid full streamUrl (not a 30s preview), use it immediately!
   if (
     track.streamUrl &&
     track.streamUrl.startsWith('http') &&
-    !track.streamUrl.includes('undefined')
+    !track.streamUrl.includes('undefined') &&
+    !isPreviewUrl(track.streamUrl)
   ) {
     return track.streamUrl;
   }
@@ -376,7 +382,7 @@ export async function resolveMasterStream(track: Track): Promise<string> {
   // 2. Check in-memory cache
   if (streamCache.has(track.id)) {
     const cached = streamCache.get(track.id)!;
-    if (Date.now() - cached.timestamp < CACHE_TTL_MS) {
+    if (Date.now() - cached.timestamp < CACHE_TTL_MS && !isPreviewUrl(cached.url)) {
       return cached.url;
     }
   }
@@ -398,60 +404,74 @@ export async function resolveMasterStream(track: Track): Promise<string> {
       clearTimeout(timeoutId);
       if (res.ok) {
         const data = await res.json();
-        const safeUrl = (data.audioUrl && !data.audioUrl.includes('saavn'))
-          ? data.audioUrl
-          : (data.streamProxyUrl || `${ENGINE_BASE}/api/v1/stream/${cleanId}`);
-        if (safeUrl) {
+        // Accept full-length streams: aac.saavncdn.com is 320kbps CD master; reject 30s AudioPreview
+        let safeUrl = '';
+        if (data.audioUrl && !isPreviewUrl(data.audioUrl)) {
+          safeUrl = data.audioUrl;
+        } else if (data.streamProxyUrl) {
+          safeUrl = data.streamProxyUrl;
+        } else {
+          safeUrl = `${ENGINE_BASE}/api/v1/stream/${cleanId}`;
+        }
+
+        if (safeUrl && !isPreviewUrl(safeUrl)) {
           streamCache.set(track.id, { url: safeUrl, timestamp: Date.now() });
           return safeUrl;
         }
       }
     } catch {
-      // Backend unavailable, fall through to client-side
+      // Backend direct ID lookup failed, fall through to search
     }
   }
 
-  // 4. Try backend search-based stream (for non-numeric IDs like trk_ or saavn_)
+  // 4. Try backend search-based stream resolution (searches full unblocked catalog by Title + Artist)
   try {
     const searchRes = await fetch(
-      `${ENGINE_BASE}/api/v1/search?q=${encodeURIComponent(`${track.title} ${track.artist}`)}&limit=1`,
+      `${ENGINE_BASE}/api/v1/search?q=${encodeURIComponent(`${track.title} ${track.artist}`)}&limit=3`,
       { headers: { Accept: 'application/json' } }
     );
     if (searchRes.ok) {
       const searchData = await searchRes.json();
-      const firstTrack = searchData.tracks?.[0];
-      if (firstTrack?.id) {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 4000);
-        const streamRes = await fetch(`${ENGINE_BASE}/api/v1/stream-url/${firstTrack.id}`, {
-          signal: controller.signal,
-          headers: { Accept: 'application/json' }
-        });
-        clearTimeout(timeoutId);
-        if (streamRes.ok) {
-          const streamData = await streamRes.json();
-          const safeUrl = (streamData.audioUrl && !streamData.audioUrl.includes('saavn'))
-            ? streamData.audioUrl
-            : (streamData.streamProxyUrl || `${ENGINE_BASE}/api/v1/stream/${firstTrack.id}`);
-          if (safeUrl) {
-            streamCache.set(track.id, { url: safeUrl, timestamp: Date.now() });
-            return safeUrl;
+      const candidates = searchData.tracks || [];
+      for (const candidate of candidates) {
+        if (!candidate?.id) continue;
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 3500);
+          const streamRes = await fetch(`${ENGINE_BASE}/api/v1/stream-url/${candidate.id}`, {
+            signal: controller.signal,
+            headers: { Accept: 'application/json' }
+          });
+          clearTimeout(timeoutId);
+          if (streamRes.ok) {
+            const streamData = await streamRes.json();
+            const candidateUrl = (streamData.audioUrl && !isPreviewUrl(streamData.audioUrl))
+              ? streamData.audioUrl
+              : (streamData.streamProxyUrl || `${ENGINE_BASE}/api/v1/stream/${candidate.id}`);
+
+            if (candidateUrl && !isPreviewUrl(candidateUrl)) {
+              streamCache.set(track.id, { url: candidateUrl, timestamp: Date.now() });
+              return candidateUrl;
+            }
           }
-        }
+        } catch {}
       }
     }
   } catch {}
 
-  // 4b. Use track's provided streamUrl (e.g. backend /api/v1/stream/:id) before external fallback
-  if (track.streamUrl && track.streamUrl.startsWith('http') && !track.streamUrl.includes('undefined')) {
-    streamCache.set(track.id, { url: track.streamUrl, timestamp: Date.now() });
+  // 4b. Direct backend stream proxy by ID
+  if (cleanId) {
+    const fallbackProxy = `${ENGINE_BASE}/api/v1/stream/${cleanId}`;
+    streamCache.set(track.id, { url: fallbackProxy, timestamp: Date.now() });
+    return fallbackProxy;
+  }
+
+  // 5. Final fallback to direct URL if available
+  if (track.streamUrl && track.streamUrl.startsWith('http')) {
     return track.streamUrl;
   }
 
-  // 5. iTunes preview fallback (30s clip — last resort)
-  const directUrl = await resolveDirectCdnStream(track);
-  streamCache.set(track.id, { url: directUrl, timestamp: Date.now() });
-  return directUrl;
+  return 'https://actions.google.com/sounds/v1/music/ambient_piano_melody.ogg';
 }
 
 /**

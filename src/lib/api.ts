@@ -115,13 +115,14 @@ export async function fetchCharts(): Promise<ChartsResponse> {
 /**
  * Live search across universal federated catalog
  */
-export async function searchCatalog(query: string, limit = 20): Promise<SearchResponse> {
+export async function searchCatalog(query: string, limit = 20, signal?: AbortSignal): Promise<SearchResponse> {
   const clean = query.trim();
   if (!clean) {
     return { tracks: [], artists: [], albums: [], total: 0 };
   }
 
   const res = await fetch(`${RIFF_ENGINE_URL}/api/v1/search?q=${encodeURIComponent(clean)}&limit=${limit}`, {
+    signal,
     headers: { Accept: 'application/json' },
   });
 

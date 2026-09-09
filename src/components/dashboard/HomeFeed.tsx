@@ -4,6 +4,11 @@ import { Track } from '../../types';
 import { usePlayerStore } from '../../stores/usePlayerStore';
 import { getRecentSearches, RecentItem } from '../../lib/recentSearches';
 import { 
+  getContextualVibe, 
+  getArtistRecommendation, 
+  getDailyMixes 
+} from '../../lib/recommendationEngine';
+import { 
   Play, 
   Pause, 
   Radio, 
@@ -63,14 +68,6 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ userName, onSelectQuery }) =
     window.addEventListener('riff_recent_searches_updated', handleRecentUpdate);
     return () => window.removeEventListener('riff_recent_searches_updated', handleRecentUpdate);
   }, [loadFeed, syncRecentItems]);
-
-  // Dynamic time-based greeting
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 18) return 'Good afternoon';
-    return 'Good evening';
-  };
 
   // Dynamic time-based mood title
   const getMoodTitle = () => {
@@ -169,6 +166,9 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ userName, onSelectQuery }) =
 
   // Dynamic hero track: prefers hot Pakistani/South Asian track or top Global
   const heroTrack = pakistanTracks[0] || bollywoodTracks[0] || globalTracks[0];
+
+  // Dynamic contextual recommendation & mood vibe
+  const contextual = getContextualVibe();
   const mood = getMoodTitle();
 
   // Jump Back In items
@@ -176,15 +176,25 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ userName, onSelectQuery }) =
     ? recentTracks.map((r) => r.trackData!).filter(Boolean)
     : pakistanTracks.slice(0, 6);
 
+  // Dynamic Spotify-grade recommendation algorithm
+  const artistRec = getArtistRecommendation(currentTrack || jumpBackInTracks[0]);
+  const dailyMixes = getDailyMixes();
+
   return (
     <div className="space-y-7 sm:space-y-9 pb-36 selection:bg-[#1ed760] selection:text-black">
       {/* 1. Header Greeting & Region Selector Pills */}
       <section className="space-y-3.5">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-            {getGreeting()}{userName ? `, ${userName}` : ''}
-          </h1>
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold text-[#1ed760]">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+              {contextual.greeting}{userName ? `, ${userName}` : ''}
+            </h1>
+            <p className="text-xs text-[#b3b3b3] mt-0.5 flex items-center gap-1.5">
+              <span>{contextual.vibeTitle}</span>
+              <span className="text-[#727272] hidden sm:inline">• {contextual.vibeSubtitle}</span>
+            </p>
+          </div>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold text-[#1ed760] shrink-0">
             <Sparkles className="w-3 h-3 text-[#1ed760]" />
             <span>320k Studio Master</span>
           </div>
@@ -435,6 +445,82 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ userName, onSelectQuery }) =
           </div>
         </section>
       )}
+
+      {/* 4b. Algorithmic Shelf: Made For You • Daily Mixes */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#1ed760]" />
+            <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
+              Made For You • Daily Mixes
+            </h2>
+          </div>
+          <span className="text-xs text-[#727272] font-semibold hidden sm:inline">
+            Curated dynamically
+          </span>
+        </div>
+
+        <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory -mx-4 px-4 sm:mx-0 sm:px-0">
+          {dailyMixes.map((mix) => (
+            <div
+              key={mix.id}
+              onClick={() => onSelectQuery ? onSelectQuery(mix.searchQuery) : null}
+              className={`w-40 sm:w-48 shrink-0 rounded-2xl p-3 sm:p-4 bg-gradient-to-br ${mix.gradient} border border-white/10 hover:border-white/25 shadow-lg group transition-all duration-300 hover:scale-[1.02] cursor-pointer snap-start flex flex-col justify-between h-48 sm:h-52`}
+            >
+              <div>
+                <span className="inline-block px-2 py-0.5 rounded-full bg-black/40 text-white font-extrabold text-[10px] uppercase tracking-wider mb-2 border border-white/10">
+                  {mix.title}
+                </span>
+                <h3 className="text-sm sm:text-base font-black text-white leading-tight">
+                  {mix.subtitle}
+                </h3>
+                <p className="text-[11px] text-white/70 line-clamp-2 mt-1">
+                  {mix.artists}
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between pt-2">
+                <span className="text-[10px] text-white/60 font-bold uppercase tracking-wider">
+                  Mix
+                </span>
+                <button
+                  type="button"
+                  className="w-8 h-8 rounded-full bg-[#1ed760] text-black flex items-center justify-center shadow-lg group-hover:scale-110 transition"
+                >
+                  <Play className="w-3.5 h-3.5 fill-black ml-0.5" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 4c. Algorithmic Shelf: Because You Listened To [Artist] */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
+              {artistRec.headline}
+            </h2>
+            <p className="text-xs text-[#b3b3b3] mt-0.5">
+              {artistRec.subtext}
+            </p>
+          </div>
+        </div>
+
+        {/* Quick Artist Chips */}
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-1 -mx-4 px-4 sm:mx-0 sm:px-0">
+          {artistRec.recommendedArtists.map((artistName) => (
+            <button
+              key={artistName}
+              onClick={() => onSelectQuery ? onSelectQuery(artistName) : null}
+              className="px-3 py-1 rounded-full bg-[#242424] hover:bg-white text-xs font-semibold text-white hover:text-black border border-white/5 transition flex-shrink-0 cursor-pointer shadow"
+            >
+              {artistName}
+            </button>
+          ))}
+        </div>
+      </section>
 
       {/* 5. Horizontal Shelf: ✨ Fresh Releases & New Songs */}
       {(activeRegion === 'all' || activeRegion === 'in' || activeRegion === 'pk') && newSongsTracks && newSongsTracks.length > 0 && (

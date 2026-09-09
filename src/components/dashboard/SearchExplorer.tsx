@@ -7,6 +7,7 @@ import {
   getRecentSearches, 
   removeRecentItem, 
   clearAllRecentItems, 
+  addRecentTrack,
   RecentItem 
 } from '../../lib/recentSearches';
 import { 
@@ -59,6 +60,9 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
   const { likedTracks, toggleLikeTrack } = useLibraryStore();
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
 
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const querySeqRef = useRef<number>(0);
+
   // Sync recent searches from storage
   const syncRecents = useCallbackSafe(() => {
     setRecentItems(getRecentSearches());
@@ -89,34 +93,53 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
   const performSearch = async (term: string) => {
     const clean = term.trim();
     if (!clean) {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
       setResults(null);
       setIsSearching(false);
       return;
     }
 
+    // Cancel any previous in-flight search request immediately
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    const seq = ++querySeqRef.current;
+
     try {
       setIsSearching(true);
       setSearchError(null);
-      const data = await searchCatalog(clean, 25);
+      const data = await searchCatalog(clean, 25, controller.signal);
+      
+      // Stale query protection: if user typed something new, discard this response!
+      if (seq !== querySeqRef.current) return;
+
       setResults(data);
     } catch (err: any) {
+      if (err?.name === 'AbortError') return;
+      if (seq !== querySeqRef.current) return;
       console.error('Search query error:', err);
       setSearchError(err?.message || 'Failed to search catalog');
     } finally {
-      setIsSearching(false);
+      if (seq === querySeqRef.current) {
+        setIsSearching(false);
+      }
     }
   };
 
   const handleQueryChange = (val: string) => {
     setQuery(val);
-    setShowSuggestionsDropdown(true);
+    setShowSuggestionsDropdown(Boolean(val.trim()));
 
     if (debounceTimeout.current) {
       clearTimeout(debounceTimeout.current);
     }
     debounceTimeout.current = setTimeout(() => {
       performSearch(val);
-    }, 300);
+    }, 220);
   };
 
   const clearSearch = () => {
@@ -184,6 +207,7 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
 
   const handleTrackClick = (track: Track, trackList?: Track[]) => {
     setShowSuggestionsDropdown(false);
+    addRecentTrack(track);
     if (currentTrack?.id === track.id) {
       togglePlayPause();
     } else {
