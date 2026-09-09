@@ -10,7 +10,9 @@ import {
   VolumeX, 
   Sparkles, 
   Radio,
-  Heart
+  Heart,
+  Mic2,
+  Maximize2
 } from 'lucide-react';
 
 export const MiniPlayer: React.FC = () => {
@@ -27,6 +29,8 @@ export const MiniPlayer: React.FC = () => {
     previousTrack,
     setVolume,
     toggleMute,
+    setFullscreenOpen,
+    setLyricsOpen,
   } = usePlayerStore();
 
   const { likedTracks, toggleLikeTrack } = useLibraryStore();
@@ -90,32 +94,38 @@ export const MiniPlayer: React.FC = () => {
           <div className="flex items-center gap-3 min-w-0 flex-1 md:flex-initial md:w-[30%]">
             {currentTrack ? (
               <>
-                <div className="relative w-11 h-11 sm:w-13 sm:h-13 shrink-0 rounded-lg overflow-hidden bg-[#282828] border border-white/10">
-                  <img
-                    src={currentTrack.coverUrl}
-                    alt={currentTrack.title}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                  />
-                  {isPlaying && (
-                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                      <Radio className="w-4 h-4 text-[#1ed760] animate-pulse" />
-                    </div>
-                  )}
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-xs sm:text-sm font-bold text-white truncate leading-snug">
-                      {currentTrack.title}
-                    </p>
-                    <span className="hidden sm:inline-block px-1.5 py-0.5 rounded bg-[#1ed760]/10 border border-[#1ed760]/20 text-[9px] font-bold text-[#1ed760] shrink-0 uppercase tracking-wider">
-                      320k Master
-                    </span>
+                <div 
+                  onClick={() => setFullscreenOpen(true)}
+                  className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer group select-none"
+                  title="Open Now Playing"
+                >
+                  <div className="relative w-11 h-11 sm:w-13 sm:h-13 shrink-0 rounded-lg overflow-hidden bg-[#282828] border border-white/10 group-hover:border-[#1ed760]/40 transition">
+                    <img
+                      src={currentTrack.coverUrl}
+                      alt={currentTrack.title}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                    {isPlaying && (
+                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                        <Radio className="w-4 h-4 text-[#1ed760] animate-pulse" />
+                      </div>
+                    )}
                   </div>
-                  <p className="text-[11px] sm:text-xs text-[#b3b3b3] truncate mt-0.5">
-                    {currentTrack.artist}
-                  </p>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-xs sm:text-sm font-bold text-white truncate leading-snug group-hover:text-[#1ed760] transition">
+                        {currentTrack.title}
+                      </p>
+                      <span className="hidden sm:inline-block px-1.5 py-0.5 rounded bg-[#1ed760]/10 border border-[#1ed760]/20 text-[9px] font-bold text-[#1ed760] shrink-0 uppercase tracking-wider">
+                        320k Master
+                      </span>
+                    </div>
+                    <p className="text-[11px] sm:text-xs text-[#b3b3b3] truncate mt-0.5">
+                      {currentTrack.artist}
+                    </p>
+                  </div>
                 </div>
 
                 {/* Heart / Favorite Button */}
@@ -130,6 +140,20 @@ export const MiniPlayer: React.FC = () => {
                       isCurrentTrackLiked ? 'fill-[#1ed760] text-[#1ed760]' : ''
                     }`}
                   />
+                </button>
+
+                {/* Mobile Quick Lyrics Button */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setLyricsOpen(true);
+                    setFullscreenOpen(true);
+                  }}
+                  className="md:hidden p-1.5 text-[#b3b3b3] hover:text-[#1ed760] transition cursor-pointer shrink-0"
+                  title="Open Lyrics"
+                  aria-label="Open lyrics"
+                >
+                  <Mic2 className="w-4 h-4" />
                 </button>
               </>
             ) : (
@@ -206,6 +230,20 @@ export const MiniPlayer: React.FC = () => {
 
           {/* Right: Volume & Format (Desktop Only) */}
           <div className="hidden md:flex items-center justify-end gap-3 md:w-[30%]">
+            {/* Dedicated Lyrics Shortcut */}
+            <button
+              onClick={() => {
+                setLyricsOpen(true);
+                setFullscreenOpen(true);
+              }}
+              disabled={!currentTrack}
+              className="p-1.5 text-[#b3b3b3] hover:text-white disabled:opacity-30 transition cursor-pointer"
+              title="Lyrics"
+              aria-label="Open lyrics"
+            >
+              <Mic2 className="w-4 h-4" />
+            </button>
+
             <button
               onClick={toggleMute}
               className="text-[#b3b3b3] hover:text-white transition cursor-pointer"
@@ -227,6 +265,17 @@ export const MiniPlayer: React.FC = () => {
               onChange={(e) => setVolume(parseFloat(e.target.value))}
               className="w-24 h-1 bg-white/20 rounded-full accent-white hover:accent-[#1ed760] cursor-pointer"
             />
+
+            {/* Expand to Full Screen Player */}
+            <button
+              onClick={() => setFullscreenOpen(true)}
+              disabled={!currentTrack}
+              className="p-1.5 text-[#b3b3b3] hover:text-white disabled:opacity-30 transition cursor-pointer"
+              title="Full screen player"
+              aria-label="Full screen"
+            >
+              <Maximize2 className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </div>

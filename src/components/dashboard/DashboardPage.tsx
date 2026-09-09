@@ -5,6 +5,7 @@ import { HomeFeed } from './HomeFeed';
 import { SearchExplorer } from './SearchExplorer';
 import { LibraryView } from './LibraryView';
 import { MiniPlayer } from './MiniPlayer';
+import { NowPlayingModal } from '../player/NowPlayingModal';
 import { MobileBottomNav, DashboardTab } from './MobileBottomNav';
 import { 
   LogOut, 
@@ -142,7 +143,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       {/* 3. Persistent Fixed Mini-Player */}
       <MiniPlayer />
 
-      {/* 4. Mobile Fixed Bottom Navigation Bar (< md) */}
+      {/* 4. Fullscreen Now Playing & Synced Lyrics Modal */}
+      <NowPlayingModal />
+
+      {/* 5. Mobile Fixed Bottom Navigation Bar (< md) */}
       <MobileBottomNav 
         activeTab={activeTab} 
         onTabChange={setActiveTab} 

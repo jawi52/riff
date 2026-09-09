@@ -26,6 +26,7 @@ interface PlayerState {
   isRightSidebarOpen: boolean;
   rightSidebarTab: 'nowplaying' | 'lyrics' | 'queue';
   activeLyricIndex: number;
+  isLyricsLoading: boolean;
   qualityTier: QualityTier;
   networkMode: 'wifi' | 'cellular';
   sleepTimerMinutes: number | null;
@@ -97,6 +98,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   isRightSidebarOpen: true,
   rightSidebarTab: 'nowplaying',
   activeLyricIndex: 0,
+  isLyricsLoading: false,
   qualityTier: 'auto',
   networkMode: 'wifi',
   sleepTimerMinutes: null,
@@ -171,19 +173,28 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       );
 
       // Fetch lyrics in background
-      if (track.hasSyncedLyrics && !track.syncedLyrics) {
-        fetchSyncedLyrics(track.artist, track.title)
-          .then((syncedLyrics) => {
-            if (syncedLyrics && syncedLyrics.length > 0) {
-              set((prev) => ({
-                currentTrack:
-                  prev.currentTrack?.id === track.id
-                    ? { ...prev.currentTrack, syncedLyrics }
-                    : prev.currentTrack
-              }));
-            }
+      if (!track.syncedLyrics || track.syncedLyrics.length === 0) {
+        set({ isLyricsLoading: true });
+        fetchSyncedLyrics(track.artist, track.title, track.id)
+          .then(({ synced, plain }) => {
+            set((prev) => ({
+              isLyricsLoading: false,
+              currentTrack:
+                prev.currentTrack?.id === track.id
+                  ? { 
+                      ...prev.currentTrack, 
+                      syncedLyrics: synced,
+                      plainLyrics: plain || prev.currentTrack.plainLyrics,
+                      hasSyncedLyrics: synced.length > 0 
+                    }
+                  : prev.currentTrack
+            }));
           })
-          .catch(() => {});
+          .catch(() => {
+            set({ isLyricsLoading: false });
+          });
+      } else {
+        set({ isLyricsLoading: false });
       }
 
       set({ playbackState: 'buffering' });

@@ -456,17 +456,56 @@ export async function resolveMasterStream(track: Track): Promise<string> {
 
 /**
  * Fetches Real-Time Time-Synced (.lrc) Lyrics
+ * 1. Checks live Azure backend /api/v1/lyrics/:id
+ * 2. Fallback to LRCLIB API
  */
-export async function fetchSyncedLyrics(artist: string, title: string): Promise<SyncedLyricLine[]> {
+export async function fetchSyncedLyrics(artist: string, title: string, trackId?: string): Promise<{ synced: SyncedLyricLine[]; plain?: string }> {
+  const ENGINE_BASE = RIFF_ENGINE_URL;
+
+  // 1. Check Azure backend lyrics API
+  if (trackId) {
+    try {
+      const cleanId = trackId.replace(/^saavn_|^itunes_/, '');
+      const res = await fetch(`${ENGINE_BASE}/api/v1/lyrics/${cleanId}`, {
+        headers: { Accept: 'application/json' },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.syncedLyrics && Array.isArray(data.syncedLyrics) && data.syncedLyrics.length > 0) {
+          const formatted: SyncedLyricLine[] = data.syncedLyrics
+            .filter((l: any) => l.text && l.text.trim())
+            .map((l: any) => ({
+              timeMs: Number(l.timeMs) || 0,
+              text: String(l.text).trim(),
+            }));
+
+          if (formatted.length > 0) {
+            return { synced: formatted, plain: data.plainLyrics };
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Azure lyrics fetch warning:', err);
+    }
+  }
+
+  // 2. Fallback to LRCLIB
   try {
+    const cleanTitle = title.replace(/\s*\(.*?\)\s*/g, ' ').trim();
+    const cleanArtist = artist.split(/,|&|feat\./i)[0].trim();
+
     const res = await fetch(
-      `https://lrclib.net/api/get?artist_name=${encodeURIComponent(artist)}&track_name=${encodeURIComponent(title)}`
+      `https://lrclib.net/api/get?artist_name=${encodeURIComponent(cleanArtist)}&track_name=${encodeURIComponent(cleanTitle)}`
     );
-    if (!res.ok) return [];
+    if (!res.ok) return { synced: [] };
 
     const data = await res.json();
     const rawLrc = data.syncedLyrics || '';
-    if (!rawLrc) return [];
+    const plainLyrics = data.plainLyrics || '';
+
+    if (!rawLrc) {
+      return { synced: [], plain: plainLyrics };
+    }
 
     const lines: SyncedLyricLine[] = [];
     const lrcRegex = /\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)/;
@@ -482,8 +521,8 @@ export async function fetchSyncedLyrics(artist: string, title: string): Promise<
         if (text) lines.push({ timeMs, text });
       }
     }
-    return lines;
+    return { synced: lines, plain: plainLyrics };
   } catch {
-    return [];
+    return { synced: [] };
   }
 }
