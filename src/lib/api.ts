@@ -31,6 +31,16 @@ export interface ChartsResponse {
   topAlbums: ApiAlbum[];
 }
 
+export interface MultiRegionalFeed {
+  globalTracks: Track[];
+  pakistanTracks: Track[];
+  bollywoodTracks: Track[];
+  punjabiTracks: Track[];
+  quickAccessTracks: Track[];
+  topArtists: ApiArtist[];
+  topAlbums: ApiAlbum[];
+}
+
 export interface SearchResponse {
   tracks: Track[];
   artists: ApiArtist[];
@@ -130,4 +140,76 @@ export async function searchCatalog(query: string, limit = 20): Promise<SearchRe
     albums,
     total: data.total || tracks.length,
   };
+}
+
+let cachedMultiFeed: MultiRegionalFeed | null = null;
+let lastMultiFeedFetch = 0;
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Fetches multi-regional feeds from live Azure backend:
+ * - Global Charts
+ * - Trending Pakistan (Coke Studio, Pop, Rap)
+ * - Bollywood Top Hits (Hindi, Romance, Filmi)
+ * - Punjabi Top Hits (AP Dhillon, Shubh, Diljit)
+ */
+export async function fetchMultiRegionalFeeds(): Promise<MultiRegionalFeed> {
+  const now = Date.now();
+  if (cachedMultiFeed && now - lastMultiFeedFetch < CACHE_TTL_MS) {
+    return cachedMultiFeed;
+  }
+
+  const [globalCharts, pkRes, bollyRes, punjabiRes] = await Promise.allSettled([
+    fetchCharts(),
+    searchCatalog('Trending Pakistan', 10),
+    searchCatalog('Bollywood Top Hits', 10),
+    searchCatalog('Punjabi Hits', 10),
+  ]);
+
+  const global = globalCharts.status === 'fulfilled' ? globalCharts.value : { topTracks: [], topArtists: [], topAlbums: [] };
+  const pkTracks = pkRes.status === 'fulfilled' ? pkRes.value.tracks : [];
+  const bollyTracks = bollyRes.status === 'fulfilled' ? bollyRes.value.tracks : [];
+  const punjabiTracks = punjabiRes.status === 'fulfilled' ? punjabiRes.value.tracks : [];
+
+  // Merge artists across all regions
+  const extraArtists: ApiArtist[] = [
+    ...(pkRes.status === 'fulfilled' ? pkRes.value.artists : []),
+    ...(bollyRes.status === 'fulfilled' ? bollyRes.value.artists : []),
+    ...(punjabiRes.status === 'fulfilled' ? punjabiRes.value.artists : []),
+  ];
+
+  const seenArtistNames = new Set<string>();
+  const mergedArtists: ApiArtist[] = [];
+  for (const a of [...extraArtists, ...global.topArtists]) {
+    const key = a.name.toLowerCase().trim();
+    const pic = a.pictureBig || a.pictureMedium || a.picture;
+    if (!seenArtistNames.has(key) && pic) {
+      seenArtistNames.add(key);
+      mergedArtists.push(a);
+    }
+  }
+
+  // Build a vibrant 6-tile quick access mix:
+  // [Pakistan #1, Bollywood #1, Punjabi #1, Global #1, Pakistan #2, Bollywood #2]
+  const quickAccess: Track[] = [];
+  if (pkTracks[0]) quickAccess.push(pkTracks[0]);
+  if (bollyTracks[0]) quickAccess.push(bollyTracks[0]);
+  if (punjabiTracks[0]) quickAccess.push(punjabiTracks[0]);
+  if (global.topTracks[0]) quickAccess.push(global.topTracks[0]);
+  if (pkTracks[1]) quickAccess.push(pkTracks[1]);
+  if (bollyTracks[1]) quickAccess.push(bollyTracks[1]);
+
+  const result: MultiRegionalFeed = {
+    globalTracks: global.topTracks,
+    pakistanTracks: pkTracks,
+    bollywoodTracks: bollyTracks,
+    punjabiTracks: punjabiTracks,
+    quickAccessTracks: quickAccess.length >= 4 ? quickAccess : global.topTracks.slice(0, 6),
+    topArtists: mergedArtists.slice(0, 15),
+    topAlbums: global.topAlbums,
+  };
+
+  cachedMultiFeed = result;
+  lastMultiFeedFetch = now;
+  return result;
 }
