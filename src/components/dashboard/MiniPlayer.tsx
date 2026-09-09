@@ -8,7 +8,6 @@ import {
   SkipForward, 
   Volume2, 
   VolumeX, 
-  Sparkles, 
   Radio,
   Heart,
   Mic2,
@@ -73,6 +72,11 @@ export const MiniPlayer: React.FC = () => {
     seek(percentage * duration);
   };
 
+  // Hide bar for brand new users who haven't played any track yet
+  if (!currentTrack) {
+    return null;
+  }
+
   return (
     <div className="fixed bottom-[60px] md:bottom-0 left-0 right-0 z-40 px-2.5 pb-2 md:pb-0 md:px-0 pointer-events-none">
       <div className="pointer-events-auto max-w-7xl mx-auto md:max-w-none bg-[#181818]/95 backdrop-blur-xl border border-white/10 md:border-x-0 md:border-b-0 md:border-t md:border-white/10 rounded-xl md:rounded-none px-3.5 py-2.5 md:px-6 md:py-3 shadow-2xl transition-all duration-200">
@@ -92,81 +96,67 @@ export const MiniPlayer: React.FC = () => {
         <div className="flex items-center justify-between gap-3">
           {/* Left: Track Information */}
           <div className="flex items-center gap-3 min-w-0 flex-1 md:flex-initial md:w-[30%]">
-            {currentTrack ? (
-              <>
-                <div 
-                  onClick={() => setFullscreenOpen(true)}
-                  className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer group select-none"
-                  title="Open Now Playing"
-                >
-                  <div className="relative w-11 h-11 sm:w-13 sm:h-13 shrink-0 rounded-lg overflow-hidden bg-[#282828] border border-white/10 group-hover:border-[#1ed760]/40 transition">
-                    <img
-                      src={currentTrack.coverUrl}
-                      alt={currentTrack.title}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                    />
-                    {isPlaying && (
-                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                        <Radio className="w-4 h-4 text-[#1ed760] animate-pulse" />
-                      </div>
-                    )}
+            <div 
+              onClick={() => setFullscreenOpen(true)}
+              className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer group select-none"
+              title="Open Now Playing"
+            >
+              <div className="relative w-11 h-11 sm:w-13 sm:h-13 shrink-0 rounded-lg overflow-hidden bg-[#282828] border border-white/10 group-hover:border-[#1ed760]/40 transition">
+                <img
+                  src={currentTrack.coverUrl}
+                  alt={currentTrack.title}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+                {isPlaying && (
+                  <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                    <Radio className="w-4 h-4 text-[#1ed760] animate-pulse" />
                   </div>
-
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <p className="text-xs sm:text-sm font-bold text-white truncate leading-snug group-hover:text-[#1ed760] transition">
-                        {currentTrack.title}
-                      </p>
-                      <span className="hidden sm:inline-block px-1.5 py-0.5 rounded bg-[#1ed760]/10 border border-[#1ed760]/20 text-[9px] font-bold text-[#1ed760] shrink-0 uppercase tracking-wider">
-                        320k Master
-                      </span>
-                    </div>
-                    <p className="text-[11px] sm:text-xs text-[#b3b3b3] truncate mt-0.5">
-                      {currentTrack.artist}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Heart / Favorite Button */}
-                <button
-                  onClick={handleToggleLike}
-                  className="p-1.5 text-[#b3b3b3] hover:text-white transition cursor-pointer shrink-0"
-                  aria-label={isCurrentTrackLiked ? 'Unlike track' : 'Like track'}
-                  title={isCurrentTrackLiked ? 'Remove from Liked Songs' : 'Save to Liked Songs'}
-                >
-                  <Heart
-                    className={`w-4 h-4 transition ${
-                      isCurrentTrackLiked ? 'fill-[#1ed760] text-[#1ed760]' : ''
-                    }`}
-                  />
-                </button>
-
-                {/* Mobile Quick Lyrics Button */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setLyricsOpen(true);
-                    setFullscreenOpen(true);
-                  }}
-                  className="md:hidden p-1.5 text-[#b3b3b3] hover:text-[#1ed760] transition cursor-pointer shrink-0"
-                  title="Open Lyrics"
-                  aria-label="Open lyrics"
-                >
-                  <Mic2 className="w-4 h-4" />
-                </button>
-              </>
-            ) : (
-              <div className="flex items-center gap-2.5 py-1 text-xs text-[#b3b3b3]">
-                <div className="w-10 h-10 rounded-lg bg-[#242424] flex items-center justify-center shrink-0 text-[#1ed760]">
-                  <Sparkles className="w-5 h-5" />
-                </div>
-                <div className="truncate">
-                  <p className="text-white font-bold truncate">Ready to stream</p>
-                  <p className="text-[10px] text-[#7c7c7c] truncate">Select any track to start 320kbps playback</p>
-                </div>
+                )}
               </div>
-            )}
+
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <p className="text-xs sm:text-sm font-bold text-white truncate leading-snug group-hover:text-[#1ed760] transition">
+                    {currentTrack.title}
+                  </p>
+                  <span className="hidden sm:inline-block px-1.5 py-0.5 rounded bg-[#1ed760]/10 border border-[#1ed760]/20 text-[9px] font-bold text-[#1ed760] shrink-0 uppercase tracking-wider">
+                    320k Master
+                  </span>
+                </div>
+                <p className="text-[11px] sm:text-xs text-[#b3b3b3] truncate mt-0.5">
+                  {currentTrack.artist}
+                </p>
+              </div>
+            </div>
+
+            {/* Heart / Favorite Button */}
+            <button
+              onClick={handleToggleLike}
+              className="p-1.5 text-[#b3b3b3] hover:text-white transition cursor-pointer shrink-0"
+              aria-label={isCurrentTrackLiked ? 'Unlike track' : 'Like track'}
+              title={isCurrentTrackLiked ? 'Remove from Liked Songs' : 'Save to Liked Songs'}
+            >
+              <Heart
+                className={`w-4 h-4 transition ${
+                  isCurrentTrackLiked ? 'fill-[#1ed760] text-[#1ed760]' : ''
+                }`}
+              />
+            </button>
+
+            {/* Mobile Quick Lyrics Button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setLyricsOpen(true);
+                setFullscreenOpen(true);
+              }}
+              className="md:hidden p-1.5 text-[#b3b3b3] hover:text-[#1ed760] transition cursor-pointer shrink-0"
+              title="Open Lyrics"
+              aria-label="Open lyrics"
+            >
+              <Mic2 className="w-4 h-4" />
+            </button>
           </div>
 
           {/* Center: Playback Controls & Desktop Scrubber */}

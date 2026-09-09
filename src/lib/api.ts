@@ -36,6 +36,7 @@ export interface MultiRegionalFeed {
   pakistanTracks: Track[];
   bollywoodTracks: Track[];
   punjabiTracks: Track[];
+  newSongsTracks: Track[];
   quickAccessTracks: Track[];
   topArtists: ApiArtist[];
   topAlbums: ApiAlbum[];
@@ -159,23 +160,26 @@ export async function fetchMultiRegionalFeeds(): Promise<MultiRegionalFeed> {
     return cachedMultiFeed;
   }
 
-  const [globalCharts, pkRes, bollyRes, punjabiRes] = await Promise.allSettled([
+  const [globalCharts, pkRes, bollyRes, punjabiRes, latestRes] = await Promise.allSettled([
     fetchCharts(),
     searchCatalog('Trending Pakistan', 10),
     searchCatalog('Bollywood Top Hits', 10),
     searchCatalog('Punjabi Hits', 10),
+    searchCatalog('Latest Releases', 10),
   ]);
 
   const global = globalCharts.status === 'fulfilled' ? globalCharts.value : { topTracks: [], topArtists: [], topAlbums: [] };
   const pkTracks = pkRes.status === 'fulfilled' ? pkRes.value.tracks : [];
   const bollyTracks = bollyRes.status === 'fulfilled' ? bollyRes.value.tracks : [];
   const punjabiTracks = punjabiRes.status === 'fulfilled' ? punjabiRes.value.tracks : [];
+  const newSongs = latestRes.status === 'fulfilled' ? latestRes.value.tracks : [];
 
   // Merge artists across all regions
   const extraArtists: ApiArtist[] = [
     ...(pkRes.status === 'fulfilled' ? pkRes.value.artists : []),
     ...(bollyRes.status === 'fulfilled' ? bollyRes.value.artists : []),
     ...(punjabiRes.status === 'fulfilled' ? punjabiRes.value.artists : []),
+    ...(latestRes.status === 'fulfilled' ? latestRes.value.artists : []),
   ];
 
   const seenArtistNames = new Set<string>();
@@ -204,6 +208,7 @@ export async function fetchMultiRegionalFeeds(): Promise<MultiRegionalFeed> {
     pakistanTracks: pkTracks,
     bollywoodTracks: bollyTracks,
     punjabiTracks: punjabiTracks,
+    newSongsTracks: newSongs,
     quickAccessTracks: quickAccess.length >= 4 ? quickAccess : global.topTracks.slice(0, 6),
     topArtists: mergedArtists.slice(0, 15),
     topAlbums: global.topAlbums,

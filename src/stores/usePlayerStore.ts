@@ -78,15 +78,27 @@ interface PlayerState {
   initAudioListeners: () => void;
 }
 
+function getLastPlayedTrack(): Track | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem('riff_last_played_track');
+    if (raw) return JSON.parse(raw);
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+const initialTrack = getLastPlayedTrack();
 let sleepTimerTimeout: NodeJS.Timeout | null = null;
 
 export const usePlayerStore = create<PlayerState>((set, get) => ({
-  currentTrack: null,
-  queue: [],
-  queueIndex: -1,
-  playbackState: 'idle',
+  currentTrack: initialTrack,
+  queue: initialTrack ? [initialTrack] : [],
+  queueIndex: initialTrack ? 0 : -1,
+  playbackState: 'paused',
   currentTime: 0,
-  duration: 0,
+  duration: initialTrack?.duration || 0,
   volume: 0.85,
   isMuted: false,
   isShuffled: false,
@@ -131,8 +143,13 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       newIndex = state.queue.findIndex((t) => t.id === track.id);
     }
 
-    // Automatically record to recent searches
+    // Automatically record to recent searches and last played
     addRecentTrack(track);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('riff_last_played_track', JSON.stringify(track));
+      } catch {}
+    }
 
     set({
       currentTrack: track,

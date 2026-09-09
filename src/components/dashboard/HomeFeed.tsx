@@ -16,7 +16,8 @@ import {
   Sparkles, 
   Compass,
   Music,
-  Globe2
+  Globe2,
+  Zap
 } from 'lucide-react';
 
 interface HomeFeedProps {
@@ -160,6 +161,7 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ userName, onSelectQuery }) =
     pakistanTracks,
     bollywoodTracks,
     punjabiTracks,
+    newSongsTracks,
     quickAccessTracks,
     topArtists,
     topAlbums,
@@ -372,16 +374,11 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ userName, onSelectQuery }) =
       {/* 4. Horizontal Shelf: Jump Back In / Recently Played */}
       {(activeRegion === 'all') && jumpBackInTracks.length > 0 && (
         <section className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <History className="w-4 h-4 sm:w-5 sm:h-5 text-[#1ed760]" />
-              <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
-                Jump Back In
-              </h2>
-            </div>
-            <span className="text-[11px] font-bold text-[#b3b3b3] uppercase tracking-wider">
-              {recentTracks.length > 0 ? 'Your History' : 'Trending'}
-            </span>
+          <div className="flex items-center gap-2">
+            <History className="w-4 h-4 sm:w-5 sm:h-5 text-[#1ed760]" />
+            <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
+              Jump Back In
+            </h2>
           </div>
 
           <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory -mx-4 px-4 sm:mx-0 sm:px-0">
@@ -439,22 +436,84 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ userName, onSelectQuery }) =
         </section>
       )}
 
-      {/* 5. Horizontal Shelf: 🇵🇰 Trending in Pakistan (Coke Studio, Pop, Rap) */}
+      {/* 5. Horizontal Shelf: ✨ Fresh Releases & New Songs */}
+      {(activeRegion === 'all' || activeRegion === 'in' || activeRegion === 'pk') && newSongsTracks && newSongsTracks.length > 0 && (
+        <section className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-[#1ed760]" />
+            <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
+              Fresh Releases & New Songs
+            </h2>
+          </div>
+
+          <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory -mx-4 px-4 sm:mx-0 sm:px-0">
+            {newSongsTracks.map((track) => {
+              const isThisTrackPlaying = currentTrack?.id === track.id && playbackState === 'playing';
+
+              return (
+                <div
+                  key={`new-${track.id}`}
+                  onClick={() => handleTrackClick(track, newSongsTracks)}
+                  className="w-[138px] sm:w-44 shrink-0 bg-[#181818] hover:bg-[#242424] p-2.5 sm:p-3 rounded-xl group transition-all duration-200 cursor-pointer snap-start flex flex-col justify-between border border-white/5"
+                >
+                  <div className="relative aspect-square w-full rounded-lg overflow-hidden bg-[#282828] mb-2.5 shadow-md">
+                    <img
+                      src={track.coverUrl}
+                      alt={track.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                      loading="lazy"
+                    />
+
+                    <div className="absolute right-1.5 bottom-1.5 sm:right-2 sm:bottom-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleTrackClick(track, newSongsTracks);
+                        }}
+                        className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#1ed760] text-black flex items-center justify-center shadow-xl transition-all duration-200 cursor-pointer ${
+                          isThisTrackPlaying
+                            ? 'opacity-100 translate-y-0'
+                            : 'opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 active:scale-95'
+                        }`}
+                        aria-label="Play"
+                      >
+                        {isThisTrackPlaying ? (
+                          <Pause className="w-3.5 h-3.5 fill-black" />
+                        ) : (
+                          <Play className="w-3.5 h-3.5 fill-black ml-0.5" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="font-bold text-xs sm:text-sm text-white truncate leading-snug group-hover:text-[#1ed760] transition">
+                      {track.title}
+                    </p>
+                    <p className="text-[11px] text-[#b3b3b3] truncate mt-0.5">
+                      {track.artist}
+                    </p>
+                  </div>
+
+                  <div className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between text-[10px] text-[#7c7c7c]">
+                    <span className="text-[#1ed760] font-semibold">New</span>
+                    <span>{Math.floor(track.duration / 60)}:{(track.duration % 60).toString().padStart(2, '0')}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* 6. Horizontal Shelf: 🇵🇰 Trending in Pakistan (Coke Studio, Pop, Rap) */}
       {(activeRegion === 'all' || activeRegion === 'pk') && pakistanTracks.length > 0 && (
         <section className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-xl">🇵🇰</span>
-              <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
-                Trending in Pakistan
-              </h2>
-            </div>
-            <button 
-              onClick={() => onSelectQuery?.('Coke Studio Pakistan')}
-              className="text-xs font-bold text-[#b3b3b3] hover:text-[#1ed760] transition cursor-pointer"
-            >
-              Coke Studio & Pop
-            </button>
+          <div className="flex items-center gap-2">
+            <span className="text-xl">🇵🇰</span>
+            <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
+              Trending in Pakistan
+            </h2>
           </div>
 
           <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory -mx-4 px-4 sm:mx-0 sm:px-0">
@@ -521,22 +580,14 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ userName, onSelectQuery }) =
         </section>
       )}
 
-      {/* 6. Horizontal Shelf: 🇮🇳 Bollywood & Indian Romance */}
+      {/* 7. Horizontal Shelf: 🇮🇳 Bollywood & Indian Romance */}
       {(activeRegion === 'all' || activeRegion === 'in') && bollywoodTracks.length > 0 && (
         <section className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-xl">🇮🇳</span>
-              <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
-                Bollywood & Indian Hits
-              </h2>
-            </div>
-            <button 
-              onClick={() => onSelectQuery?.('Arijit Singh Top Hits')}
-              className="text-xs font-bold text-[#b3b3b3] hover:text-[#1ed760] transition cursor-pointer"
-            >
-              Arijit & Romance
-            </button>
+          <div className="flex items-center gap-2">
+            <span className="text-xl">🇮🇳</span>
+            <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
+              Bollywood & Indian Hits
+            </h2>
           </div>
 
           <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory -mx-4 px-4 sm:mx-0 sm:px-0">
@@ -603,22 +654,14 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ userName, onSelectQuery }) =
         </section>
       )}
 
-      {/* 7. Horizontal Shelf: 🌾 Punjabi Hits & Desi Hip Hop */}
+      {/* 8. Horizontal Shelf: 🌾 Punjabi Hits & Desi Hip Hop */}
       {(activeRegion === 'all' || activeRegion === 'in' || activeRegion === 'pk') && punjabiTracks.length > 0 && (
         <section className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Music className="w-4 h-4 sm:w-5 sm:h-5 text-[#1ed760]" />
-              <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
-                Punjabi Wave & Desi Hip-Hop
-              </h2>
-            </div>
-            <button 
-              onClick={() => onSelectQuery?.('Punjabi Hits AP Dhillon Shubh')}
-              className="text-xs font-bold text-[#b3b3b3] hover:text-[#1ed760] transition cursor-pointer"
-            >
-              AP Dhillon & Shubh
-            </button>
+          <div className="flex items-center gap-2">
+            <Music className="w-4 h-4 sm:w-5 sm:h-5 text-[#1ed760]" />
+            <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
+              Punjabi Wave & Desi Hip-Hop
+            </h2>
           </div>
 
           <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory -mx-4 px-4 sm:mx-0 sm:px-0">
@@ -676,22 +719,14 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ userName, onSelectQuery }) =
         </section>
       )}
 
-      {/* 8. Horizontal Shelf: 🌍 Global Top Hits */}
+      {/* 9. Horizontal Shelf: 🌍 Global Top Hits */}
       {(activeRegion === 'all' || activeRegion === 'global') && globalTracks.length > 0 && (
         <section className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Flame className="w-4 h-4 sm:w-5 sm:h-5 text-[#1ed760]" />
-              <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
-                Global Billboard Charts
-              </h2>
-            </div>
-            <button 
-              onClick={() => onSelectQuery?.('Top 50 Global')}
-              className="text-xs font-bold text-[#b3b3b3] hover:text-[#1ed760] transition cursor-pointer"
-            >
-              Top 10 Global
-            </button>
+          <div className="flex items-center gap-2">
+            <Flame className="w-4 h-4 sm:w-5 sm:h-5 text-[#1ed760]" />
+            <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
+              Global Billboard Charts
+            </h2>
           </div>
 
           <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory -mx-4 px-4 sm:mx-0 sm:px-0">
@@ -758,19 +793,14 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ userName, onSelectQuery }) =
         </section>
       )}
 
-      {/* 9. Horizontal Shelf: Popular Artists (Both Pakistani, Indian & Global Icons) */}
+      {/* 10. Horizontal Shelf: Popular Artists (Circular Cards) */}
       {topArtists.length > 0 && (
         <section className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Mic2 className="w-4 h-4 sm:w-5 sm:h-5 text-[#1ed760]" />
-              <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
-                Featured Artists
-              </h2>
-            </div>
-            <span className="text-[11px] font-bold text-[#b3b3b3] uppercase tracking-wider">
-              Trending
-            </span>
+          <div className="flex items-center gap-2">
+            <Mic2 className="w-4 h-4 sm:w-5 sm:h-5 text-[#1ed760]" />
+            <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
+              Featured Artists
+            </h2>
           </div>
 
           <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory -mx-4 px-4 sm:mx-0 sm:px-0">
@@ -800,19 +830,14 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ userName, onSelectQuery }) =
         </section>
       )}
 
-      {/* 10. Horizontal Shelf: Hot Albums & Releases */}
+      {/* 11. Horizontal Shelf: Hot Albums & Releases */}
       {topAlbums.length > 0 && (activeRegion === 'all' || activeRegion === 'global') && (
         <section className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Disc className="w-4 h-4 sm:w-5 sm:h-5 text-[#1ed760]" />
-              <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
-                Hot Albums & Releases
-              </h2>
-            </div>
-            <span className="text-[11px] font-bold text-[#b3b3b3] uppercase tracking-wider">
-              New Releases
-            </span>
+          <div className="flex items-center gap-2">
+            <Disc className="w-4 h-4 sm:w-5 sm:h-5 text-[#1ed760]" />
+            <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
+              Hot Albums & Releases
+            </h2>
           </div>
 
           <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory -mx-4 px-4 sm:mx-0 sm:px-0">
@@ -842,7 +867,7 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ userName, onSelectQuery }) =
         </section>
       )}
 
-      {/* 11. Curated South Asian & Global Discovery Tiles */}
+      {/* 12. Horizontal Shelf: Curated South Asian & Global Discovery Vibe Cards */}
       <section className="space-y-3">
         <div className="flex items-center gap-2">
           <Compass className="w-4 h-4 sm:w-5 sm:h-5 text-[#1ed760]" />
@@ -851,22 +876,30 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ userName, onSelectQuery }) =
           </h2>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+        {/* Full Horizontal Scroll for Discovery Cards instead of static grid! */}
+        <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory -mx-4 px-4 sm:mx-0 sm:px-0">
           {[
-            { title: '🇵🇰 Coke Studio & Sufi', query: 'Coke Studio Pakistan', color: 'from-emerald-700 to-green-950' },
-            { title: '🇵🇰 Pakistani Hip-Hop', query: 'Young Stunners Talha Anjum', color: 'from-stone-700 to-neutral-950' },
-            { title: '🇮🇳 Bollywood Romance', query: 'Bollywood Romance Arijit Singh', color: 'from-rose-700 to-pink-950' },
-            { title: '🌾 Punjabi Hits', query: 'Punjabi Top Hits', color: 'from-amber-600 to-orange-950' },
+            { title: '🇵🇰 Coke Studio & Sufi', desc: 'Acoustic, Spiritual & Pop', query: 'Coke Studio Pakistan', color: 'from-emerald-700 to-green-950' },
+            { title: '🇵🇰 Pakistani Hip-Hop', desc: 'Young Stunners & Talha Anjum', query: 'Young Stunners Talha Anjum', color: 'from-stone-700 to-neutral-950' },
+            { title: '🇮🇳 Bollywood Romance', desc: 'Arijit Singh & Soulful Hits', query: 'Bollywood Romance Arijit Singh', color: 'from-rose-700 to-pink-950' },
+            { title: '🌾 Punjabi Hits', desc: 'AP Dhillon, Shubh & Diljit', query: 'Punjabi Top Hits', color: 'from-amber-600 to-orange-950' },
+            { title: '🔥 Desi Hip Hop', desc: 'Bohemia, KR$NA & Seedhe Maut', query: 'Desi Hip Hop', color: 'from-red-800 to-black' },
+            { title: '🌍 Global Viral 50', desc: 'TikTok & Social Trends', query: 'Global Viral Hits', color: 'from-cyan-700 to-blue-950' },
           ].map((vibe) => (
             <div
               key={vibe.title}
               onClick={() => onSelectQuery?.(vibe.query)}
-              className={`p-3.5 sm:p-4 rounded-xl bg-gradient-to-br ${vibe.color} hover:brightness-110 transition cursor-pointer select-none shadow-md group border border-white/10`}
+              className={`w-[160px] sm:w-[200px] shrink-0 p-4 rounded-xl bg-gradient-to-br ${vibe.color} hover:brightness-110 transition cursor-pointer select-none shadow-md group border border-white/10 snap-start flex flex-col justify-between`}
             >
-              <p className="text-xs sm:text-sm font-black text-white leading-snug group-hover:scale-105 transition origin-left">
-                {vibe.title}
-              </p>
-              <p className="text-[10px] text-white/80 mt-1 flex items-center gap-1 font-semibold">
+              <div>
+                <p className="text-xs sm:text-sm font-black text-white leading-snug group-hover:scale-105 transition origin-left">
+                  {vibe.title}
+                </p>
+                <p className="text-[10px] text-white/70 mt-1 line-clamp-1">
+                  {vibe.desc}
+                </p>
+              </div>
+              <p className="text-[10px] text-white/90 mt-3 flex items-center gap-1 font-bold">
                 <span>Browse</span>
                 <span>→</span>
               </p>
