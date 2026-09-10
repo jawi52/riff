@@ -21,8 +21,10 @@ import {
   CheckCircle2,
   Loader2,
   ListMusic,
-  X
+  X,
+  Edit3
 } from 'lucide-react';
+import { EditProfileModal } from '../common/EditProfileModal';
 
 interface LibraryViewProps {
   onLogout: () => void;
@@ -36,6 +38,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
   const [activeSection, setActiveSection] = useState<'overview' | 'liked' | 'downloaded' | 'playlist'>('overview');
   const [selectedPlaylist, setSelectedPlaylist] = useState<Playlist | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [newPlaylistTitle, setNewPlaylistTitle] = useState('');
   const [newPlaylistDesc, setNewPlaylistDesc] = useState('');
 
@@ -660,26 +663,48 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
 
       {/* User Info & 30-Day Session Card */}
       <div className="bg-[#181818] border border-white/10 rounded-2xl p-5 sm:p-6 space-y-4 shadow-lg">
-        <div className="flex items-center gap-4">
-          <img
-            src={user?.avatarUrl || `https://api.dicebear.com/7.x/identicon/svg?seed=${user?.email || 'riff'}`}
-            alt="Avatar"
-            className="w-14 h-14 rounded-full bg-[#282828] object-cover border-2 border-[#1ed760]"
-          />
-          <div className="min-w-0 flex-1">
-            <h2 className="text-lg font-bold text-white truncate">
-              {user?.displayName || 'Listener'}
-            </h2>
-            <p className="text-xs text-[#b3b3b3] truncate">
-              {user?.email || 'Authenticated User'}
-            </p>
-            <div className="mt-1 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-[#1ed760]" />
-              <span className="text-[11px] text-[#1ed760] font-semibold">
-                {isStandaloneApp ? 'Standalone App' : 'Web Player'}
-              </span>
+        <div className="flex items-center justify-between gap-4">
+          <div 
+            onClick={() => setShowEditProfileModal(true)}
+            className="flex items-center gap-4 cursor-pointer group min-w-0 flex-1"
+            title="Click to edit profile"
+          >
+            <div className="relative shrink-0">
+              <img
+                src={user?.avatarUrl || `https://api.dicebear.com/7.x/identicon/svg?seed=${user?.email || 'riff'}`}
+                alt="Avatar"
+                className="w-14 h-14 rounded-full bg-[#282828] object-cover border-2 border-[#1ed760] group-hover:opacity-80 transition"
+              />
+              <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
+                <Edit3 className="w-4 h-4 text-white" />
+              </div>
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-bold text-white truncate group-hover:text-[#1ed760] transition">
+                  {user?.displayName || 'Listener'}
+                </h2>
+                <Edit3 className="w-3.5 h-3.5 text-[#727272] group-hover:text-[#1ed760] shrink-0 transition" />
+              </div>
+              <p className="text-xs text-[#b3b3b3] truncate">
+                {user?.email || 'Authenticated User'}
+              </p>
+              <div className="mt-1 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-[#1ed760]" />
+                <span className="text-[11px] text-[#1ed760] font-semibold">
+                  {isStandaloneApp ? 'Standalone App' : 'Web Player'}
+                </span>
+              </div>
             </div>
           </div>
+
+          <button
+            onClick={() => setShowEditProfileModal(true)}
+            className="hidden xs:flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 text-xs font-bold text-white transition hover:scale-105 active:scale-95 cursor-pointer shrink-0"
+          >
+            <Edit3 className="w-3.5 h-3.5 text-[#1ed760]" />
+            <span>Edit Profile</span>
+          </button>
         </div>
 
         {/* 30-Day Auto-Renewal Badge */}
@@ -849,6 +874,12 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* Edit Profile Details Modal */}
+      <EditProfileModal
+        isOpen={showEditProfileModal}
+        onClose={() => setShowEditProfileModal(false)}
+      />
     </div>
   );
 };

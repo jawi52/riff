@@ -8,7 +8,8 @@ import {
   AlertCircle, 
   Loader2, 
   CheckCircle2, 
-  ShieldCheck 
+  ShieldCheck,
+  Sparkles 
 } from 'lucide-react';
 
 interface AuthPageProps {
@@ -36,6 +37,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     login, 
     register, 
     loginWithGoogle, 
+    loginAsGuest,
     isLoading, 
     authError, 
     authSuccessMessage, 
@@ -156,6 +158,19 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                 />
               </svg>
               <span>Continue with Google</span>
+            </button>
+
+            {/* Instant Guest / Demo Mode Button */}
+            <button
+              type="button"
+              onClick={() => {
+                loginAsGuest();
+                if (onAuthSuccess) onAuthSuccess();
+              }}
+              className="w-full h-12 rounded-full border border-white/20 hover:border-[#1ed760] bg-white/5 hover:bg-[#1ed760]/10 text-white font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+            >
+              <Sparkles className="w-4 h-4 text-[#1ed760]" />
+              <span>Explore as Guest (Instant Access)</span>
             </button>
           </div>
 

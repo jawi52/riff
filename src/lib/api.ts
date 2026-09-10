@@ -1,5 +1,5 @@
-import { Track } from '../types';
-import { searchSaavnSongs } from './saavnClient';
+import { Track, AudioSourceType } from '../types';
+import { RIFF_ENGINE_URL } from './engineUrl';
 
 export interface ApiArtist {
   id: string;
@@ -53,69 +53,171 @@ let cachedMultiFeed: MultiRegionalFeed | null = null;
 let lastMultiFeedFetch = 0;
 const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes cache
 
-// Curated top regional artists with verified high-res imagery
-const ICONIC_REGIONAL_ARTISTS: ApiArtist[] = [
+// Curated top regional artists with verified permanent Google / YouTube & Saavn CDN imagery
+export const ICONIC_REGIONAL_ARTISTS: ApiArtist[] = [
   {
     id: 'artist_atif',
     name: 'Atif Aslam',
-    picture: 'https://c.saavncdn.com/artists/Atif_Aslam_500x500.jpg',
+    picture: 'https://yt3.googleusercontent.com/pVV52htc8C16cLhP-_eSqv-mdfq-_GwCcw4YIRWlzaO3nPbME8meyKopw_VAdlBlcz5t4XrkSsXO1Ys=w800-h800-l90-rj',
+    pictureBig: 'https://yt3.googleusercontent.com/pVV52htc8C16cLhP-_eSqv-mdfq-_GwCcw4YIRWlzaO3nPbME8meyKopw_VAdlBlcz5t4XrkSsXO1Ys=w800-h800-l90-rj',
   },
   {
     id: 'artist_talha',
     name: 'Talha Anjum',
-    picture: 'https://c.saavncdn.com/artists/Talha_Anjum_002_20230221081515_500x500.jpg',
+    picture: 'https://yt3.googleusercontent.com/ZaTM6LIOrSBq2IB_HlqW1L2q_9PiiTcWFcufixGNHt9_U8lLicgTbWBzVlA2yPP8ph0plFsKaJ-SSiMj=w800-h800-l90-rj',
+    pictureBig: 'https://yt3.googleusercontent.com/ZaTM6LIOrSBq2IB_HlqW1L2q_9PiiTcWFcufixGNHt9_U8lLicgTbWBzVlA2yPP8ph0plFsKaJ-SSiMj=w800-h800-l90-rj',
   },
   {
     id: 'artist_arijit',
     name: 'Arijit Singh',
     picture: 'https://c.saavncdn.com/artists/Arijit_Singh_002_20230323062147_500x500.jpg',
+    pictureBig: 'https://c.saavncdn.com/artists/Arijit_Singh_002_20230323062147_500x500.jpg',
   },
   {
     id: 'artist_diljit',
     name: 'Diljit Dosanjh',
-    picture: 'https://c.saavncdn.com/artists/Diljit_Dosanjh_004_20221006184545_500x500.jpg',
+    picture: 'https://yt3.googleusercontent.com/0qFbPaWYZjGP3eW8xeOx42S4nw38dU418iWaGc0W5F3a_It-7cXB880bOGH9me8N0T6pY07iD_3KHg5xJA=w800-h800-l90-rj',
+    pictureBig: 'https://yt3.googleusercontent.com/0qFbPaWYZjGP3eW8xeOx42S4nw38dU418iWaGc0W5F3a_It-7cXB880bOGH9me8N0T6pY07iD_3KHg5xJA=w800-h800-l90-rj',
   },
   {
     id: 'artist_guru',
     name: 'Guru Randhawa',
-    picture: 'https://c.saavncdn.com/artists/Guru_Randhawa_004_20250701125845_500x500.jpg',
+    picture: 'https://yt3.googleusercontent.com/bRHk48zvXAst0-4DQ4D3gmTOWCVwMCIdb44HsjjKAkWE9oxraOhM0acyW1RooB-ULWvn8NsBFx5BgHW-=w800-h800-l90-rj',
+    pictureBig: 'https://yt3.googleusercontent.com/bRHk48zvXAst0-4DQ4D3gmTOWCVwMCIdb44HsjjKAkWE9oxraOhM0acyW1RooB-ULWvn8NsBFx5BgHW-=w800-h800-l90-rj',
   },
   {
     id: 'artist_karan',
     name: 'Karan Aujla',
-    picture: 'https://c.saavncdn.com/artists/Karan_Aujla_005_20230818074415_500x500.jpg',
+    picture: 'https://yt3.googleusercontent.com/BzOBERVwxHIkVDpePVN8mnT0MID3cySSHcZvY84FHusBL78dxkdpWBBk8o4O5e8BaenNlHKlI9fWb_Rccw=w800-h800-l90-rj',
+    pictureBig: 'https://yt3.googleusercontent.com/BzOBERVwxHIkVDpePVN8mnT0MID3cySSHcZvY84FHusBL78dxkdpWBBk8o4O5e8BaenNlHKlI9fWb_Rccw=w800-h800-l90-rj',
   },
   {
     id: 'artist_youngstunners',
     name: 'Young Stunners',
-    picture: 'https://c.saavncdn.com/artists/Young_Stunners_500x500.jpg',
+    picture: 'https://yt3.googleusercontent.com/VZBjhahkQ-DFsinZ8_7DuIt4jNXbiF3wmcmAHYG3k7GJFYYxEQe64i9ImnhQr1w6XxHQZe35W1B3zjSo=w800-h800-l90-rj',
+    pictureBig: 'https://yt3.googleusercontent.com/VZBjhahkQ-DFsinZ8_7DuIt4jNXbiF3wmcmAHYG3k7GJFYYxEQe64i9ImnhQr1w6XxHQZe35W1B3zjSo=w800-h800-l90-rj',
   },
   {
     id: 'artist_shubh',
     name: 'Shubh',
-    picture: 'https://c.saavncdn.com/artists/Shubh_000_20221107122131_500x500.jpg',
+    picture: 'https://yt3.googleusercontent.com/V_w7m2kuoVshpqcS1-RlEl-aONMQcGjP84WSo1tJS5IU8IDCr0v0s0NBMMGrLXtlL4CNjUKEdXcN3gAy=w800-h800-l90-rj',
+    pictureBig: 'https://yt3.googleusercontent.com/V_w7m2kuoVshpqcS1-RlEl-aONMQcGjP84WSo1tJS5IU8IDCr0v0s0NBMMGrLXtlL4CNjUKEdXcN3gAy=w800-h800-l90-rj',
   },
   {
     id: 'artist_ap',
     name: 'AP Dhillon',
-    picture: 'https://c.saavncdn.com/artists/AP_Dhillon_003_20230811053434_500x500.jpg',
+    picture: 'https://yt3.googleusercontent.com/YodB8IMuc531lUrvJBl5gwh5yl242hTBKfVj-cpk4oFOqOm-wElw5Lcw3_DvagrR0arcXXs19l6xr6MN5Q=w800-h800-l90-rj',
+    pictureBig: 'https://yt3.googleusercontent.com/YodB8IMuc531lUrvJBl5gwh5yl242hTBKfVj-cpk4oFOqOm-wElw5Lcw3_DvagrR0arcXXs19l6xr6MN5Q=w800-h800-l90-rj',
   },
   {
     id: 'artist_kaifi',
     name: 'Kaifi Khalil',
-    picture: 'https://c.saavncdn.com/artists/Kaifi_Khalil_001_20221019082333_500x500.jpg',
-  },
-  {
-    id: 'artist_abdul',
-    name: 'Abdul Hannan',
-    picture: 'https://c.saavncdn.com/artists/Abdul_Hannan_001_20230621063630_500x500.jpg',
+    picture: 'https://yt3.googleusercontent.com/8d_e8uuKP8VkRJ5et2SA4tKC7oK4a1-uD97Vn3SbgCh0vd7QjHZ875AB0Gng-jIIM9y_AgHzVeH8KNSw=w800-h800-l90-rj',
+    pictureBig: 'https://yt3.googleusercontent.com/8d_e8uuKP8VkRJ5et2SA4tKC7oK4a1-uD97Vn3SbgCh0vd7QjHZ875AB0Gng-jIIM9y_AgHzVeH8KNSw=w800-h800-l90-rj',
   },
   {
     id: 'artist_theweeknd',
     name: 'The Weeknd',
-    picture: 'https://c.saavncdn.com/artists/The_Weeknd_500x500.jpg',
-  }
+    picture: 'https://yt3.googleusercontent.com/R_cjQK3wwLPEzri1jerx-79zgzGocoKvwGU3NMONaTsaMM0Idd641pfB8r5jgfpn6I8JAoFtf9RBIcI=w800-h800-l90-rj',
+    pictureBig: 'https://yt3.googleusercontent.com/R_cjQK3wwLPEzri1jerx-79zgzGocoKvwGU3NMONaTsaMM0Idd641pfB8r5jgfpn6I8JAoFtf9RBIcI=w800-h800-l90-rj',
+  },
 ];
+
+/**
+ * Maps raw API track data from Riff-Engine into Riff's domain Track model
+ */
+export function mapApiTrackToTrack(t: any): Track {
+  const artistName = typeof t.artist === 'string'
+    ? t.artist
+    : (t.artist?.name || 'Unknown Artist');
+
+  const albumTitle = typeof t.album === 'string'
+    ? t.album
+    : (t.album?.title || '');
+
+  const cover = t.album?.coverBig ||
+    t.album?.coverMedium ||
+    t.album?.cover ||
+    t.coverUrl ||
+    t.cover ||
+    t.artist?.picture ||
+    'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&q=80';
+
+  return {
+    id: String(t.id),
+    title: t.title || 'Untitled Track',
+    artist: artistName,
+    album: albumTitle,
+    duration: typeof t.duration === 'number' ? t.duration : 210,
+    coverUrl: cover,
+    sourceType: 'riff-engine' as AudioSourceType,
+    streamUrl: t.streamUrl || `${RIFF_ENGINE_URL}/api/v1/stream/${t.id}`,
+    bitrateKbps: 320,
+    genre: 'Global',
+    hasSyncedLyrics: Boolean(t.lyricsEndpoint),
+    credits: {
+      performers: [artistName],
+      label: albumTitle || 'Studio Master',
+    },
+  };
+}
+
+/**
+ * Fetches global charts from live Azure backend API
+ */
+export async function fetchCharts(): Promise<ChartsResponse> {
+  const res = await fetch(`${RIFF_ENGINE_URL}/api/v1/charts`, {
+    headers: { Accept: 'application/json' },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Charts API returned status ${res.status}`);
+  }
+
+  const data = await res.json();
+
+  const topTracks: Track[] = (data.topTracks || []).map(mapApiTrackToTrack);
+  const topArtists: ApiArtist[] = data.topArtists || [];
+  const topAlbums: ApiAlbum[] = data.topAlbums || [];
+
+  return {
+    topTracks,
+    topArtists,
+    topAlbums,
+  };
+}
+
+/**
+ * Live search across the entire music catalog
+ */
+export async function searchCatalog(query: string, limit = 20, signal?: AbortSignal): Promise<SearchResponse> {
+  const clean = query.trim();
+  if (!clean) {
+    return { tracks: [], artists: [], albums: [], total: 0 };
+  }
+
+  const res = await fetch(`${RIFF_ENGINE_URL}/api/v1/search?q=${encodeURIComponent(clean)}&limit=${limit}`, {
+    signal,
+    headers: { Accept: 'application/json' },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Search API returned status ${res.status}`);
+  }
+
+  const data = await res.json();
+
+  const tracks: Track[] = (data.tracks || []).map(mapApiTrackToTrack);
+  const artists: ApiArtist[] = data.artists || [];
+  const albums: ApiAlbum[] = data.albums || [];
+
+  return {
+    tracks,
+    artists,
+    albums,
+    total: data.total || tracks.length,
+  };
+}
 
 /**
  * Fetches multi-regional live feeds:
@@ -151,22 +253,22 @@ export async function fetchMultiRegionalFeeds(): Promise<MultiRegionalFeed> {
 }
 
 async function executeFeedFetch(): Promise<MultiRegionalFeed> {
-  const [pkRes, bollyRes, punjabiRes, latestRes, globalRes] = await Promise.allSettled([
-    searchSaavnSongs('Coke Studio Pakistan Atif Aslam Talha Anjum', 14),
-    searchSaavnSongs('Bollywood Top Romance Hits Arijit Singh', 14),
-    searchSaavnSongs('Punjabi Wave Karan Aujla Diljit Dosanjh', 14),
-    searchSaavnSongs('Latest Releases 2026', 14),
-    searchSaavnSongs('Global Top 50 Billboard', 14),
+  const [globalCharts, pkRes, bollyRes, punjabiRes, latestRes] = await Promise.allSettled([
+    fetchCharts(),
+    searchCatalog('Trending Pakistan', 14),
+    searchCatalog('Bollywood Top Hits', 14),
+    searchCatalog('Punjabi Hits', 14),
+    searchCatalog('Latest Releases', 14),
   ]);
 
-  const pkTracks = pkRes.status === 'fulfilled' ? pkRes.value : [];
-  const bollyTracks = bollyRes.status === 'fulfilled' ? bollyRes.value : [];
-  const punjabiTracks = punjabiRes.status === 'fulfilled' ? punjabiRes.value : [];
-  const newSongs = latestRes.status === 'fulfilled' ? latestRes.value : [];
-  const global = globalRes.status === 'fulfilled' ? globalRes.value : [];
+  const global = globalCharts.status === 'fulfilled' ? globalCharts.value : { topTracks: [], topArtists: [], topAlbums: [] };
+  const pkTracks = pkRes.status === 'fulfilled' ? pkRes.value.tracks : [];
+  const bollyTracks = bollyRes.status === 'fulfilled' ? bollyRes.value.tracks : [];
+  const punjabiTracks = punjabiRes.status === 'fulfilled' ? punjabiRes.value.tracks : [];
+  const newSongs = latestRes.status === 'fulfilled' ? latestRes.value.tracks : [];
 
-  // Extract unique albums
-  const allTracks = [...pkTracks, ...bollyTracks, ...punjabiTracks, ...global];
+  // Extract unique albums across all regions
+  const allTracks = [...pkTracks, ...bollyTracks, ...punjabiTracks, ...newSongs, ...global.topTracks];
   const albumMap = new Map<string, ApiAlbum>();
   for (const t of allTracks) {
     if (t.album && !albumMap.has(t.album)) {
@@ -179,23 +281,49 @@ async function executeFeedFetch(): Promise<MultiRegionalFeed> {
     }
   }
 
+  // Merge discovered artists with iconic regional artists
+  const extraArtists: ApiArtist[] = [
+    ...(pkRes.status === 'fulfilled' ? pkRes.value.artists : []),
+    ...(bollyRes.status === 'fulfilled' ? bollyRes.value.artists : []),
+    ...(punjabiRes.status === 'fulfilled' ? punjabiRes.value.artists : []),
+    ...(latestRes.status === 'fulfilled' ? latestRes.value.artists : []),
+  ];
+
+  const seenArtistNames = new Set<string>();
+  const mergedArtists: ApiArtist[] = [];
+
+  // Priority to iconic artists with permanent high-res avatars
+  for (const a of ICONIC_REGIONAL_ARTISTS) {
+    seenArtistNames.add(a.name.toLowerCase().trim());
+    mergedArtists.push(a);
+  }
+
+  for (const a of [...extraArtists, ...global.topArtists]) {
+    const key = a.name.toLowerCase().trim();
+    const pic = a.pictureBig || a.pictureMedium || a.picture;
+    if (!seenArtistNames.has(key) && pic) {
+      seenArtistNames.add(key);
+      mergedArtists.push(a);
+    }
+  }
+
   // 6-Tile quick access mix (Spotify style)
   const quickAccess: Track[] = [];
   if (pkTracks[0]) quickAccess.push(pkTracks[0]);
   if (bollyTracks[0]) quickAccess.push(bollyTracks[0]);
   if (punjabiTracks[0]) quickAccess.push(punjabiTracks[0]);
-  if (global[0]) quickAccess.push(global[0]);
+  if (global.topTracks[0]) quickAccess.push(global.topTracks[0]);
   if (pkTracks[1]) quickAccess.push(pkTracks[1]);
   if (bollyTracks[1]) quickAccess.push(bollyTracks[1]);
 
   const result: MultiRegionalFeed = {
-    globalTracks: global,
+    globalTracks: global.topTracks,
     pakistanTracks: pkTracks,
     bollywoodTracks: bollyTracks,
     punjabiTracks: punjabiTracks,
     newSongsTracks: newSongs,
     quickAccessTracks: quickAccess.length >= 4 ? quickAccess : allTracks.slice(0, 6),
-    topArtists: ICONIC_REGIONAL_ARTISTS,
+    topArtists: mergedArtists.slice(0, 15),
     topAlbums: Array.from(albumMap.values()).slice(0, 15),
   };
 
@@ -217,56 +345,4 @@ function revalidateFeedsInBackground() {
       await executeFeedFetch();
     } catch {}
   }, 100);
-}
-
-/**
- * Live search across the entire music catalog
- */
-export async function searchCatalog(query: string, limit = 20, _signal?: AbortSignal): Promise<SearchResponse> {
-  const clean = query.trim();
-  if (!clean) {
-    return { tracks: [], artists: [], albums: [], total: 0 };
-  }
-
-  const tracks = await searchSaavnSongs(clean, limit);
-
-  // Derive artists and albums from search results
-  const artistMap = new Map<string, ApiArtist>();
-  const albumMap = new Map<string, ApiAlbum>();
-
-  for (const t of tracks) {
-    const primaryArtist = t.artist.split(',')[0]?.trim() || t.artist;
-    if (primaryArtist && !artistMap.has(primaryArtist)) {
-      artistMap.set(primaryArtist, {
-        id: `artist_${encodeURIComponent(primaryArtist)}`,
-        name: primaryArtist,
-        picture: t.coverUrl,
-      });
-    }
-
-    if (t.album && !albumMap.has(t.album)) {
-      albumMap.set(t.album, {
-        id: `album_${encodeURIComponent(t.album)}`,
-        title: t.album,
-        cover: t.coverUrl,
-        artist: { id: `art_${t.id}`, name: t.artist },
-      });
-    }
-  }
-
-  return {
-    tracks,
-    artists: Array.from(artistMap.values()).slice(0, 8),
-    albums: Array.from(albumMap.values()).slice(0, 8),
-    total: tracks.length,
-  };
-}
-
-export async function fetchCharts(): Promise<ChartsResponse> {
-  const feed = await fetchMultiRegionalFeeds();
-  return {
-    topTracks: feed.globalTracks,
-    topArtists: feed.topArtists,
-    topAlbums: feed.topAlbums,
-  };
 }

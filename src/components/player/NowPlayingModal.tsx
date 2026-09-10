@@ -79,16 +79,23 @@ export const NowPlayingModal: React.FC = () => {
     }
   }, [isLyricsOpen]);
 
+  const handleDismissModal = () => {
+    setFullscreenOpen(false);
+    if (window.history.state?.riffModal === 'nowPlaying') {
+      window.history.back();
+    }
+  };
+
   // Handle ESC key to close modal
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isFullscreenOpen) {
-        setFullscreenOpen(false);
+        handleDismissModal();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isFullscreenOpen, setFullscreenOpen]);
+  }, [isFullscreenOpen]);
 
   if (!isFullscreenOpen || !currentTrack) {
     return null;
@@ -164,7 +171,7 @@ export const NowPlayingModal: React.FC = () => {
 
   const handleHeaderTouchEnd = () => {
     if (touchCurrentY.current - touchStartY.current > 70) {
-      setFullscreenOpen(false);
+      handleDismissModal();
     }
   };
 
@@ -192,7 +199,7 @@ export const NowPlayingModal: React.FC = () => {
         className="relative z-10 flex items-center justify-between px-4 sm:px-8 pt-4 pb-2 sm:pt-6 sm:pb-4 shrink-0"
       >
         <button
-          onClick={() => setFullscreenOpen(false)}
+          onClick={handleDismissModal}
           className="p-2 -ml-2 text-white/70 hover:text-white rounded-full hover:bg-white/10 transition cursor-pointer"
           title="Minimize player (or swipe down)"
         >

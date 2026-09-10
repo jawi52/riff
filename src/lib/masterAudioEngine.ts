@@ -7,7 +7,7 @@
 import { Track, SyncedLyricLine } from '../types';
 import { GLOBAL_CATALOG, PAKISTAN_TRENDING_TRACKS } from './algorithm';
 import { RIFF_ENGINE_URL } from './engineUrl';
-import { resolveSaavnStreamToken, searchSaavnSongs } from './saavnClient';
+import { searchSaavnSongs } from './saavnClient';
 
 // In-Memory Single-Flight LRU Cache for Sub-40ms / 0ms Instant Replay
 const streamCache = new Map<string, { url: string; timestamp: number }>();
@@ -366,7 +366,7 @@ export function isPreviewUrl(url?: string): boolean {
 export async function resolveMasterStream(track: Track): Promise<string> {
   if (!track) return '';
 
-  // 1. Direct valid audio stream already present
+  // 1. Direct valid audio stream already present and not a preview
   if (
     track.streamUrl &&
     track.streamUrl.startsWith('http') &&
@@ -385,34 +385,51 @@ export async function resolveMasterStream(track: Track): Promise<string> {
     }
   }
 
-  // 3. Resolve from JioSaavn encrypted media token (0ms lookup)
-  if (track.rawUrl) {
+  const cleanId = String(track.id).replace(/^saavn_|^itunes_/, '');
+
+  // 3. Query Azure backend direct stream-url if not an iTunes preview ID
+  if (cleanId && !cleanId.startsWith('381') && !cleanId.startsWith('saavn_')) {
     try {
-      const stream = await resolveSaavnStreamToken(track.rawUrl);
-      if (stream && !isPreviewUrl(stream)) {
-        streamCache.set(track.id, { url: stream, timestamp: Date.now() });
-        return stream;
+      const res = await fetch(`${RIFF_ENGINE_URL}/api/v1/stream-url/${cleanId}`);
+      if (res.ok) {
+        const d = await res.json();
+        if (d.audioUrl && !isPreviewUrl(d.audioUrl)) {
+          streamCache.set(track.id, { url: d.audioUrl, timestamp: Date.now() });
+          return d.audioUrl;
+        }
       }
     } catch (err) {
-      console.warn('Failed to resolve stream from rawUrl:', err);
+      console.warn('Backend stream-url lookup failed:', err);
     }
   }
 
-  // 4. Resolve via JioSaavn catalog search (Matches title + artist to full 320kbps stream)
+  // 4. Resolve via backend search (Matches title + artist to full 320kbps stream)
   try {
-    const query = `${track.title} ${track.artist}`;
-    const candidates = await searchSaavnSongs(query, 3);
-    for (const cand of candidates) {
-      if (cand.rawUrl) {
-        const stream = await resolveSaavnStreamToken(cand.rawUrl);
-        if (stream && !isPreviewUrl(stream)) {
-          streamCache.set(track.id, { url: stream, timestamp: Date.now() });
-          return stream;
+    const query = `${track.title} ${track.artist}`.trim();
+    const sRes = await fetch(`${RIFF_ENGINE_URL}/api/v1/search?q=${encodeURIComponent(query)}&limit=1`);
+    if (sRes.ok) {
+      const sData = await sRes.json();
+      const first = sData.tracks?.[0];
+      if (first?.id) {
+        const uRes = await fetch(`${RIFF_ENGINE_URL}/api/v1/stream-url/${first.id}`);
+        if (uRes.ok) {
+          const uData = await uRes.json();
+          if (uData.audioUrl && !isPreviewUrl(uData.audioUrl)) {
+            streamCache.set(track.id, { url: uData.audioUrl, timestamp: Date.now() });
+            return uData.audioUrl;
+          }
         }
       }
     }
   } catch (err) {
-    console.warn('Failed to resolve stream via JioSaavn search:', err);
+    console.warn('Full stream search resolution failed:', err);
+  }
+
+  // 5. Fallback: Direct backend streaming pipe
+  if (cleanId) {
+    const streamProxy = `${RIFF_ENGINE_URL}/api/v1/stream/${cleanId}`;
+    streamCache.set(track.id, { url: streamProxy, timestamp: Date.now() });
+    return streamProxy;
   }
 
   return '';

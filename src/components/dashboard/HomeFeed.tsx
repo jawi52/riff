@@ -175,10 +175,12 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ userName, onSelectQuery }) =
   const contextual = getContextualVibe();
   const mood = getMoodTitle();
 
-  // Jump Back In items
-  const jumpBackInTracks: Track[] = recentTracks.length > 0 
-    ? recentTracks.map((r) => r.trackData!).filter(Boolean)
-    : pakistanTracks.slice(0, 6);
+  // Jump Back In items: Ensure at least 6-8 tracks are displayed so it never looks empty
+  const userRecents = recentTracks.map((r) => r.trackData!).filter(Boolean);
+  const backfill = [...pakistanTracks, ...bollywoodTracks, ...globalTracks];
+  const jumpBackInTracks: Track[] = userRecents.length >= 6
+    ? userRecents
+    : Array.from(new Map([...userRecents, ...backfill].map((t) => [t.id, t])).values()).slice(0, 8);
 
   // Dynamic Spotify-grade recommendation algorithm powered by telemetry affinity
   const topAffinity = getTopAffinityArtist();

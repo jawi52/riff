@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 
 import { usePlayerStore } from '../../stores/usePlayerStore';
+import { EditProfileModal } from '../common/EditProfileModal';
 
 interface DashboardPageProps {
   onLogout: () => void;
@@ -29,10 +30,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const [activeTab, setActiveTab] = useState<DashboardTab>('home');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [exitToastVisible, setExitToastVisible] = useState(false);
+  const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const lastBackPressRef = useRef<number>(0);
 
   const { user, logout } = useAuthStore();
-  const { setFullscreenOpen } = usePlayerStore();
+  const { setFullscreenOpen, isFullscreenOpen } = usePlayerStore();
 
   const navigateToTab = (tab: DashboardTab) => {
     if (tab !== activeTab) {
@@ -46,6 +48,13 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     navigateToTab('search');
   };
 
+  // Push history entry when Fullscreen Now Playing opens so Android back returns cleanly
+  useEffect(() => {
+    if (isFullscreenOpen) {
+      window.history.pushState({ riffModal: 'nowPlaying', riffTab: activeTab }, '');
+    }
+  }, [isFullscreenOpen, activeTab]);
+
   // Android Back Button Navigation & Double-Tap Exit
   useEffect(() => {
     // Seed initial state
@@ -54,28 +63,22 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     } catch {}
 
     const handlePopState = () => {
-      // 1. If Fullscreen Now Playing is open, close it!
+      // 1. If Fullscreen Now Playing is open, close it cleanly
       if (usePlayerStore.getState().isFullscreenOpen) {
         setFullscreenOpen(false);
-        try {
-          window.history.pushState({ riffTab: activeTab }, '');
-        } catch {}
         return;
       }
 
-      // 2. If on Search or Library, navigate back to Home!
+      // 2. If on Search or Library, navigate back to Home
       if (activeTab !== 'home') {
         setActiveTab('home');
-        try {
-          window.history.pushState({ riffTab: 'home' }, '');
-        } catch {}
         return;
       }
 
       // 3. If already on Home, require double-tap to exit!
       const now = Date.now();
       if (now - lastBackPressRef.current < 2000) {
-        // Exiting app
+        // Exiting app - let browser exit cleanly
         return;
       } else {
         lastBackPressRef.current = now;
@@ -155,8 +158,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
             {/* User Profile Avatar */}
             <div 
-              onClick={() => navigateToTab('library')}
+              onClick={() => setShowEditProfileModal(true)}
               className="flex items-center gap-2 pl-2 border-l border-white/10 cursor-pointer group select-none"
+              title="Click to edit profile"
             >
               <img
                 src={user?.avatarUrl || `https://api.dicebear.com/7.x/identicon/svg?seed=${user?.email || 'riff'}`}
@@ -198,19 +202,27 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         )}
       </main>
 
-      {/* 3. Persistent Fixed Mini-Player */}
-      <MiniPlayer />
+      {/* 3. Persistent Fixed Mini-Player (Hidden when fullscreen player is open) */}
+      {!isFullscreenOpen && <MiniPlayer />}
 
       {/* 4. Fullscreen Now Playing & Synced Lyrics Modal */}
       <NowPlayingModal />
 
-      {/* 5. Mobile Fixed Bottom Navigation Bar (< md) */}
-      <MobileBottomNav 
-        activeTab={activeTab} 
-        onTabChange={navigateToTab} 
+      {/* 5. Mobile Fixed Bottom Navigation Bar (< md) (Hidden when fullscreen player is open) */}
+      {!isFullscreenOpen && (
+        <MobileBottomNav 
+          activeTab={activeTab} 
+          onTabChange={navigateToTab} 
+        />
+      )}
+
+      {/* 6. Edit Profile Modal */}
+      <EditProfileModal
+        isOpen={showEditProfileModal}
+        onClose={() => setShowEditProfileModal(false)}
       />
 
-      {/* 6. Android Double-Tap Exit Toast */}
+      {/* 7. Android Double-Tap Exit Toast */}
       {exitToastVisible && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[9999] px-4 py-2 rounded-full bg-[#242424] border border-white/20 text-white text-xs font-bold shadow-2xl animate-in fade-in zoom-in-95 pointer-events-none">
           Press back again to exit
