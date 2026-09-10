@@ -8,6 +8,7 @@ import {
   getArtistRecommendation, 
   getDailyMixes 
 } from '../../lib/recommendationEngine';
+import { getTopAffinityArtist } from '../../lib/affinityEngine';
 import { 
   Play, 
   Pause, 
@@ -176,8 +177,10 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ userName, onSelectQuery }) =
     ? recentTracks.map((r) => r.trackData!).filter(Boolean)
     : pakistanTracks.slice(0, 6);
 
-  // Dynamic Spotify-grade recommendation algorithm
-  const artistRec = getArtistRecommendation(currentTrack || jumpBackInTracks[0]);
+  // Dynamic Spotify-grade recommendation algorithm powered by telemetry affinity
+  const topAffinity = getTopAffinityArtist();
+  const seedTrack = currentTrack || (topAffinity ? ({ artist: topAffinity.name, title: topAffinity.name } as any) : jumpBackInTracks[0]);
+  const artistRec = getArtistRecommendation(seedTrack);
   const dailyMixes = getDailyMixes();
 
   return (

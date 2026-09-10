@@ -447,7 +447,7 @@ export function getSearchSuggestions(
     }
   }
 
-  // 2. Score and sort static high-velocity entities
+  // 2. Score and sort static high-velocity entities with strict prefix & word-boundary matching
   interface ScoredEntity {
     entity: StaticEntity;
     score: number;
@@ -457,43 +457,43 @@ export function getSearchSuggestions(
 
   for (const entity of STATIC_MUSIC_ENTITIES) {
     const nameLower = entity.name.toLowerCase();
+    const words = nameLower.split(/[\s\-•&/,]+/);
     let score = 0;
 
-    // Exact match
+    // Exact match (highest confidence)
     if (nameLower === clean) {
-      score += 150;
+      score = 300;
     }
-    // Prefix match on full name (e.g. "gur" -> "Guru Randhawa")
+    // Name starts with query (e.g. "gur" -> "Guru Randhawa")
     else if (nameLower.startsWith(clean)) {
-      score += 100;
+      score = 220;
     }
-    // Word boundary match (e.g. "randhawa" -> "Guru Randhawa")
-    else {
-      const words = nameLower.split(/\s+/);
-      const matchedWord = words.some(w => w.startsWith(clean));
-      if (matchedWord) {
-        score += 80;
-      } else if (nameLower.includes(clean)) {
-        score += 50;
-      }
+    // Any word in name starts with query (e.g. "randhawa" -> "Guru Randhawa", "anjum" -> "Talha Anjum")
+    else if (words.some((w) => w.startsWith(clean))) {
+      score = 170;
     }
-
-    // Alias matching
-    if (entity.aliases && score < 80) {
+    // Alias matching: ONLY prefix or word-boundary (never loose substring on short queries!)
+    else if (entity.aliases) {
       for (const alias of entity.aliases) {
         const aLower = alias.toLowerCase();
+        const aWords = aLower.split(/[\s\-•&/,]+/);
         if (aLower === clean) {
-          score = Math.max(score, 120);
+          score = Math.max(score, 180);
         } else if (aLower.startsWith(clean)) {
-          score = Math.max(score, 75);
-        } else if (aLower.includes(clean)) {
-          score = Math.max(score, 45);
+          score = Math.max(score, 140);
+        } else if (aWords.some((w) => w.startsWith(clean))) {
+          score = Math.max(score, 110);
         }
       }
     }
 
+    // Substring fallback ONLY for longer queries (4+ chars) to prevent garbage suggestions on 2-3 letter typing
+    if (score === 0 && clean.length >= 4 && nameLower.includes(clean)) {
+      score = 40;
+    }
+
     if (score > 0) {
-      // Add popularity weighting
+      // Add popularity weighting (up to 10 points)
       score += (entity.popularity / 10);
       scoredEntities.push({ entity, score });
     }

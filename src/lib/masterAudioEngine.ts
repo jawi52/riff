@@ -277,8 +277,8 @@ export async function searchMasterCatalog(rawQuery: string): Promise<MasterSearc
             duration: durationSec,
             coverUrl: coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&q=80',
             sourceType: 'itunes',
-            streamUrl: item.previewUrl,
-            bitrateKbps: 256,
+            streamUrl: '', // Pure full track: never store 30s preview URL
+            bitrateKbps: 320,
             genre: item.primaryGenreName || 'Pop',
             releaseYear: item.releaseDate ? new Date(item.releaseDate).getFullYear() : undefined,
             hasSyncedLyrics: true,
@@ -328,36 +328,51 @@ export async function searchMasterCatalog(rawQuery: string): Promise<MasterSearc
   };
 }
 
+/**
+ * Direct full-length fallback stream resolver.
+ * Strictly guarantees full-length (never 30s clips).
+ */
 export async function resolveDirectCdnStream(track: Track): Promise<string> {
-  const searchTerms = [
-    `${track.title} ${track.artist}`,
-    track.title
-  ];
-
-  for (const term of searchTerms) {
-    try {
-      const itunesRes = await fetch(
-        `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&media=music&entity=song&limit=3`
-      );
-      if (itunesRes.ok) {
-        const data = await itunesRes.json();
-        const results = data.results || [];
-        if (results.length > 0) {
-          const best = results[0];
-          if (best.previewUrl) {
-            return best.previewUrl;
+  // 1. Direct Saavn CDN search for 320kbps full song
+  try {
+    const saavnRes = await fetch(
+      `https://saavn.me/api/search/songs?query=${encodeURIComponent(`${track.title} ${track.artist}`)}&limit=3`
+    );
+    if (saavnRes.ok) {
+      const saavnData = await saavnRes.json();
+      const results = saavnData?.data?.results || [];
+      for (const res of results) {
+        // Find best 320kbps or 160kbps stream URL
+        const downloadUrls = res.downloadUrl;
+        if (Array.isArray(downloadUrls) && downloadUrls.length > 0) {
+          const highQuality = downloadUrls.find((d: any) => d.quality === '320kbps') || downloadUrls[downloadUrls.length - 1];
+          const url = highQuality?.url || highQuality?.link;
+          if (url && !isPreviewUrl(url)) {
+            return url;
           }
         }
       }
-    } catch {}
+    }
+  } catch {}
+
+  // 2. Direct Riff Engine stream proxy
+  const cleanId = track.id.replace(/^saavn_|^itunes_/, '');
+  if (cleanId) {
+    return `${RIFF_ENGINE_URL}/api/v1/stream/${cleanId}`;
   }
 
-  return 'https://actions.google.com/sounds/v1/music/ambient_piano_melody.ogg';
+  return '';
 }
 
-function isPreviewUrl(url?: string): boolean {
+export function isPreviewUrl(url?: string): boolean {
   if (!url) return false;
-  return url.includes('AudioPreview') || url.includes('.p.m4a') || url.includes('preview.saavncdn.com');
+  return (
+    url.includes('AudioPreview') ||
+    url.includes('.p.m4a') ||
+    url.includes('preview.saavncdn.com') ||
+    url.includes('audio-ssl.itunes.apple.com') ||
+    url.includes('mzstatic.com')
+  );
 }
 
 /**
@@ -467,7 +482,7 @@ export async function resolveMasterStream(track: Track): Promise<string> {
   }
 
   // 5. Final fallback to direct URL if available
-  if (track.streamUrl && track.streamUrl.startsWith('http')) {
+  if (track.streamUrl && track.streamUrl.startsWith('http') && !isPreviewUrl(track.streamUrl)) {
     return track.streamUrl;
   }
 

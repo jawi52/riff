@@ -14,6 +14,7 @@ import {
   getSearchSuggestions, 
   splitHighlight 
 } from '../../lib/searchSuggestions';
+import { recordSearchInteraction } from '../../lib/affinityEngine';
 import { 
   Search, 
   X, 
@@ -37,6 +38,10 @@ interface SearchExplorerProps {
 }
 
 type SearchTab = 'all' | 'songs' | 'artists' | 'albums';
+
+// Client-side query cache to protect the user's $17/mo backend credits
+const queryCache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
 export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) => {
   const [query, setQuery] = useState('');
@@ -101,6 +106,21 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
       return;
     }
 
+    // 1. Single character protection: show instant local suggestions only, do not burn backend credits
+    if (clean.length < 2) {
+      setIsSearching(false);
+      return;
+    }
+
+    // 2. Check in-memory query cache (0ms instant response, 0 backend API calls)
+    const cacheKey = clean.toLowerCase();
+    const cached = queryCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+      setResults(cached.data);
+      setIsSearching(false);
+      return;
+    }
+
     // Cancel any previous in-flight search request immediately
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -117,6 +137,8 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
       // Stale query protection: if user typed something new, discard this response!
       if (seq !== querySeqRef.current) return;
 
+      // Save in LRU memory cache
+      queryCache.set(cacheKey, { data, timestamp: Date.now() });
       setResults(data);
     } catch (err: any) {
       if (err?.name === 'AbortError') return;
@@ -154,6 +176,7 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
   const handleSelectSuggestion = (suggestedTerm: string) => {
     setQuery(suggestedTerm);
     setShowSuggestionsDropdown(false);
+    recordSearchInteraction(suggestedTerm);
     performSearch(suggestedTerm);
   };
 

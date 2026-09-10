@@ -6,6 +6,7 @@ import { db } from '../lib/db';
 import { getSmartAutoplayTracks, recordTrackInteraction, GLOBAL_CATALOG } from '../lib/algorithm';
 import { resolveMasterStream, resolveDirectCdnStream, fetchSyncedLyrics } from '../lib/masterAudioEngine';
 import { RIFF_ENGINE_URL } from '../lib/engineUrl';
+import { recordPlayInteraction, recordCompletionInteraction, recordSkipInteraction } from '../lib/affinityEngine';
 
 interface PlayerState {
   currentTrack: Track | null;
@@ -162,21 +163,22 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     try {
       let streamUrl = '';
 
-      // If local blob key exists, stream from IndexedDB / OPFS
-      if (track.sourceType === 'local' && track.localBlobKey) {
-        const localTrack = await db.tracks.get(track.id);
-        if (localTrack?.audioBlob) {
-          streamUrl = URL.createObjectURL(localTrack.audioBlob);
-        }
+      // 1. If audio blob exists in IndexedDB (offline cached track), stream instantly from memory!
+      const cachedTrack = await db.tracks.get(track.id);
+      if (cachedTrack?.audioBlob) {
+        streamUrl = URL.createObjectURL(cachedTrack.audioBlob);
       }
 
-      // Resolve Master Stream (instant direct CDN playback)
+      // 2. Resolve Master Stream (instant direct CDN playback)
       if (!streamUrl) {
         streamUrl = await resolveMasterStream(track);
       }
 
       if (!streamUrl) {
         set({ playbackState: 'error' });
+        setTimeout(() => {
+          if (get().playbackState === 'error') get().nextTrack();
+        }, 1500);
         return;
       }
 
@@ -228,7 +230,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       }
       set({ playbackState: 'playing' });
 
-      // Log listening history
+      // Record affinity telemetry & listening history
+      recordPlayInteraction(track);
       await db.history.add({
         trackId: track.id,
         title: track.title,
@@ -241,6 +244,12 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     } catch (err) {
       console.error('Audio playback error:', err);
       set({ playbackState: 'error' });
+      // Graceful auto-skip on failure so music keeps playing
+      setTimeout(() => {
+        if (get().playbackState === 'error') {
+          get().nextTrack();
+        }
+      }, 1500);
     }
   },
 
@@ -274,6 +283,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
     if (currentTime < 15 && currentTrack) {
       recordTrackInteraction(currentTrack, 'skip');
+      recordSkipInteraction(currentTrack);
     }
 
     let nextIndex = queueIndex + 1;
@@ -499,6 +509,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       const { repeatMode, currentTrack, sleepTimerMode } = get();
       if (currentTrack) {
         recordTrackInteraction(currentTrack, 'complete');
+        recordCompletionInteraction(currentTrack);
       }
 
       // Check if End-of-Track Sleep Timer is active
@@ -528,8 +539,14 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       audioEngine.setMediaPlaybackState('paused');
     };
     audio.onerror = () => {
+      console.warn('HTML5 Audio error encountered, auto-advancing to next track...');
       set({ playbackState: 'error' });
       audioEngine.setMediaPlaybackState('none');
+      setTimeout(() => {
+        if (get().playbackState === 'error') {
+          get().nextTrack();
+        }
+      }, 1500);
     };
   }
 }));

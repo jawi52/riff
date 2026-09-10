@@ -1,7 +1,15 @@
 import { create } from 'zustand';
 import { Track, Playlist } from '../types';
 import { db, DBTrack, DBPlaylist } from '../lib/db';
-import { RIFF_ENGINE_URL } from '../lib/engineUrl';
+import { resolveMasterStream } from '../lib/masterAudioEngine';
+import { recordLikeInteraction } from '../lib/affinityEngine';
+
+export interface DownloadProgress {
+  playlistId: string | null;
+  total: number;
+  completed: number;
+  isDownloading: boolean;
+}
 
 interface LibraryState {
   likedTracks: Track[];
@@ -9,6 +17,7 @@ interface LibraryState {
   offlineTracks: Track[];
   playlists: Playlist[];
   isLoading: boolean;
+  downloadProgress: DownloadProgress;
 
   // Actions
   loadLibrary: () => Promise<void>;
@@ -20,6 +29,10 @@ interface LibraryState {
   removeTrackFromPlaylist: (playlistId: string, trackId: string) => Promise<void>;
   deletePlaylist: (playlistId: string) => Promise<void>;
   cacheTrackForOffline: (track: Track) => Promise<boolean>;
+  downloadPlaylist: (playlistId: string, tracks: Track[]) => Promise<void>;
+  removePlaylistDownload: (playlistId: string, tracks: Track[]) => Promise<void>;
+  deleteOfflineTrack: (trackId: string) => Promise<void>;
+  isPlaylistDownloaded: (playlistId: string, tracks: Track[]) => boolean;
 }
 
 export const useLibraryStore = create<LibraryState>((set, get) => ({
@@ -28,6 +41,12 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   offlineTracks: [],
   playlists: [],
   isLoading: true,
+  downloadProgress: {
+    playlistId: null,
+    total: 0,
+    completed: 0,
+    isDownloading: false,
+  },
 
   loadLibrary: async () => {
     try {
@@ -36,7 +55,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
 
       const liked = allDbTracks.filter((t) => t.isLiked);
       const local = allDbTracks.filter((t) => t.sourceType === 'local');
-      const offline = allDbTracks.filter((t) => t.isOfflineCached);
+      const offline = allDbTracks.filter((t) => t.isOfflineCached && t.audioBlob);
 
       const mappedPlaylists: Playlist[] = allDbPlaylists.map((p) => {
         const playlistTracks = allDbTracks.filter((t) => p.trackIds?.includes(t.id));
@@ -81,6 +100,9 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
         });
       }
 
+      // Record affinity telemetry
+      recordLikeInteraction(track, updatedLikeStatus);
+
       await get().loadLibrary();
       return updatedLikeStatus;
     } catch (err) {
@@ -93,7 +115,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     try {
       const existing = await db.tracks.get(track.id);
       if (existing) {
-        return false; // Skip duplicate
+        return false;
       }
 
       await db.tracks.add(track);
@@ -110,15 +132,17 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     await get().loadLibrary();
   },
 
-  createPlaylist: async (title, description) => {
+  createPlaylist: async (title, description = '') => {
+    const newId = `pl_${Date.now()}`;
     const newPlaylist: DBPlaylist = {
-      id: 'pl_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6),
+      id: newId,
       title,
-      description: description || '',
-      coverUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&q=80',
+      description,
       creator: 'You',
-      trackCount: 0,
+      coverUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&auto=format&fit=crop&q=80',
       trackIds: [],
+      trackCount: 0,
+      tracks: [],
       updatedAt: Date.now()
     };
 
@@ -128,39 +152,44 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   },
 
   addTrackToPlaylist: async (playlistId, track) => {
-    const playlist = await db.playlists.get(playlistId);
-    if (!playlist) return false;
+    try {
+      const playlist = await db.playlists.get(playlistId);
+      if (!playlist) return false;
 
-    // Strict Deduplication Check: Prevent duplicate song in playlist
-    if (playlist.trackIds.includes(track.id)) {
+      // Ensure track exists in db.tracks
+      const existingTrack = await db.tracks.get(track.id);
+      if (!existingTrack) {
+        await db.tracks.add({ ...track, addedAt: Date.now() });
+      }
+
+      const currentTrackIds = playlist.trackIds || [];
+      if (currentTrackIds.includes(track.id)) {
+        return false; // Already in playlist
+      }
+
+      const updatedIds = [...currentTrackIds, track.id];
+      await db.playlists.update(playlistId, {
+        trackIds: updatedIds,
+        trackCount: updatedIds.length,
+        updatedAt: Date.now()
+      });
+
+      await get().loadLibrary();
+      return true;
+    } catch (err) {
+      console.error('Failed to add track to playlist:', err);
       return false;
     }
-
-    // Ensure track exists in database
-    const existing = await db.tracks.get(track.id);
-    if (!existing) {
-      await db.tracks.add({ ...track, addedAt: Date.now() });
-    }
-
-    const updatedTrackIds = [...playlist.trackIds, track.id];
-    await db.playlists.update(playlistId, {
-      trackIds: updatedTrackIds,
-      trackCount: updatedTrackIds.length,
-      updatedAt: Date.now()
-    });
-
-    await get().loadLibrary();
-    return true;
   },
 
   removeTrackFromPlaylist: async (playlistId, trackId) => {
     const playlist = await db.playlists.get(playlistId);
     if (!playlist) return;
 
-    const updated = playlist.trackIds.filter((id) => id !== trackId);
+    const updatedIds = (playlist.trackIds || []).filter((id) => id !== trackId);
     await db.playlists.update(playlistId, {
-      trackIds: updated,
-      trackCount: updated.length,
+      trackIds: updatedIds,
+      trackCount: updatedIds.length,
       updatedAt: Date.now()
     });
 
@@ -174,7 +203,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
 
   cacheTrackForOffline: async (track) => {
     try {
-      // If already has audio blob, mark as offline
+      // 1. If already has audio blob, mark as offline
       const existing = await db.tracks.get(track.id);
       if (existing?.audioBlob) {
         await db.tracks.update(track.id, { isOfflineCached: true });
@@ -182,23 +211,17 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
         return true;
       }
 
-      // Fetch stream chunks and convert to blob
+      // 2. Resolve Master Stream
       let streamUrl = track.streamUrl;
-      if (!streamUrl) {
-        const res = await fetch(`${RIFF_ENGINE_URL}/api/v1/stream/resolve`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ trackId: track.id, title: track.title, artist: track.artist, qualityTier: 'standard' })
-        });
-        if (res.ok) {
-          const data = await res.json();
-          streamUrl = data.streamUrl;
-        }
+      if (!streamUrl || streamUrl.includes('undefined')) {
+        streamUrl = await resolveMasterStream(track);
       }
 
       if (!streamUrl) return false;
 
+      // 3. Fetch binary audio stream and store in IndexedDB
       const audioRes = await fetch(streamUrl);
+      if (!audioRes.ok) return false;
       const audioBlob = await audioRes.blob();
 
       if (existing) {
@@ -213,5 +236,99 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       console.error('Failed to cache track for offline:', err);
       return false;
     }
+  },
+
+  downloadPlaylist: async (playlistId, tracks) => {
+    if (!tracks || tracks.length === 0) return;
+
+    set({
+      downloadProgress: {
+        playlistId,
+        total: tracks.length,
+        completed: 0,
+        isDownloading: true,
+      }
+    });
+
+    let completed = 0;
+
+    for (const track of tracks) {
+      try {
+        const existing = await db.tracks.get(track.id);
+        if (existing?.audioBlob) {
+          completed++;
+          set((s) => ({
+            downloadProgress: { ...s.downloadProgress, completed }
+          }));
+          continue;
+        }
+
+        let streamUrl = track.streamUrl;
+        if (!streamUrl || streamUrl.includes('undefined')) {
+          streamUrl = await resolveMasterStream(track);
+        }
+
+        if (streamUrl) {
+          const audioRes = await fetch(streamUrl);
+          if (audioRes.ok) {
+            const audioBlob = await audioRes.blob();
+            if (existing) {
+              await db.tracks.update(track.id, { audioBlob, isOfflineCached: true });
+            } else {
+              await db.tracks.add({ ...track, audioBlob, isOfflineCached: true, addedAt: Date.now() });
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to download track in playlist:', track.title, e);
+      } finally {
+        completed++;
+        set((s) => ({
+          downloadProgress: { ...s.downloadProgress, completed }
+        }));
+      }
+    }
+
+    await get().loadLibrary();
+    set({
+      downloadProgress: {
+        playlistId: null,
+        total: 0,
+        completed: 0,
+        isDownloading: false,
+      }
+    });
+  },
+
+  removePlaylistDownload: async (_playlistId, tracks) => {
+    try {
+      for (const track of tracks) {
+        const existing = await db.tracks.get(track.id);
+        if (existing?.audioBlob) {
+          await db.tracks.update(track.id, { audioBlob: undefined, isOfflineCached: false });
+        }
+      }
+      await get().loadLibrary();
+    } catch (err) {
+      console.error('Error removing playlist download:', err);
+    }
+  },
+
+  deleteOfflineTrack: async (trackId) => {
+    try {
+      const existing = await db.tracks.get(trackId);
+      if (existing) {
+        await db.tracks.update(trackId, { audioBlob: undefined, isOfflineCached: false });
+        await get().loadLibrary();
+      }
+    } catch (err) {
+      console.error('Error deleting offline track:', err);
+    }
+  },
+
+  isPlaylistDownloaded: (_playlistId, tracks) => {
+    if (!tracks || tracks.length === 0) return false;
+    const offlineSet = new Set(get().offlineTracks.map((t) => t.id));
+    return tracks.every((t) => offlineSet.has(t.id));
   }
 }));
