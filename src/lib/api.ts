@@ -1,5 +1,5 @@
-import { Track, AudioSourceType } from '../types';
-import { RIFF_ENGINE_URL } from './engineUrl';
+import { Track } from '../types';
+import { searchSaavnSongs } from './saavnClient';
 
 export interface ApiArtist {
   id: string;
@@ -49,111 +49,81 @@ export interface SearchResponse {
   total: number;
 }
 
-/**
- * Maps raw API track data from Riff-Engine into Riff's domain Track model
- */
-export function mapApiTrackToTrack(t: any): Track {
-  const artistName = typeof t.artist === 'string' 
-    ? t.artist 
-    : (t.artist?.name || 'Unknown Artist');
-
-  const albumTitle = typeof t.album === 'string'
-    ? t.album
-    : (t.album?.title || '');
-
-  const cover = t.album?.coverBig || 
-    t.album?.coverMedium || 
-    t.album?.cover || 
-    t.coverUrl || 
-    t.cover ||
-    'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&q=80';
-
-  return {
-    id: String(t.id),
-    title: t.title || 'Untitled Track',
-    artist: artistName,
-    album: albumTitle,
-    duration: typeof t.duration === 'number' ? t.duration : 210,
-    coverUrl: cover,
-    sourceType: 'riff-engine' as AudioSourceType,
-    streamUrl: t.streamUrl || `${RIFF_ENGINE_URL}/api/v1/stream/${t.id}`,
-    bitrateKbps: 320,
-    genre: 'Global',
-    hasSyncedLyrics: Boolean(t.lyricsEndpoint),
-    credits: {
-      performers: [artistName],
-      label: albumTitle || 'Studio Master',
-    },
-  };
-}
-
-/**
- * Fetches global charts from live Azure backend API
- */
-export async function fetchCharts(): Promise<ChartsResponse> {
-  const res = await fetch(`${RIFF_ENGINE_URL}/api/v1/charts`, {
-    headers: { Accept: 'application/json' },
-  });
-
-  if (!res.ok) {
-    throw new Error(`Charts API returned status ${res.status}`);
-  }
-
-  const data = await res.json();
-
-  const topTracks: Track[] = (data.topTracks || []).map(mapApiTrackToTrack);
-  const topArtists: ApiArtist[] = data.topArtists || [];
-  const topAlbums: ApiAlbum[] = data.topAlbums || [];
-
-  return {
-    topTracks,
-    topArtists,
-    topAlbums,
-  };
-}
-
-/**
- * Live search across universal federated catalog
- */
-export async function searchCatalog(query: string, limit = 20, signal?: AbortSignal): Promise<SearchResponse> {
-  const clean = query.trim();
-  if (!clean) {
-    return { tracks: [], artists: [], albums: [], total: 0 };
-  }
-
-  const res = await fetch(`${RIFF_ENGINE_URL}/api/v1/search?q=${encodeURIComponent(clean)}&limit=${limit}`, {
-    signal,
-    headers: { Accept: 'application/json' },
-  });
-
-  if (!res.ok) {
-    throw new Error(`Search API returned status ${res.status}`);
-  }
-
-  const data = await res.json();
-
-  const tracks: Track[] = (data.tracks || []).map(mapApiTrackToTrack);
-  const artists: ApiArtist[] = data.artists || [];
-  const albums: ApiAlbum[] = data.albums || [];
-
-  return {
-    tracks,
-    artists,
-    albums,
-    total: data.total || tracks.length,
-  };
-}
-
 let cachedMultiFeed: MultiRegionalFeed | null = null;
 let lastMultiFeedFetch = 0;
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes cache
+
+// Curated top regional artists with verified high-res imagery
+const ICONIC_REGIONAL_ARTISTS: ApiArtist[] = [
+  {
+    id: 'artist_atif',
+    name: 'Atif Aslam',
+    picture: 'https://c.saavncdn.com/artists/Atif_Aslam_500x500.jpg',
+  },
+  {
+    id: 'artist_talha',
+    name: 'Talha Anjum',
+    picture: 'https://c.saavncdn.com/artists/Talha_Anjum_002_20230221081515_500x500.jpg',
+  },
+  {
+    id: 'artist_arijit',
+    name: 'Arijit Singh',
+    picture: 'https://c.saavncdn.com/artists/Arijit_Singh_002_20230323062147_500x500.jpg',
+  },
+  {
+    id: 'artist_diljit',
+    name: 'Diljit Dosanjh',
+    picture: 'https://c.saavncdn.com/artists/Diljit_Dosanjh_004_20221006184545_500x500.jpg',
+  },
+  {
+    id: 'artist_guru',
+    name: 'Guru Randhawa',
+    picture: 'https://c.saavncdn.com/artists/Guru_Randhawa_004_20250701125845_500x500.jpg',
+  },
+  {
+    id: 'artist_karan',
+    name: 'Karan Aujla',
+    picture: 'https://c.saavncdn.com/artists/Karan_Aujla_005_20230818074415_500x500.jpg',
+  },
+  {
+    id: 'artist_youngstunners',
+    name: 'Young Stunners',
+    picture: 'https://c.saavncdn.com/artists/Young_Stunners_500x500.jpg',
+  },
+  {
+    id: 'artist_shubh',
+    name: 'Shubh',
+    picture: 'https://c.saavncdn.com/artists/Shubh_000_20221107122131_500x500.jpg',
+  },
+  {
+    id: 'artist_ap',
+    name: 'AP Dhillon',
+    picture: 'https://c.saavncdn.com/artists/AP_Dhillon_003_20230811053434_500x500.jpg',
+  },
+  {
+    id: 'artist_kaifi',
+    name: 'Kaifi Khalil',
+    picture: 'https://c.saavncdn.com/artists/Kaifi_Khalil_001_20221019082333_500x500.jpg',
+  },
+  {
+    id: 'artist_abdul',
+    name: 'Abdul Hannan',
+    picture: 'https://c.saavncdn.com/artists/Abdul_Hannan_001_20230621063630_500x500.jpg',
+  },
+  {
+    id: 'artist_theweeknd',
+    name: 'The Weeknd',
+    picture: 'https://c.saavncdn.com/artists/The_Weeknd_500x500.jpg',
+  }
+];
 
 /**
- * Fetches multi-regional feeds from live Azure backend:
- * - Global Charts
- * - Trending Pakistan (Coke Studio, Pop, Rap)
- * - Bollywood Top Hits (Hindi, Romance, Filmi)
- * - Punjabi Top Hits (AP Dhillon, Shubh, Diljit)
+ * Fetches multi-regional live feeds:
+ * - Real Pakistan Trending (Coke Studio, Pop, Urdu Rap)
+ * - Real Bollywood Top Romance & Pop
+ * - Real Punjabi Wave Hits
+ * - Real New Releases
+ * - Real Global Top 50
  */
 export async function fetchMultiRegionalFeeds(): Promise<MultiRegionalFeed> {
   const now = Date.now();
@@ -161,61 +131,142 @@ export async function fetchMultiRegionalFeeds(): Promise<MultiRegionalFeed> {
     return cachedMultiFeed;
   }
 
-  const [globalCharts, pkRes, bollyRes, punjabiRes, latestRes] = await Promise.allSettled([
-    fetchCharts(),
-    searchCatalog('Trending Pakistan', 10),
-    searchCatalog('Bollywood Top Hits', 10),
-    searchCatalog('Punjabi Hits', 10),
-    searchCatalog('Latest Releases', 10),
+  // Check local cache for 0ms instant startup
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem('riff_multi_feed_cache');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.data && now - parsed.timestamp < CACHE_TTL_MS) {
+          cachedMultiFeed = parsed.data;
+          // Background revalidate
+          revalidateFeedsInBackground();
+          return cachedMultiFeed!;
+        }
+      }
+    } catch {}
+  }
+
+  return await executeFeedFetch();
+}
+
+async function executeFeedFetch(): Promise<MultiRegionalFeed> {
+  const [pkRes, bollyRes, punjabiRes, latestRes, globalRes] = await Promise.allSettled([
+    searchSaavnSongs('Coke Studio Pakistan Atif Aslam Talha Anjum', 14),
+    searchSaavnSongs('Bollywood Top Romance Hits Arijit Singh', 14),
+    searchSaavnSongs('Punjabi Wave Karan Aujla Diljit Dosanjh', 14),
+    searchSaavnSongs('Latest Releases 2026', 14),
+    searchSaavnSongs('Global Top 50 Billboard', 14),
   ]);
 
-  const global = globalCharts.status === 'fulfilled' ? globalCharts.value : { topTracks: [], topArtists: [], topAlbums: [] };
-  const pkTracks = pkRes.status === 'fulfilled' ? pkRes.value.tracks : [];
-  const bollyTracks = bollyRes.status === 'fulfilled' ? bollyRes.value.tracks : [];
-  const punjabiTracks = punjabiRes.status === 'fulfilled' ? punjabiRes.value.tracks : [];
-  const newSongs = latestRes.status === 'fulfilled' ? latestRes.value.tracks : [];
+  const pkTracks = pkRes.status === 'fulfilled' ? pkRes.value : [];
+  const bollyTracks = bollyRes.status === 'fulfilled' ? bollyRes.value : [];
+  const punjabiTracks = punjabiRes.status === 'fulfilled' ? punjabiRes.value : [];
+  const newSongs = latestRes.status === 'fulfilled' ? latestRes.value : [];
+  const global = globalRes.status === 'fulfilled' ? globalRes.value : [];
 
-  // Merge artists across all regions
-  const extraArtists: ApiArtist[] = [
-    ...(pkRes.status === 'fulfilled' ? pkRes.value.artists : []),
-    ...(bollyRes.status === 'fulfilled' ? bollyRes.value.artists : []),
-    ...(punjabiRes.status === 'fulfilled' ? punjabiRes.value.artists : []),
-    ...(latestRes.status === 'fulfilled' ? latestRes.value.artists : []),
-  ];
-
-  const seenArtistNames = new Set<string>();
-  const mergedArtists: ApiArtist[] = [];
-  for (const a of [...extraArtists, ...global.topArtists]) {
-    const key = a.name.toLowerCase().trim();
-    const pic = a.pictureBig || a.pictureMedium || a.picture;
-    if (!seenArtistNames.has(key) && pic) {
-      seenArtistNames.add(key);
-      mergedArtists.push(a);
+  // Extract unique albums
+  const allTracks = [...pkTracks, ...bollyTracks, ...punjabiTracks, ...global];
+  const albumMap = new Map<string, ApiAlbum>();
+  for (const t of allTracks) {
+    if (t.album && !albumMap.has(t.album)) {
+      albumMap.set(t.album, {
+        id: `alb_${t.id}`,
+        title: t.album,
+        cover: t.coverUrl,
+        artist: { id: `art_${t.id}`, name: t.artist },
+      });
     }
   }
 
-  // Build a vibrant 6-tile quick access mix:
-  // [Pakistan #1, Bollywood #1, Punjabi #1, Global #1, Pakistan #2, Bollywood #2]
+  // 6-Tile quick access mix (Spotify style)
   const quickAccess: Track[] = [];
   if (pkTracks[0]) quickAccess.push(pkTracks[0]);
   if (bollyTracks[0]) quickAccess.push(bollyTracks[0]);
   if (punjabiTracks[0]) quickAccess.push(punjabiTracks[0]);
-  if (global.topTracks[0]) quickAccess.push(global.topTracks[0]);
+  if (global[0]) quickAccess.push(global[0]);
   if (pkTracks[1]) quickAccess.push(pkTracks[1]);
   if (bollyTracks[1]) quickAccess.push(bollyTracks[1]);
 
   const result: MultiRegionalFeed = {
-    globalTracks: global.topTracks,
+    globalTracks: global,
     pakistanTracks: pkTracks,
     bollywoodTracks: bollyTracks,
     punjabiTracks: punjabiTracks,
     newSongsTracks: newSongs,
-    quickAccessTracks: quickAccess.length >= 4 ? quickAccess : global.topTracks.slice(0, 6),
-    topArtists: mergedArtists.slice(0, 15),
-    topAlbums: global.topAlbums,
+    quickAccessTracks: quickAccess.length >= 4 ? quickAccess : allTracks.slice(0, 6),
+    topArtists: ICONIC_REGIONAL_ARTISTS,
+    topAlbums: Array.from(albumMap.values()).slice(0, 15),
   };
 
   cachedMultiFeed = result;
-  lastMultiFeedFetch = now;
+  lastMultiFeedFetch = Date.now();
+
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem('riff_multi_feed_cache', JSON.stringify({ data: result, timestamp: Date.now() }));
+    } catch {}
+  }
+
   return result;
+}
+
+function revalidateFeedsInBackground() {
+  setTimeout(async () => {
+    try {
+      await executeFeedFetch();
+    } catch {}
+  }, 100);
+}
+
+/**
+ * Live search across the entire music catalog
+ */
+export async function searchCatalog(query: string, limit = 20, _signal?: AbortSignal): Promise<SearchResponse> {
+  const clean = query.trim();
+  if (!clean) {
+    return { tracks: [], artists: [], albums: [], total: 0 };
+  }
+
+  const tracks = await searchSaavnSongs(clean, limit);
+
+  // Derive artists and albums from search results
+  const artistMap = new Map<string, ApiArtist>();
+  const albumMap = new Map<string, ApiAlbum>();
+
+  for (const t of tracks) {
+    const primaryArtist = t.artist.split(',')[0]?.trim() || t.artist;
+    if (primaryArtist && !artistMap.has(primaryArtist)) {
+      artistMap.set(primaryArtist, {
+        id: `artist_${encodeURIComponent(primaryArtist)}`,
+        name: primaryArtist,
+        picture: t.coverUrl,
+      });
+    }
+
+    if (t.album && !albumMap.has(t.album)) {
+      albumMap.set(t.album, {
+        id: `album_${encodeURIComponent(t.album)}`,
+        title: t.album,
+        cover: t.coverUrl,
+        artist: { id: `art_${t.id}`, name: t.artist },
+      });
+    }
+  }
+
+  return {
+    tracks,
+    artists: Array.from(artistMap.values()).slice(0, 8),
+    albums: Array.from(albumMap.values()).slice(0, 8),
+    total: tracks.length,
+  };
+}
+
+export async function fetchCharts(): Promise<ChartsResponse> {
+  const feed = await fetchMultiRegionalFeeds();
+  return {
+    topTracks: feed.globalTracks,
+    topArtists: feed.topArtists,
+    topAlbums: feed.topAlbums,
+  };
 }

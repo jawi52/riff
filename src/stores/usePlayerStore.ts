@@ -4,7 +4,8 @@ import { audioEngine } from '../lib/audioEngine';
 import { getActiveLyricIndex } from '../lib/lyrics';
 import { db } from '../lib/db';
 import { getSmartAutoplayTracks, recordTrackInteraction, GLOBAL_CATALOG } from '../lib/algorithm';
-import { resolveMasterStream, resolveDirectCdnStream, fetchSyncedLyrics } from '../lib/masterAudioEngine';
+import { resolveMasterStream, fetchSyncedLyrics, isPreviewUrl } from '../lib/masterAudioEngine';
+import { getSaavnRecommendations } from '../lib/saavnClient';
 import { RIFF_ENGINE_URL } from '../lib/engineUrl';
 import { recordPlayInteraction, recordCompletionInteraction, recordSkipInteraction } from '../lib/affinityEngine';
 
@@ -170,7 +171,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       }
 
       // 2. Resolve Master Stream (instant direct CDN playback)
-      if (!streamUrl) {
+      if (!streamUrl || isPreviewUrl(streamUrl) || streamUrl.includes('azurewebsites.net')) {
         streamUrl = await resolveMasterStream(track);
       }
 
@@ -221,7 +222,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         await audioEngine.playTrack(streamUrl);
       } catch (err) {
         console.warn('Primary audio stream failed, retrying direct fallback...', err);
-        const fallbackUrl = await resolveDirectCdnStream(track);
+        const fallbackUrl = await resolveMasterStream(track);
         if (fallbackUrl && fallbackUrl !== streamUrl) {
           await audioEngine.playTrack(fallbackUrl);
         } else {
@@ -297,14 +298,29 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       } else if (currentTrack) {
         // Smart Infinite Autoplay Algorithm: Auto-generate matching tracks!
         const existingIds = new Set(queue.map((t) => t.id));
-        const autoTracks = getSmartAutoplayTracks(currentTrack, existingIds, 4);
-        if (autoTracks.length > 0) {
-          const updatedQueue = [...queue, ...autoTracks];
-          set({ queue: updatedQueue, queueIndex: queue.length });
-          get().playTrack(autoTracks[0], updatedQueue);
-          return;
-        }
-        return; // End of queue fallback
+        getSaavnRecommendations(currentTrack.id).then((recs) => {
+          const fresh = recs.filter((r) => !existingIds.has(r.id));
+          if (fresh.length > 0) {
+            const updated = [...get().queue, ...fresh];
+            set({ queue: updated, queueIndex: get().queue.length });
+            get().playTrack(fresh[0], updated);
+          } else {
+            const autoTracks = getSmartAutoplayTracks(currentTrack, existingIds, 4);
+            if (autoTracks.length > 0) {
+              const updatedQueue = [...get().queue, ...autoTracks];
+              set({ queue: updatedQueue, queueIndex: get().queue.length });
+              get().playTrack(autoTracks[0], updatedQueue);
+            }
+          }
+        }).catch(() => {
+          const autoTracks = getSmartAutoplayTracks(currentTrack, existingIds, 4);
+          if (autoTracks.length > 0) {
+            const updatedQueue = [...get().queue, ...autoTracks];
+            set({ queue: updatedQueue, queueIndex: get().queue.length });
+            get().playTrack(autoTracks[0], updatedQueue);
+          }
+        });
+        return;
       } else {
         return;
       }
@@ -404,6 +420,14 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   generateSongRadio: async (seedTrack: Track) => {
+    try {
+      const recs = await getSaavnRecommendations(seedTrack.id);
+      if (recs.length > 0) {
+        const radioQueue = [seedTrack, ...recs.filter((t) => t.id !== seedTrack.id)];
+        await get().playTrack(seedTrack, radioQueue);
+        return;
+      }
+    } catch {}
     const similarTracks = getSmartAutoplayTracks(seedTrack, 25);
     const radioQueue = [seedTrack, ...similarTracks.filter((t) => t.id !== seedTrack.id)];
     await get().playTrack(seedTrack, radioQueue);

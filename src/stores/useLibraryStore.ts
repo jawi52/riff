@@ -3,6 +3,7 @@ import { Track, Playlist } from '../types';
 import { db, DBTrack, DBPlaylist } from '../lib/db';
 import { resolveMasterStream } from '../lib/masterAudioEngine';
 import { recordLikeInteraction } from '../lib/affinityEngine';
+import { toast } from 'sonner';
 
 export interface DownloadProgress {
   playlistId: string | null;
@@ -148,6 +149,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
 
     await db.playlists.add(newPlaylist);
     await get().loadLibrary();
+    toast.success(`Created playlist "${title}"`);
     return newPlaylist;
   },
 
@@ -164,6 +166,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
 
       const currentTrackIds = playlist.trackIds || [];
       if (currentTrackIds.includes(track.id)) {
+        toast.info(`"${track.title}" is already in ${playlist.title}`);
         return false; // Already in playlist
       }
 
@@ -175,9 +178,11 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       });
 
       await get().loadLibrary();
+      toast.success(`Added "${track.title}" to ${playlist.title}`);
       return true;
     } catch (err) {
       console.error('Failed to add track to playlist:', err);
+      toast.error('Failed to add to playlist');
       return false;
     }
   },
@@ -194,46 +199,58 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     });
 
     await get().loadLibrary();
+    toast.info(`Removed from ${playlist.title}`);
   },
 
   deletePlaylist: async (playlistId) => {
     await db.playlists.delete(playlistId);
     await get().loadLibrary();
+    toast.info('Playlist deleted');
   },
 
   cacheTrackForOffline: async (track) => {
+    const toastId = toast.loading(`Downloading "${track.title}"...`);
     try {
       // 1. If already has audio blob, mark as offline
       const existing = await db.tracks.get(track.id);
       if (existing?.audioBlob) {
         await db.tracks.update(track.id, { isOfflineCached: true });
         await get().loadLibrary();
+        toast.success(`"${track.title}" is ready for offline play`, { id: toastId });
         return true;
       }
 
-      // 2. Resolve Master Stream
+      // 2. Resolve Master Stream (ensure never an azure 30s preview)
       let streamUrl = track.streamUrl;
-      if (!streamUrl || streamUrl.includes('undefined')) {
+      if (!streamUrl || streamUrl.includes('undefined') || streamUrl.includes('azurewebsites.net')) {
         streamUrl = await resolveMasterStream(track);
       }
 
-      if (!streamUrl) return false;
+      if (!streamUrl) {
+        toast.error(`Could not download "${track.title}" - audio stream unavailable`, { id: toastId });
+        return false;
+      }
 
       // 3. Fetch binary audio stream and store in IndexedDB
       const audioRes = await fetch(streamUrl);
-      if (!audioRes.ok) return false;
+      if (!audioRes.ok) {
+        toast.error(`Download failed: Network error (${audioRes.status})`, { id: toastId });
+        return false;
+      }
       const audioBlob = await audioRes.blob();
 
       if (existing) {
-        await db.tracks.update(track.id, { audioBlob, isOfflineCached: true });
+        await db.tracks.update(track.id, { audioBlob, isOfflineCached: true, streamUrl });
       } else {
-        await db.tracks.add({ ...track, audioBlob, isOfflineCached: true, addedAt: Date.now() });
+        await db.tracks.add({ ...track, streamUrl, audioBlob, isOfflineCached: true, addedAt: Date.now() });
       }
 
       await get().loadLibrary();
+      toast.success(`Downloaded "${track.title}" for offline play!`, { id: toastId });
       return true;
     } catch (err) {
       console.error('Failed to cache track for offline:', err);
+      toast.error(`Failed to download "${track.title}"`, { id: toastId });
       return false;
     }
   },
@@ -241,6 +258,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   downloadPlaylist: async (playlistId, tracks) => {
     if (!tracks || tracks.length === 0) return;
 
+    toast.info(`Starting download of ${tracks.length} songs...`);
     set({
       downloadProgress: {
         playlistId,
@@ -264,7 +282,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
         }
 
         let streamUrl = track.streamUrl;
-        if (!streamUrl || streamUrl.includes('undefined')) {
+        if (!streamUrl || streamUrl.includes('undefined') || streamUrl.includes('azurewebsites.net')) {
           streamUrl = await resolveMasterStream(track);
         }
 
@@ -273,9 +291,9 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
           if (audioRes.ok) {
             const audioBlob = await audioRes.blob();
             if (existing) {
-              await db.tracks.update(track.id, { audioBlob, isOfflineCached: true });
+              await db.tracks.update(track.id, { audioBlob, isOfflineCached: true, streamUrl });
             } else {
-              await db.tracks.add({ ...track, audioBlob, isOfflineCached: true, addedAt: Date.now() });
+              await db.tracks.add({ ...track, streamUrl, audioBlob, isOfflineCached: true, addedAt: Date.now() });
             }
           }
         }
@@ -298,6 +316,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
         isDownloading: false,
       }
     });
+    toast.success(`Downloaded all ${tracks.length} songs for offline listening!`);
   },
 
   removePlaylistDownload: async (_playlistId, tracks) => {
@@ -309,6 +328,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
         }
       }
       await get().loadLibrary();
+      toast.info('Removed playlist download');
     } catch (err) {
       console.error('Error removing playlist download:', err);
     }
@@ -320,6 +340,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       if (existing) {
         await db.tracks.update(trackId, { audioBlob: undefined, isOfflineCached: false });
         await get().loadLibrary();
+        toast.info('Removed from offline downloads');
       }
     } catch (err) {
       console.error('Error deleting offline track:', err);

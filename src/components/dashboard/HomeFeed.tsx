@@ -9,6 +9,7 @@ import {
   getDailyMixes 
 } from '../../lib/recommendationEngine';
 import { getTopAffinityArtist } from '../../lib/affinityEngine';
+import { TrackContextMenuModal } from '../common/TrackContextMenuModal';
 import { 
   Play, 
   Pause, 
@@ -23,7 +24,8 @@ import {
   Compass,
   Music,
   Globe2,
-  Zap
+  Zap,
+  MoreVertical
 } from 'lucide-react';
 
 interface HomeFeedProps {
@@ -37,6 +39,7 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ userName, onSelectQuery }) =
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeRegion, setActiveRegion] = useState<'all' | 'pk' | 'in' | 'global'>('all');
+  const [contextMenuTrack, setContextMenuTrack] = useState<Track | null>(null);
 
   const { currentTrack, playbackState, playTrack, togglePlayPause } = usePlayerStore();
 
@@ -288,7 +291,17 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ userName, onSelectQuery }) =
                     </p>
                   </div>
 
-                  <div className="pr-2 sm:pr-3 shrink-0">
+                  <div className="pr-2 sm:pr-3 shrink-0 flex items-center gap-1">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setContextMenuTrack(track);
+                      }}
+                      className="w-7 h-7 rounded-full text-white/50 hover:text-white hover:bg-white/10 flex items-center justify-center transition cursor-pointer opacity-70 sm:opacity-0 group-hover:opacity-100"
+                      title="More options / Add to playlist"
+                    >
+                      <MoreVertical className="w-3.5 h-3.5" />
+                    </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -363,7 +376,17 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ userName, onSelectQuery }) =
                 </div>
               </div>
 
-              <div className="shrink-0">
+              <div className="shrink-0 flex items-center gap-2">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setContextMenuTrack(heroTrack);
+                  }}
+                  className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition cursor-pointer"
+                  title="More options / Add to playlist"
+                >
+                  <MoreVertical className="w-5 h-5" />
+                </button>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -411,6 +434,17 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ userName, onSelectQuery }) =
                       className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                       loading="lazy"
                     />
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setContextMenuTrack(track);
+                      }}
+                      className="absolute top-1.5 right-1.5 z-10 w-7 h-7 rounded-full bg-black/60 hover:bg-black text-white/80 hover:text-white flex items-center justify-center opacity-70 sm:opacity-0 group-hover:opacity-100 transition cursor-pointer backdrop-blur-xs shadow"
+                      title="Options / Add to playlist"
+                    >
+                      <MoreVertical className="w-3.5 h-3.5" />
+                    </button>
 
                     <div className="absolute right-1.5 bottom-1.5 sm:right-2 sm:bottom-2">
                       <button
@@ -553,6 +587,17 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ userName, onSelectQuery }) =
                       loading="lazy"
                     />
 
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setContextMenuTrack(track);
+                      }}
+                      className="absolute top-1.5 right-1.5 z-10 w-7 h-7 rounded-full bg-black/60 hover:bg-black text-white/80 hover:text-white flex items-center justify-center opacity-70 sm:opacity-0 group-hover:opacity-100 transition cursor-pointer backdrop-blur-xs shadow"
+                      title="Options / Add to playlist"
+                    >
+                      <MoreVertical className="w-3.5 h-3.5" />
+                    </button>
+
                     <div className="absolute right-1.5 bottom-1.5 sm:right-2 sm:bottom-2">
                       <button
                         onClick={(e) => {
@@ -626,6 +671,17 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ userName, onSelectQuery }) =
                       className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                       loading="lazy"
                     />
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setContextMenuTrack(track);
+                      }}
+                      className="absolute top-1.5 right-1.5 z-10 w-7 h-7 rounded-full bg-black/60 hover:bg-black text-white/80 hover:text-white flex items-center justify-center opacity-70 sm:opacity-0 group-hover:opacity-100 transition cursor-pointer backdrop-blur-xs shadow"
+                      title="Options / Add to playlist"
+                    >
+                      <MoreVertical className="w-3.5 h-3.5" />
+                    </button>
 
                     <div className="absolute right-1.5 bottom-1.5 sm:right-2 sm:bottom-2">
                       <button
@@ -701,6 +757,17 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ userName, onSelectQuery }) =
                       loading="lazy"
                     />
 
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setContextMenuTrack(track);
+                      }}
+                      className="absolute top-1.5 right-1.5 z-10 w-7 h-7 rounded-full bg-black/60 hover:bg-black text-white/80 hover:text-white flex items-center justify-center opacity-70 sm:opacity-0 group-hover:opacity-100 transition cursor-pointer backdrop-blur-xs shadow"
+                      title="Options / Add to playlist"
+                    >
+                      <MoreVertical className="w-3.5 h-3.5" />
+                    </button>
+
                     <div className="absolute right-1.5 bottom-1.5 sm:right-2 sm:bottom-2">
                       <button
                         onClick={(e) => {
@@ -771,6 +838,17 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ userName, onSelectQuery }) =
                       loading="lazy"
                     />
 
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setContextMenuTrack(track);
+                      }}
+                      className="absolute top-1.5 right-1.5 z-10 w-7 h-7 rounded-full bg-black/60 hover:bg-black text-white/80 hover:text-white flex items-center justify-center opacity-70 sm:opacity-0 group-hover:opacity-100 transition cursor-pointer backdrop-blur-xs shadow"
+                      title="Options / Add to playlist"
+                    >
+                      <MoreVertical className="w-3.5 h-3.5" />
+                    </button>
+
                     <div className="absolute right-1.5 bottom-1.5 sm:right-2 sm:bottom-2">
                       <button
                         onClick={(e) => {
@@ -839,6 +917,17 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ userName, onSelectQuery }) =
                       className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                       loading="lazy"
                     />
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setContextMenuTrack(track);
+                      }}
+                      className="absolute top-1.5 right-1.5 z-10 w-7 h-7 rounded-full bg-black/60 hover:bg-black text-white/80 hover:text-white flex items-center justify-center opacity-70 sm:opacity-0 group-hover:opacity-100 transition cursor-pointer backdrop-blur-xs shadow"
+                      title="Options / Add to playlist"
+                    >
+                      <MoreVertical className="w-3.5 h-3.5" />
+                    </button>
 
                     <div className="absolute right-1.5 bottom-1.5 sm:right-2 sm:bottom-2">
                       <button
@@ -996,6 +1085,13 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({ userName, onSelectQuery }) =
           ))}
         </div>
       </section>
+
+      {/* Universal Track Context Menu Modal (Add to Playlist, Offline Download, Radio) */}
+      <TrackContextMenuModal
+        track={contextMenuTrack}
+        isOpen={Boolean(contextMenuTrack)}
+        onClose={() => setContextMenuTrack(null)}
+      />
     </div>
   );
 };

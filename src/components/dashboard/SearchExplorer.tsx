@@ -15,6 +15,7 @@ import {
   splitHighlight 
 } from '../../lib/searchSuggestions';
 import { recordSearchInteraction } from '../../lib/affinityEngine';
+import { TrackContextMenuModal } from '../common/TrackContextMenuModal';
 import { 
   Search, 
   X, 
@@ -30,7 +31,8 @@ import {
   Disc, 
   CornerUpLeft, 
   Sparkles,
-  ArrowRight
+  ArrowRight,
+  MoreVertical
 } from 'lucide-react';
 
 interface SearchExplorerProps {
@@ -55,6 +57,7 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
   const [searchError, setSearchError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<SearchTab>('all');
   const [recentItems, setRecentItems] = useState<RecentItem[]>([]);
+  const [contextMenuTrack, setContextMenuTrack] = useState<Track | null>(null);
   
   // Typeahead & suggestions state
   const [showSuggestionsDropdown, setShowSuggestionsDropdown] = useState(false);
@@ -714,20 +717,32 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
                           <span className="text-xs font-bold px-2 py-0.5 rounded bg-white/5 text-[#1ed760] border border-[#1ed760]/20">
                             320k Master
                           </span>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleTrackClick(topTrack);
-                            }}
-                            className="w-12 h-12 rounded-full bg-[#1ed760] text-black flex items-center justify-center shadow-xl hover:scale-110 transition duration-200"
-                            aria-label="Play track"
-                          >
-                            {currentTrack?.id === topTrack.id && playbackState === 'playing' ? (
-                              <Pause className="w-5 h-5 fill-black" />
-                            ) : (
-                              <Play className="w-5 h-5 fill-black ml-0.5" />
-                            )}
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setContextMenuTrack(topTrack);
+                              }}
+                              className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition cursor-pointer"
+                              title="More options / Add to playlist"
+                            >
+                              <MoreVertical className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleTrackClick(topTrack);
+                              }}
+                              className="w-12 h-12 rounded-full bg-[#1ed760] text-black flex items-center justify-center shadow-xl hover:scale-110 transition duration-200 cursor-pointer"
+                              aria-label="Play track"
+                            >
+                              {currentTrack?.id === topTrack.id && playbackState === 'playing' ? (
+                                <Pause className="w-5 h-5 fill-black" />
+                              ) : (
+                                <Play className="w-5 h-5 fill-black ml-0.5" />
+                              )}
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ) : null}
@@ -801,7 +816,7 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-3 flex-shrink-0">
+                          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -825,6 +840,16 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
                             <span className="text-xs text-[#b3b3b3] tabular-nums hidden sm:inline">
                               {formatDuration(track.duration)}
                             </span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setContextMenuTrack(track);
+                              }}
+                              className="p-1.5 text-[#b3b3b3] hover:text-white transition cursor-pointer opacity-80 sm:opacity-0 group-hover:opacity-100"
+                              title="More options / Add to playlist"
+                            >
+                              <MoreVertical className="w-4 h-4" />
+                            </button>
                           </div>
                         </div>
                       );
@@ -993,7 +1018,7 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-3 flex-shrink-0">
+                      <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/5 text-[#1ed760] border border-[#1ed760]/20 hidden sm:inline">
                           320k
                         </span>
@@ -1020,6 +1045,16 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
                         <span className="text-xs text-[#b3b3b3] tabular-nums">
                           {formatDuration(track.duration)}
                         </span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setContextMenuTrack(track);
+                          }}
+                          className="p-1.5 text-[#b3b3b3] hover:text-white transition cursor-pointer opacity-80 sm:opacity-0 group-hover:opacity-100"
+                          title="More options / Add to playlist"
+                        >
+                          <MoreVertical className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
                   );
@@ -1139,6 +1174,13 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
           </div>
         </div>
       )}
+
+      {/* Universal Track Context Menu Modal (Add to Playlist, Download, Radio, Share) */}
+      <TrackContextMenuModal
+        track={contextMenuTrack}
+        isOpen={Boolean(contextMenuTrack)}
+        onClose={() => setContextMenuTrack(null)}
+      />
     </div>
   );
 };

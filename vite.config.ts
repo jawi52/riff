@@ -70,6 +70,14 @@ export default defineConfig({
         target: 'http://127.0.0.1:3000',
         changeOrigin: true,
       },
+      '/api/saavn': {
+        target: 'https://www.jiosaavn.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/saavn/, '/api.php'),
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      },
       '/saavn-api': {
         target: 'https://www.jiosaavn.com',
         changeOrigin: true,

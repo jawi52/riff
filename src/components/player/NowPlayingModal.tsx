@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { usePlayerStore } from '../../stores/usePlayerStore';
 import { useLibraryStore } from '../../stores/useLibraryStore';
 import { LyricsView } from './LyricsView';
+import { TrackContextMenuModal } from '../common/TrackContextMenuModal';
 import { 
   ChevronDown, 
   Heart, 
@@ -22,7 +23,8 @@ import {
   Moon,
   Download,
   CheckCircle2,
-  X
+  X,
+  MoreVertical
 } from 'lucide-react';
 
 export const NowPlayingModal: React.FC = () => {
@@ -63,6 +65,7 @@ export const NowPlayingModal: React.FC = () => {
   const [isScrubbing, setIsScrubbing] = useState(false);
   const [scrubValue, setScrubValue] = useState(0);
   const [showSleepTimerModal, setShowSleepTimerModal] = useState(false);
+  const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
   const scrubberRef = useRef<HTMLDivElement | null>(null);
 
   // Touch swipe-down state
@@ -427,6 +430,15 @@ export const NowPlayingModal: React.FC = () => {
                 }`}
               />
             </button>
+
+            {/* Context Menu / Add to Playlist Button */}
+            <button
+              onClick={() => setIsContextMenuOpen(true)}
+              className="p-2.5 text-[#b3b3b3] hover:text-white hover:bg-white/10 rounded-full transition cursor-pointer"
+              title="More options / Add to playlist"
+            >
+              <MoreVertical className="w-6 h-6" />
+            </button>
           </div>
         </div>
 
@@ -629,6 +641,13 @@ export const NowPlayingModal: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Universal Add to Playlist & Track Options Modal */}
+      <TrackContextMenuModal
+        track={currentTrack}
+        isOpen={isContextMenuOpen}
+        onClose={() => setIsContextMenuOpen(false)}
+      />
     </div>
   );
 };

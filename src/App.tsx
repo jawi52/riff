@@ -5,6 +5,7 @@ import { DashboardPage } from './components/dashboard/DashboardPage';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { SplashScreen } from './components/common/SplashScreen';
 import { useAuthStore } from './stores/useAuthStore';
+import { Toaster } from 'sonner';
 
 export function App() {
   const [view, setView] = useState<'landing' | 'auth' | 'dashboard'>('landing');
@@ -105,6 +106,18 @@ export function App() {
           }}
         />
       )}
+      <Toaster 
+        theme="dark" 
+        position="top-center" 
+        toastOptions={{
+          style: {
+            background: '#242424',
+            color: '#fff',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '12px',
+          }
+        }}
+      />
     </ErrorBoundary>
   );
 }
