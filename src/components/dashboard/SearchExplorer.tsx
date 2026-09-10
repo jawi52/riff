@@ -10,11 +10,7 @@ import {
   addRecentTrack,
   RecentItem 
 } from '../../lib/recentSearches';
-import { 
-  getSearchSuggestions, 
-  splitHighlight 
-} from '../../lib/searchSuggestions';
-import { recordSearchInteraction } from '../../lib/affinityEngine';
+import { getSearchSuggestions } from '../../lib/searchSuggestions';
 import { TrackContextMenuModal } from '../common/TrackContextMenuModal';
 import { 
   Search, 
@@ -27,11 +23,7 @@ import {
   Compass, 
   Trash2, 
   History, 
-  User, 
-  Disc, 
-  CornerUpLeft, 
   Sparkles,
-  ArrowRight,
   MoreVertical
 } from 'lucide-react';
 
@@ -41,9 +33,22 @@ interface SearchExplorerProps {
 
 type SearchTab = 'all' | 'songs' | 'artists' | 'albums';
 
-// Client-side query cache to protect the user's $17/mo backend credits
+// Client-side query cache to protect backend credits & give 0ms instant response
 const queryCache = new Map<string, { data: any; timestamp: number }>();
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+const BROWSE_GENRES = [
+  { title: '🇵🇰 Coke Studio & Pak Pop', desc: 'Atif, Young Stunners & Ali Sethi', query: 'Coke Studio Pakistan', color: 'from-emerald-700 to-teal-950' },
+  { title: '🇮🇳 Bollywood Romance', desc: 'Arijit Singh, Pritam & Shreya', query: 'Bollywood Top Hits', color: 'from-rose-700 to-pink-950' },
+  { title: '🌾 Punjabi Wave', desc: 'Guru Randhawa, AP Dhillon & Diljit', query: 'Punjabi Hits', color: 'from-amber-600 to-orange-950' },
+  { title: '🌍 Global Top 50', desc: 'The Weeknd, Billie Eilish & Drake', query: 'Global Top Hits', color: 'from-blue-700 to-indigo-950' },
+  { title: '💔 Sad & Acoustic Vibes', desc: 'Late Night Urdu & Hindi Melodies', query: 'Sad Hindi Songs', color: 'from-purple-800 to-indigo-950' },
+  { title: '⚡ Workout & Gym Beats', desc: 'High BPM Energy & Bass Drops', query: 'Gym Workout Music', color: 'from-red-700 to-amber-950' },
+  { title: '🌙 Sufi & Qawwali Mystics', desc: 'Nusrat & Rahat Fateh Ali Khan', query: 'Nusrat Fateh Ali Khan Qawwali', color: 'from-yellow-700 to-stone-900' },
+  { title: '🎧 Chill & Lo-Fi Beats', desc: 'Focus & Study Rhythms', query: 'Lo-Fi Chill Beats', color: 'from-blue-600 to-cyan-950' },
+  { title: '🎸 Rock & Indie Classics', desc: 'Guitar Solos & Anthems', query: 'Rock Classics', color: 'from-teal-600 to-slate-950' },
+  { title: '🔥 Desi Hip Hop', desc: 'Talha Anjum, KR$NA & Seedhe Maut', query: 'Desi Hip Hop', color: 'from-red-800 to-black' },
+];
 
 export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) => {
   const [query, setQuery] = useState('');
@@ -58,64 +63,38 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
   const [activeTab, setActiveTab] = useState<SearchTab>('all');
   const [recentItems, setRecentItems] = useState<RecentItem[]>([]);
   const [contextMenuTrack, setContextMenuTrack] = useState<Track | null>(null);
-  
-  // Typeahead & suggestions state
-  const [showSuggestionsDropdown, setShowSuggestionsDropdown] = useState(false);
-  const searchContainerRef = useRef<HTMLDivElement>(null);
+
   const inputRef = useRef<HTMLInputElement>(null);
-
-  const { currentTrack, playbackState, playTrack, togglePlayPause } = usePlayerStore();
-  const { likedTracks, toggleLikeTrack } = useLibraryStore();
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
-
   const abortControllerRef = useRef<AbortController | null>(null);
   const querySeqRef = useRef<number>(0);
 
+  const { currentTrack, playbackState, playTrack, togglePlayPause } = usePlayerStore();
+  const { likedTracks, toggleLikeTrack } = useLibraryStore();
+
   // Sync recent searches from storage
-  const syncRecents = useCallbackSafe(() => {
+  const syncRecents = () => {
     setRecentItems(getRecentSearches());
-  }, []);
+  };
 
   useEffect(() => {
     syncRecents();
     const handleRecentsUpdate = () => syncRecents();
     window.addEventListener('riff_recent_searches_updated', handleRecentsUpdate);
     return () => window.removeEventListener('riff_recent_searches_updated', handleRecentsUpdate);
-  }, [syncRecents]);
-
-  // Close suggestions when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
-      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
-        setShowSuggestionsDropdown(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('touchstart', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('touchstart', handleClickOutside);
-    };
   }, []);
 
+  // Execute search against catalog
   const performSearch = async (term: string) => {
     const clean = term.trim();
     if (!clean) {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
+      if (abortControllerRef.current) abortControllerRef.current.abort();
       setResults(null);
       setIsSearching(false);
       return;
     }
 
-    // 1. Single character protection: show instant local suggestions only, do not burn backend credits
-    if (clean.length < 2) {
-      setIsSearching(false);
-      return;
-    }
-
-    // 2. Check in-memory query cache (0ms instant response, 0 backend API calls)
+    // Check memory cache for instant 0ms return
     const cacheKey = clean.toLowerCase();
     const cached = queryCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
@@ -124,10 +103,8 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
       return;
     }
 
-    // Cancel any previous in-flight search request immediately
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
+    // Cancel in-flight request
+    if (abortControllerRef.current) abortControllerRef.current.abort();
     const controller = new AbortController();
     abortControllerRef.current = controller;
     const seq = ++querySeqRef.current;
@@ -135,18 +112,17 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
     try {
       setIsSearching(true);
       setSearchError(null);
-      const data = await searchCatalog(clean, 25, controller.signal);
-      
-      // Stale query protection: if user typed something new, discard this response!
+      const data = await searchCatalog(clean, 30, controller.signal);
+
+      // Discard stale responses
       if (seq !== querySeqRef.current) return;
 
-      // Save in LRU memory cache
       queryCache.set(cacheKey, { data, timestamp: Date.now() });
       setResults(data);
     } catch (err: any) {
       if (err?.name === 'AbortError') return;
       if (seq !== querySeqRef.current) return;
-      console.error('Search query error:', err);
+      console.warn('Search query warning:', err);
       setSearchError(err?.message || 'Failed to search catalog');
     } finally {
       if (seq === querySeqRef.current) {
@@ -157,14 +133,13 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
 
   const handleQueryChange = (val: string) => {
     setQuery(val);
-    setShowSuggestionsDropdown(Boolean(val.trim()));
 
     if (debounceTimeout.current) {
       clearTimeout(debounceTimeout.current);
     }
     debounceTimeout.current = setTimeout(() => {
       performSearch(val);
-    }, 220);
+    }, 200);
   };
 
   const clearSearch = () => {
@@ -172,30 +147,12 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
     setResults(null);
     setSearchError(null);
     setActiveTab('all');
-    setShowSuggestionsDropdown(false);
     inputRef.current?.focus();
   };
 
-  const handleSelectSuggestion = (suggestedTerm: string) => {
+  const handleSelectQuery = (suggestedTerm: string) => {
     setQuery(suggestedTerm);
-    setShowSuggestionsDropdown(false);
-    recordSearchInteraction(suggestedTerm);
     performSearch(suggestedTerm);
-  };
-
-  const handleInsertSuggestion = (suggestedTerm: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setQuery(suggestedTerm);
-    setShowSuggestionsDropdown(true);
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
-    if (debounceTimeout.current) {
-      clearTimeout(debounceTimeout.current);
-    }
-    debounceTimeout.current = setTimeout(() => {
-      performSearch(suggestedTerm);
-    }, 300);
   };
 
   useEffect(() => {
@@ -211,28 +168,18 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
     };
   }, []);
 
-  // Compute suggestions (prefix matching, South Asian artists & songs, recent searches, live backend items)
+  // Compute clean, non-intrusive suggestion chips
   const suggestions = useMemo(() => {
     if (!query.trim()) return [];
     return getSearchSuggestions(query, {
-      maxResults: 7,
+      maxResults: 6,
       recentSearches: recentItems,
       liveArtists: results?.artists,
       liveTracks: results?.tracks,
     });
   }, [query, recentItems, results]);
 
-  const topSuggestedEntity = suggestions[0];
-  const showDidYouMean = Boolean(
-    query.trim().length >= 2 &&
-    topSuggestedEntity &&
-    topSuggestedEntity.type === 'artist' &&
-    topSuggestedEntity.title.toLowerCase() !== query.trim().toLowerCase() &&
-    (!results?.artists?.[0] || results.artists[0].name.toLowerCase() !== topSuggestedEntity.title.toLowerCase())
-  );
-
   const handleTrackClick = (track: Track, trackList?: Track[]) => {
-    setShowSuggestionsDropdown(false);
     addRecentTrack(track);
     if (currentTrack?.id === track.id) {
       togglePlayPause();
@@ -242,11 +189,17 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
   };
 
   const handleArtistClick = (artist: ApiArtist) => {
-    setShowSuggestionsDropdown(false);
-    handleSelectSuggestion(artist.name);
+    handleSelectQuery(artist.name);
   };
 
-  // Spotify-style Smart Top Result Detection:
+  const formatDuration = (sec?: number) => {
+    if (!sec || isNaN(sec)) return '3:30';
+    const m = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60);
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  };
+
+  // Detect top result (Artist match or top track)
   const isArtistTopResult = Boolean(
     results?.artists &&
     results.artists.length > 0 &&
@@ -259,46 +212,19 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
   const topArtist = results?.artists?.[0];
   const topTrack = results?.tracks?.[0];
 
-  const formatDuration = (sec?: number) => {
-    if (!sec || isNaN(sec)) return '3:30';
-    const m = Math.floor(sec / 60);
-    const s = Math.floor(sec % 60);
-    return `${m}:${s < 10 ? '0' : ''}${s}`;
-  };
-
-  // Browse All Categories & Moods
-  const browseGenres = [
-    { title: '🇵🇰 Coke Studio & Pak Pop', desc: 'Atif, Young Stunners & Ali Sethi', query: 'Coke Studio Pakistan', color: 'from-emerald-700 to-teal-950' },
-    { title: '🇮🇳 Bollywood Romance', desc: 'Arijit Singh, Pritam & Shreya', query: 'Bollywood Top Hits', color: 'from-rose-700 to-pink-950' },
-    { title: '🌾 Punjabi Wave', desc: 'Guru Randhawa, AP Dhillon & Diljit', query: 'Punjabi Hits', color: 'from-amber-600 to-orange-950' },
-    { title: '🌍 Global Top 50', desc: 'The Weeknd, Billie Eilish & Drake', query: 'Global Top Hits', color: 'from-blue-700 to-indigo-950' },
-    { title: '💔 Sad & Acoustic Vibes', desc: 'Late Night Urdu & Hindi Melodies', query: 'Sad Hindi Songs', color: 'from-purple-800 to-indigo-950' },
-    { title: '⚡ Workout & Gym Beats', desc: 'High BPM Energy & Bass Drops', query: 'Gym Workout Music', color: 'from-red-700 to-amber-950' },
-    { title: '🌙 Sufi & Qawwali Mystics', desc: 'Nusrat & Rahat Fateh Ali Khan', query: 'Nusrat Fateh Ali Khan Qawwali', color: 'from-yellow-700 to-stone-900' },
-    { title: '🎧 Chill & Lo-Fi Beats', desc: 'Focus & Study Rhythms', query: 'Lo-Fi Chill Beats', color: 'from-blue-600 to-cyan-950' },
-    { title: '🎸 Rock & Indie Classics', desc: 'Guitar Solos & Anthems', query: 'Rock Classics', color: 'from-teal-600 to-slate-950' },
-    { title: '🔥 Desi Hip Hop', desc: 'Talha Anjum, KR$NA & Seedhe Maut', query: 'Desi Hip Hop', color: 'from-red-800 to-black' },
-  ];
-
   return (
-    <div className="space-y-6 pb-36 selection:bg-[#1ed760] selection:text-black">
-      {/* 1. Spotify-Grade Search Input Bar with Instant Typeahead Autocomplete */}
-      <div ref={searchContainerRef} className="relative space-y-3 max-w-xl">
+    <div className="space-y-5 pb-36 selection:bg-[#1ed760] selection:text-black">
+      {/* 1. Spotify-Style Search Input Bar */}
+      <div className="relative space-y-2.5 max-w-xl">
         <div className="relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#b3b3b3] pointer-events-none" />
           <input
             ref={inputRef}
             type="text"
             value={query}
-            onFocus={() => {
-              if (query.trim()) setShowSuggestionsDropdown(true);
-            }}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
-                setShowSuggestionsDropdown(false);
                 performSearch(query);
-              } else if (e.key === 'Escape') {
-                setShowSuggestionsDropdown(false);
               }
             }}
             onChange={(e) => handleQueryChange(e.target.value)}
@@ -319,115 +245,17 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
           ) : null}
         </div>
 
-        {/* 2. Floating Spotify-Style Suggestions Dropdown (Shows when user types e.g. "gur") */}
-        {showSuggestionsDropdown && suggestions.length > 0 && (
-          <div className="absolute left-0 right-0 top-14 z-50 bg-[#1e1e1e] border border-white/10 rounded-2xl shadow-2xl overflow-hidden backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
-            <div className="py-2">
-              <div className="px-4 py-1 text-[11px] font-bold tracking-wider text-[#a7a7a7] uppercase flex items-center justify-between">
-                <span>Suggestions</span>
-                <span className="text-[10px] text-[#727272] normal-case">Tap to open • ↖ to fill</span>
-              </div>
-              <ul className="divide-y divide-white/5">
-                {suggestions.map((item) => {
-                  const { before, match, after } = splitHighlight(item.title, query);
-                  return (
-                    <li
-                      key={item.id}
-                      onClick={() => {
-                        if (item.type === 'track' && item.track) {
-                          handleTrackClick(item.track);
-                        } else {
-                          handleSelectSuggestion(item.query);
-                        }
-                      }}
-                      className="group flex items-center justify-between px-4 py-2.5 hover:bg-[#2a2a2a] cursor-pointer transition select-none"
-                    >
-                      <div className="flex items-center gap-3 min-w-0 pr-2">
-                        {/* Icon / Thumbnail */}
-                        {item.imageUrl ? (
-                          <img
-                            src={item.imageUrl}
-                            alt={item.title}
-                            className={`w-9 h-9 object-cover flex-shrink-0 shadow-md ${
-                              item.type === 'artist' ? 'rounded-full' : 'rounded-md'
-                            }`}
-                          />
-                        ) : item.type === 'artist' ? (
-                          <div className="w-9 h-9 rounded-full bg-[#333] flex items-center justify-center flex-shrink-0">
-                            <User className="w-4 h-4 text-white" />
-                          </div>
-                        ) : item.type === 'track' ? (
-                          <div className="w-9 h-9 rounded-md bg-[#333] flex items-center justify-center flex-shrink-0">
-                            <Disc className="w-4 h-4 text-white" />
-                          </div>
-                        ) : item.type === 'recent' ? (
-                          <div className="w-9 h-9 rounded-full bg-[#2a2a2a] flex items-center justify-center flex-shrink-0">
-                            <History className="w-4 h-4 text-[#1ed760]" />
-                          </div>
-                        ) : (
-                          <div className="w-9 h-9 rounded-full bg-[#2a2a2a] flex items-center justify-center flex-shrink-0">
-                            <Search className="w-4 h-4 text-[#b3b3b3]" />
-                          </div>
-                        )}
-
-                        {/* Title & Subtitle with Highlighted Prefix */}
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm truncate text-[#b3b3b3]">
-                            {before}
-                            <span className="font-bold text-white group-hover:text-[#1ed760] transition-colors">
-                              {match}
-                            </span>
-                            {after}
-                          </p>
-                          <p className="text-xs text-[#727272] truncate mt-0.5">
-                            {item.subtitle}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Right Action Icons: Arrow Insert + Quick Play */}
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        {item.type === 'track' && item.track && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleTrackClick(item.track!);
-                            }}
-                            className="w-7 h-7 rounded-full bg-[#1ed760] text-black flex items-center justify-center opacity-0 group-hover:opacity-100 transition shadow hover:scale-105"
-                            title="Play song"
-                          >
-                            <Play className="w-3.5 h-3.5 fill-black ml-0.5" />
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={(e) => handleInsertSuggestion(item.query, e)}
-                          className="p-1.5 text-[#727272] hover:text-white hover:bg-white/10 rounded-full transition cursor-pointer"
-                          title="Insert into search"
-                        >
-                          <CornerUpLeft className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          </div>
-        )}
-
-        {/* 3. Quick Suggestion Pills Bar (Direct 1-tap recommendations) */}
-        {query.trim() && suggestions.length > 0 && !showSuggestionsDropdown && (
-          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1 -mx-4 px-4 sm:mx-0 sm:px-0 text-xs">
+        {/* 2. Non-Intrusive Autocomplete Chips (Never covers the results!) */}
+        {query.trim() && suggestions.length > 0 && (
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1 text-xs">
             <span className="text-[#727272] font-semibold flex items-center gap-1 mr-1 flex-shrink-0">
-              <Sparkles className="w-3 h-3 text-[#1ed760]" />
+              <Sparkles className="w-3.5 h-3.5 text-[#1ed760]" />
               Suggestions:
             </span>
-            {suggestions.slice(0, 5).map((s) => (
+            {suggestions.map((s) => (
               <button
-                key={`pill_${s.id}`}
-                onClick={() => handleSelectSuggestion(s.query)}
+                key={s.id}
+                onClick={() => handleSelectQuery(s.query)}
                 className="px-3 py-1 rounded-full bg-[#242424] hover:bg-[#2e2e2e] text-white hover:text-[#1ed760] border border-white/5 transition flex-shrink-0 whitespace-nowrap font-medium cursor-pointer"
               >
                 {s.title}
@@ -436,28 +264,9 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
           </div>
         )}
 
-        {/* 4. "Did You Mean?" Banner (e.g. searching 'gur' suggests 'Guru Randhawa') */}
-        {showDidYouMean && (
-          <div className="flex items-center justify-between p-3 rounded-xl bg-[#242424] border border-[#1ed760]/20 text-xs text-white animate-in fade-in">
-            <div className="flex items-center gap-2 truncate">
-              <Sparkles className="w-4 h-4 text-[#1ed760] flex-shrink-0" />
-              <span className="text-[#b3b3b3]">
-                Looking for <strong className="text-white">{topSuggestedEntity.title}</strong>?
-              </span>
-            </div>
-            <button
-              onClick={() => handleSelectSuggestion(topSuggestedEntity.query)}
-              className="ml-2 px-3 py-1 rounded-full bg-[#1ed760] text-black font-bold text-xs hover:scale-105 transition flex items-center gap-1 cursor-pointer flex-shrink-0"
-            >
-              <span>View</span>
-              <ArrowRight className="w-3 h-3" />
-            </button>
-          </div>
-        )}
-
-        {/* 5. Category Filter Pills (When search query is active) */}
+        {/* 3. Category Filter Tabs */}
         {query.trim() && results && (
-          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-1 -mx-4 px-4 sm:mx-0 sm:px-0">
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pt-1">
             <button
               onClick={() => setActiveTab('all')}
               className={`px-4 py-1.5 rounded-full text-xs font-bold transition cursor-pointer whitespace-nowrap select-none ${
@@ -502,18 +311,18 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
         )}
       </div>
 
-      {/* Error State */}
+      {/* Error Notification */}
       {searchError && (
-        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/25 text-xs text-red-300 select-none">
-          <p className="font-bold mb-1">Search Connection Error</p>
+        <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/25 text-xs text-red-300">
+          <p className="font-bold mb-0.5">Search Connection Error</p>
           <p>{searchError}</p>
         </div>
       )}
 
-      {/* 6. Empty Search State: Recent Searches & Browse All */}
+      {/* 4. Empty Search State: Recents & Browse Categories */}
       {!query.trim() && (
         <div className="space-y-8 animate-in fade-in duration-200">
-          {/* A. Recent Searches Shelf with individual 1-Tap 'X' Delete */}
+          {/* Recent Searches Shelf */}
           {recentItems.length > 0 && (
             <section className="space-y-3">
               <div className="flex items-center justify-between">
@@ -543,12 +352,12 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
                       if (item.type === 'track' && item.trackData) {
                         handleTrackClick(item.trackData);
                       } else {
-                        handleSelectSuggestion(item.title);
+                        handleSelectQuery(item.title);
                       }
                     }}
                     className="relative group flex-shrink-0 w-36 sm:w-40 p-3 rounded-xl bg-[#181818] hover:bg-[#282828] border border-white/5 transition-all duration-200 cursor-pointer snap-start flex flex-col items-center text-center"
                   >
-                    {/* 1-Tap Delete X Button */}
+                    {/* Delete item button */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -594,7 +403,7 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
             </section>
           )}
 
-          {/* B. Spotify "Browse All" Vibrant Category Grid */}
+          {/* Browse Categories Grid */}
           <section className="space-y-4">
             <div className="flex items-center gap-2">
               <Compass className="w-5 h-5 text-[#1ed760]" />
@@ -604,10 +413,10 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
-              {browseGenres.map((genre) => (
+              {BROWSE_GENRES.map((genre) => (
                 <div
                   key={genre.title}
-                  onClick={() => handleSelectSuggestion(genre.query)}
+                  onClick={() => handleSelectQuery(genre.query)}
                   className={`relative h-28 sm:h-36 p-3 sm:p-4 rounded-xl bg-gradient-to-br ${genre.color} border border-white/10 hover:border-white/30 transition-all duration-300 hover:scale-[1.02] cursor-pointer overflow-hidden shadow-lg flex flex-col justify-between group`}
                 >
                   <div>
@@ -628,33 +437,28 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
         </div>
       )}
 
-      {/* 7. Active Search Results Presentation */}
+      {/* 5. Active Search Results Presentation */}
       {query.trim() && results && (
         <div className="space-y-8 animate-in fade-in duration-200">
-          {/* TAB 1: ALL (Spotify Hybrid View: Top Result + Songs + Artists + Albums) */}
+          {/* TAB 1: ALL (Top Result + Songs + Artists + Albums) */}
           {activeTab === 'all' && (
             <>
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                {/* A. Top Result Hero Card */}
+                {/* Top Result Card */}
                 {(isArtistTopResult && topArtist) || topTrack ? (
                   <div className="lg:col-span-5 space-y-3">
                     <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
                       Top Result
                     </h2>
                     {isArtistTopResult && topArtist ? (
-                      /* Artist Hero */
+                      /* Artist Hero Card */
                       <div
                         onClick={() => handleArtistClick(topArtist)}
                         className="group relative p-5 rounded-2xl bg-[#181818] hover:bg-[#282828] border border-white/5 hover:border-white/15 transition-all duration-300 cursor-pointer shadow-xl flex flex-col justify-between h-56"
                       >
                         <div className="flex items-center gap-4">
                           <img
-                            src={
-                              topArtist.pictureBig || 
-                              topArtist.pictureMedium || 
-                              topArtist.picture || 
-                              'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&q=80'
-                            }
+                            src={topArtist.pictureBig || topArtist.pictureMedium || topArtist.picture || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&q=80'}
                             alt={topArtist.name}
                             className="w-24 h-24 rounded-full object-cover shadow-2xl group-hover:scale-105 transition duration-300"
                           />
@@ -689,7 +493,7 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
                         </div>
                       </div>
                     ) : topTrack ? (
-                      /* Song Hero */
+                      /* Song Hero Card */
                       <div
                         onClick={() => handleTrackClick(topTrack)}
                         className="group relative p-5 rounded-2xl bg-[#181818] hover:bg-[#282828] border border-white/5 hover:border-white/15 transition-all duration-300 cursor-pointer shadow-xl flex flex-col justify-between h-56"
@@ -749,7 +553,7 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
                   </div>
                 ) : null}
 
-                {/* B. Songs List (4-5 tracks) */}
+                {/* Top Songs List (4-5 tracks) */}
                 <div className={`${(isArtistTopResult && topArtist) || topTrack ? 'lg:col-span-7' : 'lg:col-span-12'} space-y-3`}>
                   <div className="flex items-center justify-between">
                     <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
@@ -858,7 +662,7 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
                 </div>
               </div>
 
-              {/* C. Artists Shelf (Horizontal Carousel) */}
+              {/* Artists Carousel */}
               {results.artists && results.artists.length > 0 && (
                 <section className="space-y-3 pt-4">
                   <div className="flex items-center justify-between">
@@ -884,12 +688,7 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
                       >
                         <div className="relative w-24 h-24 sm:w-28 sm:h-28 mb-3">
                           <img
-                            src={
-                              artist.pictureBig || 
-                              artist.pictureMedium || 
-                              artist.picture || 
-                              'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&q=80'
-                            }
+                            src={artist.pictureBig || artist.pictureMedium || artist.picture || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&q=80'}
                             alt={artist.name}
                             className="w-full h-full object-cover rounded-full shadow-lg group-hover:scale-105 transition duration-200"
                           />
@@ -906,7 +705,7 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
                 </section>
               )}
 
-              {/* D. Albums Shelf (Horizontal Carousel) */}
+              {/* Albums Carousel */}
               {results.albums && results.albums.length > 0 && (
                 <section className="space-y-3 pt-4">
                   <div className="flex items-center justify-between">
@@ -927,17 +726,12 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
                     {results.albums.map((album) => (
                       <div
                         key={album.id}
-                        onClick={() => handleSelectSuggestion(album.title)}
+                        onClick={() => handleSelectQuery(album.title)}
                         className="group flex-shrink-0 w-32 sm:w-40 p-3 sm:p-4 rounded-xl bg-[#181818] hover:bg-[#282828] border border-white/5 transition duration-200 cursor-pointer snap-start flex flex-col items-center text-center"
                       >
                         <div className="relative w-24 h-24 sm:w-28 sm:h-28 mb-3">
                           <img
-                            src={
-                              album.coverBig || 
-                              album.coverMedium || 
-                              album.cover || 
-                              'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=500&q=80'
-                            }
+                            src={album.coverBig || album.coverMedium || album.cover || 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=500&q=80'}
                             alt={album.title}
                             className="w-full h-full object-cover rounded-lg shadow-lg group-hover:scale-105 transition duration-200"
                           />
@@ -1079,12 +873,7 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
                   >
                     <div className="relative w-28 h-28 sm:w-32 sm:h-32 mb-3">
                       <img
-                        src={
-                          artist.pictureBig || 
-                          artist.pictureMedium || 
-                          artist.picture || 
-                          'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&q=80'
-                        }
+                        src={artist.pictureBig || artist.pictureMedium || artist.picture || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&q=80'}
                         alt={artist.name}
                         className="w-full h-full object-cover rounded-full shadow-lg group-hover:scale-105 transition duration-200"
                       />
@@ -1112,17 +901,12 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
                 {results.albums.map((album) => (
                   <div
                     key={album.id}
-                    onClick={() => handleSelectSuggestion(album.title)}
+                    onClick={() => handleSelectQuery(album.title)}
                     className="group p-4 rounded-xl bg-[#181818] hover:bg-[#282828] border border-white/5 transition duration-200 cursor-pointer flex flex-col items-center text-center"
                   >
                     <div className="relative w-28 h-28 sm:w-32 sm:h-32 mb-3">
                       <img
-                        src={
-                          album.coverBig || 
-                          album.coverMedium || 
-                          album.cover || 
-                          'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=500&q=80'
-                        }
+                        src={album.coverBig || album.coverMedium || album.cover || 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=500&q=80'}
                         alt={album.title}
                         className="w-full h-full object-cover rounded-lg shadow-lg group-hover:scale-105 transition duration-200"
                       />
@@ -1141,7 +925,7 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
         </div>
       )}
 
-      {/* 8. Zero Results State: Typo Tolerance & Smart Recommendations */}
+      {/* 6. Zero Results State */}
       {query.trim() && !isSearching && results && results.tracks.length === 0 && results.artists.length === 0 && (
         <div className="py-16 text-center space-y-4 max-w-md mx-auto">
           <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto text-[#b3b3b3]">
@@ -1164,7 +948,7 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
               {['Guru Randhawa', 'Atif Aslam', 'Arijit Singh', 'Coke Studio', 'Karan Aujla', 'The Weeknd'].map((rec) => (
                 <button
                   key={rec}
-                  onClick={() => handleSelectSuggestion(rec)}
+                  onClick={() => handleSelectQuery(rec)}
                   className="px-3 py-1.5 rounded-full bg-[#242424] hover:bg-white text-xs font-semibold text-white hover:text-black transition cursor-pointer border border-white/5 shadow"
                 >
                   {rec}
@@ -1175,7 +959,7 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
         </div>
       )}
 
-      {/* Universal Track Context Menu Modal (Add to Playlist, Download, Radio, Share) */}
+      {/* Universal Track Context Menu Modal */}
       <TrackContextMenuModal
         track={contextMenuTrack}
         isOpen={Boolean(contextMenuTrack)}
@@ -1184,8 +968,3 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
     </div>
   );
 };
-
-// Helper for safe callback
-function useCallbackSafe<T extends (...args: any[]) => any>(callback: T, deps: React.DependencyList): T {
-  return React.useCallback(callback, deps);
-}
