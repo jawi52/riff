@@ -129,7 +129,9 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
         artists: ranked.rankedArtists
       };
 
-      queryCache.set(cacheKey, rankedData);
+      if (!data.isFallback) {
+        queryCache.set(cacheKey, rankedData);
+      }
       setResults(rankedData);
     } catch (err: any) {
       if (err?.name === 'AbortError') return;
@@ -151,7 +153,7 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
     }
     debounceTimeout.current = setTimeout(() => {
       performSearch(val);
-    }, 200);
+    }, 320);
   };
 
   const clearSearch = () => {
@@ -245,6 +247,9 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
             value={query}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
+                if (debounceTimeout.current) {
+                  clearTimeout(debounceTimeout.current);
+                }
                 performSearch(query);
               }
             }}

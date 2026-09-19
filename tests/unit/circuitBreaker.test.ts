@@ -141,4 +141,24 @@ describe('Distributed Resilience Circuit Breaker Pattern', () => {
     expect(res).toBe('TIMEOUT_FALLBACK');
     expect(breaker.failureCount).toBe(1);
   });
+
+  it('should rethrow user-initiated AbortError without counting as failure or tripping breaker', async () => {
+    const breaker = new CircuitBreaker({
+      failureThreshold: 2,
+      fallback: async () => 'FALLBACK',
+    });
+
+    const userAbortedAction = async () => {
+      const err = new Error('The user aborted a request.');
+      err.name = 'AbortError';
+      throw err;
+    };
+
+    // Should rethrow AbortError directly instead of returning fallback
+    await expect(breaker.execute(userAbortedAction)).rejects.toThrow('The user aborted a request.');
+
+    // Failure count must remain 0 and circuit must remain CLOSED
+    expect(breaker.failureCount).toBe(0);
+    expect(breaker.state).toBe('CLOSED');
+  });
 });

@@ -50,6 +50,7 @@ export interface SearchResponse {
   artists: ApiArtist[];
   albums: ApiAlbum[];
   total: number;
+  isFallback?: boolean;
 }
 
 let cachedMultiFeed: MultiRegionalFeed | null = null;
@@ -170,7 +171,7 @@ export const engineChartsBreaker = new CircuitBreaker<ChartsResponse>({
   name: 'EngineChartsBreaker',
   failureThreshold: 3,
   cooldownMs: 20000,
-  timeoutMs: 4000,
+  timeoutMs: 10000,
   fallback: () => ({
     topTracks: GLOBAL_CATALOG.slice(0, 20),
     topArtists: ICONIC_REGIONAL_ARTISTS,
@@ -180,9 +181,9 @@ export const engineChartsBreaker = new CircuitBreaker<ChartsResponse>({
 
 export const engineSearchBreaker = new CircuitBreaker<SearchResponse>({
   name: 'EngineSearchBreaker',
-  failureThreshold: 3,
-  cooldownMs: 15000,
-  timeoutMs: 4000,
+  failureThreshold: 5,
+  cooldownMs: 8000,
+  timeoutMs: 12000,
 });
 
 /**
@@ -235,12 +236,25 @@ export async function searchCatalog(query: string, limit = 20, signal?: AbortSig
       artists: matchedArtists,
       albums: [],
       total: matchedTracks.length + matchedArtists.length,
+      isFallback: true,
     };
   };
 
   return await engineSearchBreaker.execute(
     async (timeoutSignal) => {
-      const effectiveSignal = signal || timeoutSignal;
+      // Combine user cancellation signal with circuit breaker timeout signal
+      let effectiveSignal: AbortSignal;
+      if (signal && typeof AbortSignal.any === 'function') {
+        effectiveSignal = AbortSignal.any([signal, timeoutSignal]);
+      } else if (signal) {
+        const combined = new AbortController();
+        const onAbort = () => combined.abort();
+        signal.addEventListener('abort', onAbort, { once: true });
+        timeoutSignal.addEventListener('abort', onAbort, { once: true });
+        effectiveSignal = combined.signal;
+      } else {
+        effectiveSignal = timeoutSignal;
+      }
 
       const res = await fetch(`${RIFF_ENGINE_URL}/api/v1/search?q=${encodeURIComponent(clean)}&limit=${limit}`, {
         signal: effectiveSignal,
@@ -263,6 +277,7 @@ export async function searchCatalog(query: string, limit = 20, signal?: AbortSig
         artists,
         albums,
         total: data.total || tracks.length,
+        isFallback: false,
       };
     },
     fallbackSearch

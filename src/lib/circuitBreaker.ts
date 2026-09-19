@@ -100,6 +100,12 @@ export class CircuitBreaker<T = any> {
       return result;
     } catch (err: any) {
       const error = err instanceof Error ? err : new Error(String(err));
+
+      // User-initiated external aborts should NOT count as server failures or trip the circuit breaker
+      if (error.name === 'AbortError') {
+        throw error;
+      }
+
       this.onFailure();
 
       const fallbackFn = customFallback || (this.fallback as any);
