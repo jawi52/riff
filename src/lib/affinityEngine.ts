@@ -1,4 +1,5 @@
 import { Track } from '../types';
+import { findTopK } from './priorityQueue';
 
 export interface AffinityProfile {
   artists: Record<string, number>; // artistName -> score
@@ -98,23 +99,40 @@ export function recordSearchInteraction(artistName: string) {
 }
 
 /**
- * Retrieves the user's top affinity artist
+ * Retrieves the user's top affinity artist in O(N) single-pass time.
  */
 export function getTopAffinityArtist(): { name: string; score: number } | null {
   const entries = Object.entries(profile.artists);
   if (entries.length === 0) return null;
-  entries.sort((a, b) => b[1] - a[1]);
-  return { name: entries[0][0], score: entries[0][1] };
+  let topName = entries[0][0];
+  let topScore = entries[0][1];
+  for (let i = 1; i < entries.length; i++) {
+    if (entries[i][1] > topScore) {
+      topName = entries[i][0];
+      topScore = entries[i][1];
+    }
+  }
+  return { name: topName, score: topScore };
 }
 
 /**
- * Retrieves the user's top genres ordered by score
+ * Retrieves the user's top multiple affinity artists using Min-Heap Top-K in O(N log K).
+ */
+export function getTopAffinityArtists(limit = 5): { name: string; score: number }[] {
+  const entries = Object.entries(profile.artists);
+  if (entries.length === 0) return [];
+  const top = findTopK(entries, limit, (a, b) => a[1] - b[1]);
+  return top.map(([name, score]) => ({ name, score }));
+}
+
+/**
+ * Retrieves the user's top genres ordered by score using Min-Heap Top-K in O(N log K).
  */
 export function getTopAffinityGenres(limit = 3): string[] {
   const entries = Object.entries(profile.genres);
   if (entries.length === 0) return ['Pakistani Pop', 'Punjabi Wave', 'Bollywood Romance'];
-  entries.sort((a, b) => b[1] - a[1]);
-  return entries.slice(0, limit).map(([genre]) => genre);
+  const top = findTopK(entries, limit, (a, b) => a[1] - b[1]);
+  return top.map(([genre]) => genre);
 }
 
 /**

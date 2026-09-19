@@ -1,8 +1,10 @@
 import { Track } from '../types';
 import { ApiArtist } from './api';
 import { RecentItem } from './recentSearches';
+import { PrefixTrie } from './trie';
+import { BKTree } from './fuzzySearch';
 
-export type SuggestionType = 'artist' | 'track' | 'query' | 'recent';
+export type SuggestionType = 'artist' | 'track' | 'query' | 'recent' | 'fuzzy';
 
 export interface SearchSuggestion {
   id: string;
@@ -13,6 +15,7 @@ export interface SearchSuggestion {
   imageUrl?: string;
   track?: Track;
   artist?: ApiArtist;
+  distance?: number;
 }
 
 // Curated top entities for instant autocomplete suggestions
@@ -37,8 +40,28 @@ const POPULAR_SEARCH_ENTITIES: { name: string; type: SuggestionType; subtitle: s
   { name: 'Desi Hip Hop', type: 'query', subtitle: 'Genre • Rap & Bars' },
 ];
 
+// 1. Persistent static Prefix Trie for O(K) instant prefix autocomplete
+const entityTrie = new PrefixTrie<SearchSuggestion>();
+
+// 2. Persistent static BK-Tree for O(log N) metric space typo tolerance
+const entityBKTree = new BKTree<SearchSuggestion>();
+
+// Populate both trees with multi-token indexing
+POPULAR_SEARCH_ENTITIES.forEach((entity) => {
+  const suggestion: SearchSuggestion = {
+    id: `entity_${entity.name.toLowerCase().replace(/\s+/g, '_')}`,
+    title: entity.name,
+    subtitle: entity.subtitle,
+    type: entity.type,
+    query: entity.name,
+    imageUrl: entity.imageUrl,
+  };
+  entityTrie.insertTokens(entity.name, suggestion);
+  entityBKTree.insertTokens(entity.name, suggestion);
+});
+
 /**
- * Generates instant typeahead suggestions for the search panel.
+ * Generates instant typeahead suggestions using Prefix Trie and BK-Tree typo auto-correction.
  */
 export function getSearchSuggestions(
   query: string,
@@ -56,7 +79,7 @@ export function getSearchSuggestions(
   const suggestions: SearchSuggestion[] = [];
   const seenNames = new Set<string>();
 
-  // 1. Match recent searches first
+  // 1. Match recent searches first (high priority for personalized UX)
   if (options?.recentSearches) {
     for (const item of options.recentSearches) {
       if (suggestions.length >= max) break;
@@ -76,31 +99,46 @@ export function getSearchSuggestions(
     }
   }
 
-  // 2. Match popular static entities (Instant prefix matching)
-  for (const entity of POPULAR_SEARCH_ENTITIES) {
+  // 2. Query Prefix Trie in O(K) time for instant prefix/token matches
+  const trieMatches = entityTrie.searchPrefix(clean, max);
+  for (const match of trieMatches) {
     if (suggestions.length >= max) break;
-    const nameLower = entity.name.toLowerCase();
-    if (nameLower.includes(clean) && !seenNames.has(nameLower)) {
+    const nameLower = match.title.toLowerCase();
+    if (!seenNames.has(nameLower)) {
       seenNames.add(nameLower);
-      suggestions.push({
-        id: `entity_${nameLower.replace(/\s+/g, '_')}`,
-        title: entity.name,
-        subtitle: entity.subtitle,
-        type: entity.type,
-        query: entity.name,
-        imageUrl: entity.imageUrl,
-      });
+      suggestions.push(match);
     }
   }
 
-  // 3. Match live artist results from search
+  // 3. Typo Tolerance: If results are limited and query is >= 3 chars, query BK-Tree for fuzzy matches
+  if (suggestions.length < max && clean.length >= 3) {
+    const remainingSlots = max - suggestions.length;
+    const fuzzyMatches = entityBKTree.search(clean, 2, remainingSlots);
+
+    for (const match of fuzzyMatches) {
+      if (suggestions.length >= max) break;
+      const nameLower = match.payload.title.toLowerCase();
+      if (!seenNames.has(nameLower)) {
+        seenNames.add(nameLower);
+        suggestions.push({
+          ...match.payload,
+          id: `fuzzy_${match.payload.id}`,
+          subtitle: `Did you mean • ${match.payload.title}`,
+          type: 'fuzzy',
+          distance: match.distance,
+        });
+      }
+    }
+  }
+
+  // 4. Match live artist results from live catalog search
   if (options?.liveArtists) {
     for (const artist of options.liveArtists) {
       if (suggestions.length >= max) break;
       const nameLower = artist.name.toLowerCase();
       if (!seenNames.has(nameLower)) {
         seenNames.add(nameLower);
-        suggestions.push({
+        const liveSuggestion: SearchSuggestion = {
           id: `live_artist_${artist.id}`,
           title: artist.name,
           subtitle: 'Artist • From Catalog',
@@ -108,12 +146,30 @@ export function getSearchSuggestions(
           query: artist.name,
           imageUrl: artist.pictureBig || artist.pictureMedium || artist.picture,
           artist,
-        });
+        };
+        suggestions.push(liveSuggestion);
+        // Dynamically index live artist into both Trie and BK-Tree
+        entityTrie.insertTokens(artist.name, liveSuggestion);
+        entityBKTree.insertTokens(artist.name, liveSuggestion);
       }
     }
   }
 
   return suggestions.slice(0, max);
+}
+
+/**
+ * Checks if the user query contains a known typo and returns the closest candidate.
+ */
+export function getFuzzyCorrection(query: string): SearchSuggestion | null {
+  const clean = query.trim().toLowerCase();
+  if (clean.length < 3) return null;
+
+  const matches = entityBKTree.search(clean, 2, 1);
+  if (matches.length > 0 && matches[0].payload.title.toLowerCase() !== clean) {
+    return matches[0].payload;
+  }
+  return null;
 }
 
 /**

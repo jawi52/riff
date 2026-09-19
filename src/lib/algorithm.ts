@@ -1,5 +1,6 @@
 import { Track, Artist, Album } from '../types';
 import { RIFF_ENGINE_URL } from './engineUrl';
+import { findTopK } from './priorityQueue';
 
 export interface DailyMix {
   id: string;
@@ -669,8 +670,8 @@ export function getSmartAutoplayTracks(seedTrack: Track, existingQueueIds?: Set<
     track,
     score: calculateTrackSimilarity(seedTrack, track) + (Math.random() - 0.5) * 0.2
   }));
-  ranked.sort((a, b) => b.score - a.score);
-  return ranked.slice(0, actualLimit).map((r) => r.track);
+  const topRanked = findTopK(ranked, actualLimit, (a, b) => a.score - b.score);
+  return topRanked.map((r) => r.track);
 }
 
 export function recordTrackInteraction(trackOrId: Track | string, action: 'play' | 'skip' | 'complete' | 'like'): void {
@@ -744,9 +745,7 @@ export function getHeroTasteTracks(likedTracks: Track[] = [], recentTracks: Trac
     return { track, score };
   });
 
-  scoredCatalog.sort((a, b) => b.score - a.score);
-
-  const top5 = scoredCatalog.slice(0, 5).map((item, idx) => {
+  const top5 = findTopK(scoredCatalog, 5, (a, b) => a.score - b.score).map((item, idx) => {
     const badges = [
       'BASED ON YOUR TASTE',
       'HEAVY ROTATION',

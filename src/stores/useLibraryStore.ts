@@ -3,6 +3,8 @@ import { Track, Playlist } from '../types';
 import { db, DBTrack, DBPlaylist } from '../lib/db';
 import { resolveMasterStream } from '../lib/masterAudioEngine';
 import { recordLikeInteraction } from '../lib/affinityEngine';
+import { audioWorkerPool } from '../lib/workerPool';
+import { saveAudioToOPFS, deleteAudioFromOPFS } from '../lib/opfs';
 import { toast } from 'sonner';
 
 export interface DownloadProgress {
@@ -25,6 +27,10 @@ interface LibraryState {
   toggleLikeTrack: (track: Track) => Promise<boolean>;
   addLocalTrack: (track: DBTrack) => Promise<boolean>;
   removeLocalTrack: (id: string) => Promise<void>;
+  importLocalFiles: (
+    files: File[],
+    onProgress?: (completed: number, total: number) => void
+  ) => Promise<{ imported: number; failed: number }>;
   createPlaylist: (title: string, description?: string) => Promise<Playlist>;
   addTrackToPlaylist: (playlistId: string, track: Track) => Promise<boolean>;
   removeTrackFromPlaylist: (playlistId: string, trackId: string) => Promise<void>;
@@ -129,8 +135,42 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   },
 
   removeLocalTrack: async (id) => {
+    try {
+      await deleteAudioFromOPFS(id);
+    } catch {}
     await db.tracks.delete(id);
     await get().loadLibrary();
+  },
+
+  importLocalFiles: async (files, onProgress) => {
+    if (!files || files.length === 0) return { imported: 0, failed: 0 };
+    try {
+      const ingested = await audioWorkerPool.ingestBatch(files, 4, onProgress);
+      let imported = 0;
+      for (const item of ingested) {
+        const existing = await db.tracks.get(item.track.id);
+        if (!existing) {
+          let opfsKey = '';
+          try {
+            opfsKey = await saveAudioToOPFS(item.track.id, item.audioBlob);
+          } catch (e) {
+            console.warn('OPFS local write fallback:', e);
+          }
+          await db.tracks.add({
+            ...item.track,
+            audioBlob: item.audioBlob,
+            localBlobKey: opfsKey || undefined,
+            addedAt: Date.now()
+          });
+          imported++;
+        }
+      }
+      await get().loadLibrary();
+      return { imported, failed: files.length - imported };
+    } catch (err) {
+      console.error('Failed to import local audio batch:', err);
+      return { imported: 0, failed: files.length };
+    }
   },
 
   createPlaylist: async (title, description = '') => {

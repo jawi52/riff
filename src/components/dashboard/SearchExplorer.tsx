@@ -10,7 +10,10 @@ import {
   addRecentTrack,
   RecentItem 
 } from '../../lib/recentSearches';
-import { getSearchSuggestions } from '../../lib/searchSuggestions';
+import { getSearchSuggestions, getFuzzyCorrection } from '../../lib/searchSuggestions';
+import { LRUCache } from '../../lib/lruCache';
+import { rankSearchResults } from '../../lib/searchRanking';
+import { getTopAffinityArtist, getTopAffinityGenres } from '../../lib/affinityEngine';
 import { TrackContextMenuModal } from '../common/TrackContextMenuModal';
 import { 
   Search, 
@@ -33,9 +36,8 @@ interface SearchExplorerProps {
 
 type SearchTab = 'all' | 'songs' | 'artists' | 'albums';
 
-// Client-side query cache to protect backend credits & give 0ms instant response
-const queryCache = new Map<string, { data: any; timestamp: number }>();
-const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+// Memory-bounded LRU query cache (max 60 queries, 10 min TTL) with O(1) reads, writes, and evictions
+const queryCache = new LRUCache<string, any>({ capacity: 60, ttlMs: 10 * 60 * 1000 });
 
 const BROWSE_GENRES = [
   { title: '🇵🇰 Coke Studio & Pak Pop', desc: 'Atif, Young Stunners & Ali Sethi', query: 'Coke Studio Pakistan', color: 'from-emerald-700 to-teal-950' },
@@ -97,8 +99,8 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
     // Check memory cache for instant 0ms return
     const cacheKey = clean.toLowerCase();
     const cached = queryCache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
-      setResults(cached.data);
+    if (cached) {
+      setResults(cached);
       setIsSearching(false);
       return;
     }
@@ -117,8 +119,18 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
       // Discard stale responses
       if (seq !== querySeqRef.current) return;
 
-      queryCache.set(cacheKey, { data, timestamp: Date.now() });
-      setResults(data);
+      const topArtistAffinity = getTopAffinityArtist()?.name;
+      const topGenreAffinity = getTopAffinityGenres(1)[0];
+      const ranked = rankSearchResults(clean, data.tracks, data.artists, topArtistAffinity, topGenreAffinity);
+
+      const rankedData = {
+        ...data,
+        tracks: ranked.rankedTracks,
+        artists: ranked.rankedArtists
+      };
+
+      queryCache.set(cacheKey, rankedData);
+      setResults(rankedData);
     } catch (err: any) {
       if (err?.name === 'AbortError') return;
       if (seq !== querySeqRef.current) return;
@@ -179,6 +191,12 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
     });
   }, [query, recentItems, results]);
 
+  // Check for high-confidence metric-space typo corrections
+  const fuzzyCorrection = useMemo(() => {
+    if (!query || query.trim().length < 3) return null;
+    return getFuzzyCorrection(query);
+  }, [query]);
+
   const handleTrackClick = (track: Track, trackList?: Track[]) => {
     addRecentTrack(track);
     if (currentTrack?.id === track.id) {
@@ -199,16 +217,19 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
-  // Detect top result (Artist match or top track)
-  const isArtistTopResult = Boolean(
-    results?.artists &&
-    results.artists.length > 0 &&
-    (
-      results.artists[0].name.toLowerCase().includes(query.toLowerCase().trim()) ||
-      query.toLowerCase().trim().includes(results.artists[0].name.toLowerCase())
-    )
-  );
+  // Detect top result using ranking engine
+  const rankedState = useMemo(() => {
+    if (!results || !query.trim()) return null;
+    return rankSearchResults(
+      query,
+      results.tracks || [],
+      results.artists || [],
+      getTopAffinityArtist()?.name,
+      getTopAffinityGenres(1)[0]
+    );
+  }, [results, query]);
 
+  const isArtistTopResult = rankedState?.topResult?.type === 'artist';
   const topArtist = results?.artists?.[0];
   const topTrack = results?.tracks?.[0];
 
@@ -245,7 +266,7 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
           ) : null}
         </div>
 
-        {/* 2. Non-Intrusive Autocomplete Chips (Never covers the results!) */}
+        {/* 2. Non-Intrusive Autocomplete Chips & Typo Corrections */}
         {query.trim() && suggestions.length > 0 && (
           <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1 text-xs">
             <span className="text-[#727272] font-semibold flex items-center gap-1 mr-1 flex-shrink-0">
@@ -256,11 +277,31 @@ export const SearchExplorer: React.FC<SearchExplorerProps> = ({ initialQuery }) 
               <button
                 key={s.id}
                 onClick={() => handleSelectQuery(s.query)}
-                className="px-3 py-1 rounded-full bg-[#242424] hover:bg-[#2e2e2e] text-white hover:text-[#1ed760] border border-white/5 transition flex-shrink-0 whitespace-nowrap font-medium cursor-pointer"
+                className={`px-3 py-1 rounded-full border transition flex-shrink-0 whitespace-nowrap font-medium cursor-pointer ${
+                  s.type === 'fuzzy'
+                    ? 'bg-[#1ed760]/10 border-[#1ed760]/30 text-[#1ed760] hover:bg-[#1ed760]/20'
+                    : 'bg-[#242424] hover:bg-[#2e2e2e] text-white hover:text-[#1ed760] border-white/5'
+                }`}
               >
+                {s.type === 'fuzzy' ? (
+                  <span className="opacity-75 mr-1 font-normal">Did you mean:</span>
+                ) : null}
                 {s.title}
               </button>
             ))}
+          </div>
+        )}
+
+        {/* 2b. Standalone "Did you mean" suggestion banner when query differs from correction */}
+        {fuzzyCorrection && fuzzyCorrection.title.toLowerCase() !== query.trim().toLowerCase() && (
+          <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#1ed760]/5 border border-[#1ed760]/20 text-xs text-[#b3b3b3] animate-in fade-in duration-200">
+            <span>Did you mean:</span>
+            <button
+              onClick={() => handleSelectQuery(fuzzyCorrection.query)}
+              className="font-bold text-[#1ed760] hover:underline cursor-pointer flex items-center gap-1"
+            >
+              {fuzzyCorrection.title}
+            </button>
           </div>
         )}
 

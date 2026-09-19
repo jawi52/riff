@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { AppSettings, QualityTier, Track } from '../types';
 import { audioEngine } from '../lib/audioEngine';
+import { crossfadeController } from '../lib/crossfade';
 
 interface SettingsState extends AppSettings {
   isSettingsOpen: boolean;
@@ -100,7 +101,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setPushEnabled: (enabled) => set({ pushEnabled: enabled }),
   setTheme: (theme) => set({ theme }),
 
-  setCrossfadeSeconds: (seconds) => set({ crossfadeSeconds: Math.max(0, Math.min(12, seconds)) }),
+  setCrossfadeSeconds: (seconds) => {
+    const clamped = Math.max(0, Math.min(12, seconds));
+    crossfadeController.setDuration(clamped);
+    set({ crossfadeSeconds: clamped });
+  },
   setNormalizeLoudness: (enabled) => {
     audioEngine.setLoudnessNormalization(enabled, get().loudnessPreset);
     set({ normalizeLoudness: enabled });

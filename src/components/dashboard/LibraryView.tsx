@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useLibraryStore } from '../../stores/useLibraryStore';
 import { usePlayerStore } from '../../stores/usePlayerStore';
+import { toast } from 'sonner';
 import { Track, Playlist } from '../../types';
 import { 
   Heart, 
@@ -25,6 +26,7 @@ import {
   Edit3
 } from 'lucide-react';
 import { EditProfileModal } from '../common/EditProfileModal';
+import { VirtualTrackList } from '../common/VirtualTrackList';
 
 interface LibraryViewProps {
   onLogout: () => void;
@@ -35,16 +37,20 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
   onLogout,
   isStandaloneApp = false,
 }) => {
-  const [activeSection, setActiveSection] = useState<'overview' | 'liked' | 'downloaded' | 'playlist'>('overview');
+  const [activeSection, setActiveSection] = useState<'overview' | 'liked' | 'downloaded' | 'playlist' | 'local'>('overview');
   const [selectedPlaylist, setSelectedPlaylist] = useState<Playlist | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [newPlaylistTitle, setNewPlaylistTitle] = useState('');
   const [newPlaylistDesc, setNewPlaylistDesc] = useState('');
+  const [isImporting, setIsImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState<{ completed: number; total: number }>({ completed: 0, total: 0 });
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { user, lastActiveAt, logout } = useAuthStore();
   const { 
     likedTracks, 
+    localTracks,
     offlineTracks, 
     playlists,
     downloadProgress,
@@ -56,8 +62,28 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
     createPlaylist,
     deletePlaylist,
     removeTrackFromPlaylist,
+    importLocalFiles,
+    removeLocalTrack,
     loadLibrary 
   } = useLibraryStore();
+
+  const handleFilesSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    setIsImporting(true);
+    setImportProgress({ completed: 0, total: files.length });
+    const { imported, failed } = await importLocalFiles(files, (completed, total) => {
+      setImportProgress({ completed, total });
+    });
+    setIsImporting(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (imported > 0) {
+      toast.success(`Imported ${imported} local track${imported > 1 ? 's' : ''}`);
+    }
+    if (failed > 0 && imported === 0) {
+      toast.error('Failed to import selected files');
+    }
+  };
 
   const { currentTrack, playbackState, playTrack, togglePlayPause } = usePlayerStore();
 
@@ -210,105 +236,108 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
         </div>
 
         {/* Tracks List */}
-        {likedTracks.length === 0 ? (
-          <div className="py-20 text-center space-y-3 bg-[#181818]/60 border border-white/5 rounded-2xl p-8">
-            <div className="w-14 h-14 mx-auto rounded-full bg-white/5 flex items-center justify-center text-[#727272]">
-              <Heart className="w-7 h-7" />
+        <VirtualTrackList
+          items={likedTracks}
+          itemHeight={64}
+          overscan={5}
+          className="space-y-1"
+          emptyState={
+            <div className="py-20 text-center space-y-3 bg-[#181818]/60 border border-white/5 rounded-2xl p-8">
+              <div className="w-14 h-14 mx-auto rounded-full bg-white/5 flex items-center justify-center text-[#727272]">
+                <Heart className="w-7 h-7" />
+              </div>
+              <h3 className="text-lg font-bold text-white">Songs you like will appear here</h3>
+              <p className="text-xs text-[#b3b3b3] max-w-sm mx-auto">
+                Save songs by tapping the heart icon on any song, chart, or search result.
+              </p>
             </div>
-            <h3 className="text-lg font-bold text-white">Songs you like will appear here</h3>
-            <p className="text-xs text-[#b3b3b3] max-w-sm mx-auto">
-              Save songs by tapping the heart icon on any song, chart, or search result.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-1">
-            {likedTracks.map((track, idx) => {
-              const isThisPlaying = currentTrack?.id === track.id && playbackState === 'playing';
-              const isDownloaded = isTrackOffline(track.id);
+          }
+          renderItem={(track, idx) => {
+            const isThisPlaying = currentTrack?.id === track.id && playbackState === 'playing';
+            const isDownloaded = isTrackOffline(track.id);
 
-              return (
-                <div
-                  key={track.id}
-                  onClick={() => handleTrackClick(track, likedTracks)}
-                  className="group flex items-center justify-between p-2.5 rounded-lg hover:bg-white/10 transition cursor-pointer select-none"
-                >
-                  <div className="flex items-center gap-3.5 min-w-0 pr-3">
-                    <span className="w-5 text-right text-xs text-[#727272] group-hover:text-white tabular-nums shrink-0">
-                      {idx + 1}
-                    </span>
+            return (
+              <div
+                key={track.id}
+                onClick={() => handleTrackClick(track, likedTracks)}
+                className="group flex items-center justify-between p-2.5 rounded-lg hover:bg-white/10 transition cursor-pointer select-none"
+              >
+                <div className="flex items-center gap-3.5 min-w-0 pr-3">
+                  <span className="w-5 text-right text-xs text-[#727272] group-hover:text-white tabular-nums shrink-0">
+                    {idx + 1}
+                  </span>
 
-                    <div className="w-11 h-11 rounded-md bg-[#242424] shrink-0 relative overflow-hidden shadow-sm">
-                      <img
-                        src={track.coverUrl}
-                        alt=""
-                        className="w-full h-full object-cover"
-                      />
-                      {isThisPlaying && (
-                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                          <Radio className="w-4 h-4 text-[#1ed760] animate-pulse" />
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="min-w-0">
-                      <p className={`text-sm font-bold truncate leading-tight ${isThisPlaying ? 'text-[#1ed760]' : 'text-white'}`}>
-                        {track.title}
-                      </p>
-                      <p className="text-xs text-[#b3b3b3] truncate mt-0.5">
-                        {track.artist}
-                      </p>
-                    </div>
+                  <div className="w-11 h-11 rounded-md bg-[#242424] shrink-0 relative overflow-hidden shadow-sm">
+                    <img
+                      src={track.coverUrl}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                    {isThisPlaying && (
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                        <Radio className="w-4 h-4 text-[#1ed760] animate-pulse" />
+                      </div>
+                    )}
                   </div>
 
-                  <div className="flex items-center gap-3 sm:gap-4 shrink-0 text-xs text-[#b3b3b3]">
-                    {/* Single Track Download Button */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (isDownloaded) {
-                          deleteOfflineTrack(track.id);
-                        } else {
-                          cacheTrackForOffline(track);
-                        }
-                      }}
-                      className={`p-1.5 rounded-full transition cursor-pointer ${
-                        isDownloaded 
-                          ? 'text-[#1ed760] hover:text-red-400' 
-                          : 'text-[#727272] hover:text-white'
-                      }`}
-                      title={isDownloaded ? 'Saved Offline (Click to remove)' : 'Download for offline playback'}
-                    >
-                      {isDownloaded ? (
-                        <CheckCircle2 className="w-4 h-4 fill-[#1ed760]/20" />
-                      ) : (
-                        <Download className="w-4 h-4" />
-                      )}
-                    </button>
-
-                    {/* Unlike Button */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleLikeTrack(track);
-                      }}
-                      className="p-1.5 text-[#1ed760] hover:text-white transition cursor-pointer"
-                      title="Remove from Liked Songs"
-                    >
-                      <Heart className="w-4 h-4 fill-[#1ed760]" />
-                    </button>
-
-                    <span className="hidden sm:inline text-[#1ed760] font-semibold text-[11px]">
-                      320k
-                    </span>
-                    <span className="tabular-nums">
-                      {Math.floor(track.duration / 60)}:{(track.duration % 60).toString().padStart(2, '0')}
-                    </span>
+                  <div className="min-w-0">
+                    <p className={`text-sm font-bold truncate leading-tight ${isThisPlaying ? 'text-[#1ed760]' : 'text-white'}`}>
+                      {track.title}
+                    </p>
+                    <p className="text-xs text-[#b3b3b3] truncate mt-0.5">
+                      {track.artist}
+                    </p>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        )}
+
+                <div className="flex items-center gap-3 sm:gap-4 shrink-0 text-xs text-[#b3b3b3]">
+                  {/* Single Track Download Button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (isDownloaded) {
+                        deleteOfflineTrack(track.id);
+                      } else {
+                        cacheTrackForOffline(track);
+                      }
+                    }}
+                    className={`p-1.5 rounded-full transition cursor-pointer ${
+                      isDownloaded 
+                        ? 'text-[#1ed760] hover:text-red-400' 
+                        : 'text-[#727272] hover:text-white'
+                    }`}
+                    title={isDownloaded ? 'Saved Offline (Click to remove)' : 'Download for offline playback'}
+                  >
+                    {isDownloaded ? (
+                      <CheckCircle2 className="w-4 h-4 fill-[#1ed760]/20" />
+                    ) : (
+                      <Download className="w-4 h-4" />
+                    )}
+                  </button>
+
+                  {/* Unlike Button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleLikeTrack(track);
+                    }}
+                    className="p-1.5 text-[#1ed760] hover:text-white transition cursor-pointer"
+                    title="Remove from Liked Songs"
+                  >
+                    <Heart className="w-4 h-4 fill-[#1ed760]" />
+                  </button>
+
+                  <span className="hidden sm:inline text-[#1ed760] font-semibold text-[11px]">
+                    320k
+                  </span>
+                  <span className="tabular-nums">
+                    {Math.floor(track.duration / 60)}:{(track.duration % 60).toString().padStart(2, '0')}
+                  </span>
+                </div>
+              </div>
+            );
+          }}
+        />
       </div>
     );
   }
@@ -432,93 +461,96 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
         </div>
 
         {/* Tracklist */}
-        {playlistTracks.length === 0 ? (
-          <div className="py-20 text-center space-y-3 bg-[#181818]/60 border border-white/5 rounded-2xl p-8">
-            <div className="w-14 h-14 mx-auto rounded-full bg-white/5 flex items-center justify-center text-[#727272]">
-              <Music className="w-7 h-7" />
+        <VirtualTrackList
+          items={playlistTracks}
+          itemHeight={64}
+          overscan={5}
+          className="space-y-1"
+          emptyState={
+            <div className="py-20 text-center space-y-3 bg-[#181818]/60 border border-white/5 rounded-2xl p-8">
+              <div className="w-14 h-14 mx-auto rounded-full bg-white/5 flex items-center justify-center text-[#727272]">
+                <Music className="w-7 h-7" />
+              </div>
+              <h3 className="text-lg font-bold text-white">This playlist is empty</h3>
+              <p className="text-xs text-[#b3b3b3] max-w-sm mx-auto">
+                Find songs on Search or Home and add them to this playlist.
+              </p>
             </div>
-            <h3 className="text-lg font-bold text-white">This playlist is empty</h3>
-            <p className="text-xs text-[#b3b3b3] max-w-sm mx-auto">
-              Find songs on Search or Home and add them to this playlist.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-1">
-            {playlistTracks.map((track, idx) => {
-              const isThisPlaying = currentTrack?.id === track.id && playbackState === 'playing';
-              const isDownloaded = isTrackOffline(track.id);
+          }
+          renderItem={(track, idx) => {
+            const isThisPlaying = currentTrack?.id === track.id && playbackState === 'playing';
+            const isDownloaded = isTrackOffline(track.id);
 
-              return (
-                <div
-                  key={track.id}
-                  onClick={() => handleTrackClick(track, playlistTracks)}
-                  className="group flex items-center justify-between p-2.5 rounded-lg hover:bg-white/10 transition cursor-pointer select-none"
-                >
-                  <div className="flex items-center gap-3.5 min-w-0 pr-3">
-                    <span className="w-5 text-right text-xs text-[#727272] group-hover:text-white tabular-nums shrink-0">
-                      {idx + 1}
-                    </span>
+            return (
+              <div
+                key={track.id}
+                onClick={() => handleTrackClick(track, playlistTracks)}
+                className="group flex items-center justify-between p-2.5 rounded-lg hover:bg-white/10 transition cursor-pointer select-none"
+              >
+                <div className="flex items-center gap-3.5 min-w-0 pr-3">
+                  <span className="w-5 text-right text-xs text-[#727272] group-hover:text-white tabular-nums shrink-0">
+                    {idx + 1}
+                  </span>
 
-                    <div className="w-11 h-11 rounded-md bg-[#242424] shrink-0 relative overflow-hidden shadow-sm">
-                      <img
-                        src={track.coverUrl}
-                        alt=""
-                        className="w-full h-full object-cover"
-                      />
-                      {isThisPlaying && (
-                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                          <Radio className="w-4 h-4 text-[#1ed760] animate-pulse" />
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="min-w-0">
-                      <p className={`text-sm font-bold truncate leading-tight ${isThisPlaying ? 'text-[#1ed760]' : 'text-white'}`}>
-                        {track.title}
-                      </p>
-                      <p className="text-xs text-[#b3b3b3] truncate mt-0.5">
-                        {track.artist}
-                      </p>
-                    </div>
+                  <div className="w-11 h-11 rounded-md bg-[#242424] shrink-0 relative overflow-hidden shadow-sm">
+                    <img
+                      src={track.coverUrl}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                    {isThisPlaying && (
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                        <Radio className="w-4 h-4 text-[#1ed760] animate-pulse" />
+                      </div>
+                    )}
                   </div>
 
-                  <div className="flex items-center gap-3 sm:gap-4 shrink-0 text-xs text-[#b3b3b3]">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (isDownloaded) deleteOfflineTrack(track.id);
-                        else cacheTrackForOffline(track);
-                      }}
-                      className={`p-1.5 rounded-full transition cursor-pointer ${
-                        isDownloaded ? 'text-[#1ed760]' : 'text-[#727272] hover:text-white'
-                      }`}
-                      title={isDownloaded ? 'Saved Offline' : 'Download Track'}
-                    >
-                      {isDownloaded ? <CheckCircle2 className="w-4 h-4" /> : <Download className="w-4 h-4" />}
-                    </button>
-
-                    <button
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        await removeTrackFromPlaylist(selectedPlaylist.id, track.id);
-                        const updatedTracks = playlistTracks.filter((t) => t.id !== track.id);
-                        setSelectedPlaylist({ ...selectedPlaylist, tracks: updatedTracks });
-                      }}
-                      className="p-1.5 text-[#727272] hover:text-red-400 transition cursor-pointer"
-                      title="Remove from playlist"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-
-                    <span className="tabular-nums">
-                      {Math.floor(track.duration / 60)}:{(track.duration % 60).toString().padStart(2, '0')}
-                    </span>
+                  <div className="min-w-0">
+                    <p className={`text-sm font-bold truncate leading-tight ${isThisPlaying ? 'text-[#1ed760]' : 'text-white'}`}>
+                      {track.title}
+                    </p>
+                    <p className="text-xs text-[#b3b3b3] truncate mt-0.5">
+                      {track.artist}
+                    </p>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        )}
+
+                <div className="flex items-center gap-3 sm:gap-4 shrink-0 text-xs text-[#b3b3b3]">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (isDownloaded) deleteOfflineTrack(track.id);
+                      else cacheTrackForOffline(track);
+                    }}
+                    className={`p-1.5 rounded-full transition cursor-pointer ${
+                      isDownloaded ? 'text-[#1ed760]' : 'text-[#727272] hover:text-white'
+                    }`}
+                    title={isDownloaded ? 'Saved Offline' : 'Download Track'}
+                  >
+                    {isDownloaded ? <CheckCircle2 className="w-4 h-4" /> : <Download className="w-4 h-4" />}
+                  </button>
+
+                  <button
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      await removeTrackFromPlaylist(selectedPlaylist.id, track.id);
+                      const updatedTracks = playlistTracks.filter((t) => t.id !== track.id);
+                      setSelectedPlaylist({ ...selectedPlaylist, tracks: updatedTracks });
+                    }}
+                    className="p-1.5 text-[#727272] hover:text-red-400 transition cursor-pointer"
+                    title="Remove from playlist"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+
+                  <span className="tabular-nums">
+                    {Math.floor(track.duration / 60)}:{(track.duration % 60).toString().padStart(2, '0')}
+                  </span>
+                </div>
+              </div>
+            );
+          }}
+        />
       </div>
     );
   }
@@ -576,8 +608,12 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
             </p>
           </div>
         ) : (
-          <div className="space-y-1">
-            {offlineTracks.map((track, idx) => {
+          <VirtualTrackList
+            items={offlineTracks}
+            itemHeight={64}
+            overscan={5}
+            className="space-y-1"
+            renderItem={(track, idx) => {
               const isThisPlaying = currentTrack?.id === track.id && playbackState === 'playing';
 
               return (
@@ -637,14 +673,172 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
                   </div>
                 </div>
               );
-            })}
-          </div>
+            }}
+          />
         )}
       </div>
     );
   }
 
-  // 4. Default Overview View
+  // 4. Local Files View
+  if (activeSection === 'local') {
+    return (
+      <div className="space-y-6 pb-36 animate-in fade-in duration-200">
+        <button
+          onClick={() => setActiveSection('overview')}
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-[#b3b3b3] hover:text-white transition cursor-pointer"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          <span>Back to Library</span>
+        </button>
+
+        {/* Local Files Header */}
+        <div className="flex flex-col sm:flex-row items-center sm:items-end gap-5 p-6 rounded-2xl bg-gradient-to-b from-amber-950/60 to-[#181818] border border-white/10 shadow-xl">
+          <div className="w-36 h-36 sm:w-44 sm:h-44 rounded-xl bg-gradient-to-br from-amber-600 via-orange-700 to-yellow-600 flex items-center justify-center text-white shrink-0 shadow-2xl shadow-amber-950/50">
+            <Smartphone className="w-16 h-16 sm:w-20 sm:h-20" />
+          </div>
+
+          <div className="space-y-2 text-center sm:text-left flex-1 min-w-0">
+            <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">
+              On-Device Audio Storage
+            </span>
+            <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight">
+              Local Files
+            </h1>
+            <div className="flex items-center justify-center sm:justify-start gap-2 text-xs text-[#b3b3b3]">
+              <span className="font-bold text-white">Multi-threaded Ingestion Engine</span>
+              <span>•</span>
+              <span>{localTracks.length} {localTracks.length === 1 ? 'file' : 'files'} stored</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 shrink-0">
+            {/* Native File Input Picker */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="audio/*"
+              onChange={handleFilesSelected}
+              className="hidden"
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isImporting}
+              className="px-4 py-2.5 rounded-full text-xs font-bold flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/10 text-white transition cursor-pointer"
+            >
+              {isImporting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                  <span>Importing {importProgress.completed}/{importProgress.total}</span>
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4 text-amber-400" />
+                  <span>Import Audio Files</span>
+                </>
+              )}
+            </button>
+
+            {localTracks.length > 0 && (
+              <button
+                onClick={() => handlePlayAll(localTracks)}
+                className="w-14 h-14 rounded-full bg-[#1ed760] hover:scale-105 active:scale-95 text-black flex items-center justify-center shadow-xl shadow-[#1ed760]/30 transition cursor-pointer shrink-0"
+                title="Play all local tracks"
+              >
+                <Play className="w-6 h-6 fill-black ml-1" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Local Files Tracklist */}
+        {localTracks.length === 0 ? (
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            className="py-20 text-center space-y-3 bg-[#181818]/60 border-2 border-dashed border-white/10 hover:border-amber-400/50 rounded-2xl p-8 cursor-pointer transition group"
+          >
+            <div className="w-14 h-14 mx-auto rounded-full bg-white/5 flex items-center justify-center text-[#727272] group-hover:text-amber-400 transition">
+              <Plus className="w-7 h-7" />
+            </div>
+            <h3 className="text-lg font-bold text-white">No local audio files imported</h3>
+            <p className="text-xs text-[#b3b3b3] max-w-sm mx-auto">
+              Click or drag-and-drop MP3, FLAC, WAV, or AAC songs here to parse metadata off-thread and listen offline.
+            </p>
+          </div>
+        ) : (
+          <VirtualTrackList
+            items={localTracks}
+            itemHeight={64}
+            overscan={5}
+            className="space-y-1"
+            renderItem={(track, idx) => {
+              const isThisPlaying = currentTrack?.id === track.id && playbackState === 'playing';
+
+              return (
+                <div
+                  key={track.id}
+                  onClick={() => handleTrackClick(track, localTracks)}
+                  className="group flex items-center justify-between p-2.5 rounded-lg hover:bg-white/10 transition cursor-pointer select-none"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0 pr-3">
+                    <span className="w-5 text-right text-xs text-[#727272] group-hover:text-white tabular-nums shrink-0">
+                      {idx + 1}
+                    </span>
+
+                    <div className="w-11 h-11 rounded-md bg-[#242424] shrink-0 relative overflow-hidden shadow-sm">
+                      <img
+                        src={track.coverUrl}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                      {isThisPlaying && (
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                          <Radio className="w-4 h-4 text-[#1ed760] animate-pulse" />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="min-w-0">
+                      <p className={`text-sm font-bold truncate leading-tight ${isThisPlaying ? 'text-[#1ed760]' : 'text-white'}`}>
+                        {track.title}
+                      </p>
+                      <p className="text-xs text-[#b3b3b3] truncate mt-0.5">
+                        {track.artist}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4 shrink-0 text-xs text-[#b3b3b3]">
+                    <span className="text-amber-400 font-bold text-[10px] uppercase px-2 py-0.5 rounded bg-amber-400/10 border border-amber-400/20">
+                      Local
+                    </span>
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeLocalTrack(track.id);
+                      }}
+                      className="p-1.5 text-[#727272] hover:text-red-400 transition cursor-pointer"
+                      title="Remove local track"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+
+                    <span className="tabular-nums">
+                      {Math.floor(track.duration / 60)}:{(track.duration % 60).toString().padStart(2, '0')}
+                    </span>
+                  </div>
+                </div>
+              );
+            }}
+          />
+        )}
+      </div>
+    );
+  }
+
+  // 5. Default Overview View
   return (
     <div className="space-y-6 pb-36">
       <div className="flex items-center justify-between">
@@ -741,7 +935,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
       </div>
 
       {/* Quick Library Tiles */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* Liked Songs Tile */}
         <div 
           onClick={() => setActiveSection('liked')}
@@ -778,6 +972,27 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
               </h3>
               <p className="text-xs text-[#b3b3b3] mt-0.5">
                 {offlineTracks.length} {offlineTracks.length === 1 ? 'offline track' : 'offline tracks'}
+              </p>
+            </div>
+          </div>
+          <ChevronLeft className="w-5 h-5 text-[#727272] group-hover:text-white rotate-180 transition" />
+        </div>
+
+        {/* Local Files Tile */}
+        <div 
+          onClick={() => setActiveSection('local')}
+          className="bg-[#181818] hover:bg-[#222222] p-4 rounded-xl border border-white/5 transition cursor-pointer flex items-center justify-between group shadow-sm hover:shadow-md"
+        >
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-amber-600 to-orange-800 flex items-center justify-center text-white shrink-0 shadow-md group-hover:scale-105 transition">
+              <Smartphone className="w-8 h-8" />
+            </div>
+            <div className="min-w-0">
+              <h3 className="font-bold text-white text-base group-hover:text-[#1ed760] transition">
+                Local Files
+              </h3>
+              <p className="text-xs text-[#b3b3b3] mt-0.5">
+                {localTracks.length} {localTracks.length === 1 ? 'local file' : 'local files'}
               </p>
             </div>
           </div>

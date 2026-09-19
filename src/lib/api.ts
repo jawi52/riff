@@ -1,5 +1,8 @@
 import { Track, AudioSourceType } from '../types';
 import { RIFF_ENGINE_URL } from './engineUrl';
+import { CircuitBreaker } from './circuitBreaker';
+import { GLOBAL_CATALOG } from './algorithm';
+import { deduplicateTracks } from './dedup';
 
 export interface ApiArtist {
   id: string;
@@ -162,33 +165,55 @@ export function mapApiTrackToTrack(t: any): Track {
   };
 }
 
+// Circuit breakers protecting against remote backend outages, rate limits, and slow connections
+export const engineChartsBreaker = new CircuitBreaker<ChartsResponse>({
+  name: 'EngineChartsBreaker',
+  failureThreshold: 3,
+  cooldownMs: 20000,
+  timeoutMs: 4000,
+  fallback: () => ({
+    topTracks: GLOBAL_CATALOG.slice(0, 20),
+    topArtists: ICONIC_REGIONAL_ARTISTS,
+    topAlbums: [],
+  }),
+});
+
+export const engineSearchBreaker = new CircuitBreaker<SearchResponse>({
+  name: 'EngineSearchBreaker',
+  failureThreshold: 3,
+  cooldownMs: 15000,
+  timeoutMs: 4000,
+});
+
 /**
- * Fetches global charts from live Azure backend API
+ * Fetches global charts from live Azure backend API with Circuit Breaker protection
  */
 export async function fetchCharts(): Promise<ChartsResponse> {
-  const res = await fetch(`${RIFF_ENGINE_URL}/api/v1/charts`, {
-    headers: { Accept: 'application/json' },
+  return await engineChartsBreaker.execute(async () => {
+    const res = await fetch(`${RIFF_ENGINE_URL}/api/v1/charts`, {
+      headers: { Accept: 'application/json' },
+    });
+
+    if (!res.ok) {
+      throw new Error(`Charts API returned status ${res.status}`);
+    }
+
+    const data = await res.json();
+
+    const topTracks: Track[] = (data.topTracks || []).map(mapApiTrackToTrack);
+    const topArtists: ApiArtist[] = data.topArtists || [];
+    const topAlbums: ApiAlbum[] = data.topAlbums || [];
+
+    return {
+      topTracks,
+      topArtists,
+      topAlbums,
+    };
   });
-
-  if (!res.ok) {
-    throw new Error(`Charts API returned status ${res.status}`);
-  }
-
-  const data = await res.json();
-
-  const topTracks: Track[] = (data.topTracks || []).map(mapApiTrackToTrack);
-  const topArtists: ApiArtist[] = data.topArtists || [];
-  const topAlbums: ApiAlbum[] = data.topAlbums || [];
-
-  return {
-    topTracks,
-    topArtists,
-    topAlbums,
-  };
 }
 
 /**
- * Live search across the entire music catalog
+ * Live search across the entire music catalog with Circuit Breaker protection & zero-latency fallback
  */
 export async function searchCatalog(query: string, limit = 20, signal?: AbortSignal): Promise<SearchResponse> {
   const clean = query.trim();
@@ -196,27 +221,52 @@ export async function searchCatalog(query: string, limit = 20, signal?: AbortSig
     return { tracks: [], artists: [], albums: [], total: 0 };
   }
 
-  const res = await fetch(`${RIFF_ENGINE_URL}/api/v1/search?q=${encodeURIComponent(clean)}&limit=${limit}`, {
-    signal,
-    headers: { Accept: 'application/json' },
-  });
-
-  if (!res.ok) {
-    throw new Error(`Search API returned status ${res.status}`);
-  }
-
-  const data = await res.json();
-
-  const tracks: Track[] = (data.tracks || []).map(mapApiTrackToTrack);
-  const artists: ApiArtist[] = data.artists || [];
-  const albums: ApiAlbum[] = data.albums || [];
-
-  return {
-    tracks,
-    artists,
-    albums,
-    total: data.total || tracks.length,
+  const fallbackSearch = (err: Error): SearchResponse => {
+    console.warn(`[searchCatalog] Circuit Breaker fallback activated (${err.message}). Searching local catalog.`);
+    const q = clean.toLowerCase();
+    const matchedTracks = GLOBAL_CATALOG.filter(
+      (t) => t.title.toLowerCase().includes(q) || t.artist.toLowerCase().includes(q)
+    ).slice(0, limit);
+    const matchedArtists = ICONIC_REGIONAL_ARTISTS.filter(
+      (a) => a.name.toLowerCase().includes(q)
+    );
+    return {
+      tracks: matchedTracks,
+      artists: matchedArtists,
+      albums: [],
+      total: matchedTracks.length + matchedArtists.length,
+    };
   };
+
+  return await engineSearchBreaker.execute(
+    async (timeoutSignal) => {
+      const effectiveSignal = signal || timeoutSignal;
+
+      const res = await fetch(`${RIFF_ENGINE_URL}/api/v1/search?q=${encodeURIComponent(clean)}&limit=${limit}`, {
+        signal: effectiveSignal,
+        headers: { Accept: 'application/json' },
+      });
+
+      if (!res.ok) {
+        throw new Error(`Search API returned status ${res.status}`);
+      }
+
+      const data = await res.json();
+
+      const rawTracks: Track[] = (data.tracks || []).map(mapApiTrackToTrack);
+      const tracks: Track[] = deduplicateTracks(rawTracks);
+      const artists: ApiArtist[] = data.artists || [];
+      const albums: ApiAlbum[] = data.albums || [];
+
+      return {
+        tracks,
+        artists,
+        albums,
+        total: data.total || tracks.length,
+      };
+    },
+    fallbackSearch
+  );
 }
 
 /**

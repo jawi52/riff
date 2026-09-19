@@ -28,12 +28,24 @@ export interface DBHistory {
   completed: boolean;
 }
 
+export interface DBSyncAction {
+  id?: number;
+  type: string;
+  payload: any;
+  createdAt: number;
+  attempts: number;
+  lastAttemptAt?: number;
+  status: 'pending' | 'processing' | 'failed' | 'quarantined';
+  errorMessage?: string;
+}
+
 // Client Dexie Database
 const db = new Dexie('RiffMusicDB') as Dexie & {
   tracks: EntityTable<DBTrack, 'id'>;
   playlists: EntityTable<DBPlaylist, 'id'>;
   lyrics: EntityTable<DBLyrics, 'trackId'>;
   history: EntityTable<DBHistory, 'id'>;
+  syncQueue: EntityTable<DBSyncAction, 'id'>;
 };
 
 db.version(1).stores({
@@ -41,6 +53,10 @@ db.version(1).stores({
   playlists: 'id, title, updatedAt',
   lyrics: 'trackId, cachedAt',
   history: '++id, trackId, artist, listenedAt'
+});
+
+db.version(2).stores({
+  syncQueue: '++id, type, status, createdAt, attempts'
 });
 
 export { db };
